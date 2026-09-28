@@ -1,0 +1,33 @@
+# Secrets / local environment
+.env
+db-init/*.sql
+.DS_Store
+
+# Full-site backups and exports: contain member emails, password hashes and the SMTP password
+www.emersonuuchapel.org_wpvivid-*/
+*.WordPress.*.xml
+wp-content/wpvividbackups/
+wp-content/wpvivid_staging/
+wp-content/wpvivid_uploads/
+wp-content/backuply/
+wp-content/upgrade-temp-backup/
+
+# Media Library (may include member directory photos)
+wp-content/uploads/
+
+# Generated caches and temp files
+wp-content/cache/
+wp-content/upgrade/
+wp-content/w3tc-config/
+wp-content/advanced-cache.php
+wp-content/local-mail/
+*.log
+
+# Third-party code (reinstall from wordpress.org or the WPvivid backup; Church Admin Premium is a paid licence)
+wp-content/plugins/
+wp-content/themes/*
+!wp-content/themes/emerson-uuchapel/
+
+# Personal reference photos and screenshots; keep only the logo source
+images/*
+!images/EmersonUUchapel.png

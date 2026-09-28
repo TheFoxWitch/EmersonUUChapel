@@ -1,0 +1,13 @@
+{
+	"files.associations": {
+		"*.html": "html"
+	},
+	"files.exclude": {
+		"**/wp-content/plugins/**/vendor/**": true,
+		"**/wp-content/uploads/**": true
+	},
+	"search.exclude": {
+		"**/wp-content/plugins/**/vendor/**": true,
+		"**/wp-content/uploads/**": true
+	}
+}

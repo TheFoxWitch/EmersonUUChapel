@@ -1,0 +1,220 @@
+/**
+ * Site-wide CSS edits for Emerson UU Chapel.
+ * Loaded on the front end via functions.php.
+ *
+ * Block/page-specific markup lives in WordPress posts (use Code editor in admin)
+ * or in ../templates/*.html and ../parts/*.html in this theme.
+ */
+/* Brand colours (blue sampled from the logo lettering) */
+:root {
+	--emerson-blue: #3f4fa0;
+	--emerson-blue-dark: #2e3a78;
+	--emerson-h1-size: clamp(1.875rem, 1.35rem + 2.2vw, 2.75rem);
+}
+
+/* Links in page content: logo blue instead of the theme's green */
+.wp-block-post-content a:where(:not(.wp-element-button)) {
+	color: var(--emerson-blue);
+}
+
+.wp-block-post-content a:where(:not(.wp-element-button)):hover,
+.wp-block-post-content a:where(:not(.wp-element-button)):active {
+	color: var(--emerson-blue-dark);
+}
+/** End Brand colours **/
+
+/* Logo */
+.emerson-header-logo {
+	display: block;
+	line-height: 0;
+}
+
+.emerson-header-logo img {
+	width: 120px;
+	height: auto;
+}
+/** End Logo **/
+
+/* All pages: centre page titles and content headings; paragraphs stay left-aligned */
+.wp-block-post-title,
+.wp-block-post-content :is(h1, h2, h3, h4, h5, h6) {
+	text-align: center;
+}
+/** End centred headings **/
+
+/* All pages: headings wrapped in <strong>/<b> in the editor keep the normal heading weight */
+.wp-block-post-content :is(h1, h2, h3, h4, h5, h6) :is(strong, b) {
+	font-weight: inherit;
+}
+/** End heading weight **/
+
+/* All pages: centre images that have no alignment set (left/right-aligned images are untouched) */
+.wp-block-post-content .wp-block-image:not(.alignleft, .alignright) {
+	text-align: center;
+}
+
+.wp-block-post-content .wp-block-image:not(.alignleft, .alignright) img {
+	margin-inline: auto;
+}
+/** End centred images **/
+
+/* Home page: also centre paragraphs */
+.home .wp-block-post-content p {
+	text-align: center;
+}
+/** End Home page text **/
+
+/* What is Unitarian Universalism? (page 196): copyright line under the video */
+.page-id-196 .wp-block-embed + p {
+	text-align: center;
+	margin-block-start: calc(var(--wp--style--block-gap, 1.5rem) + 2.22em);
+}
+/** End What is UU **/
+
+/* Religious Education (page 203): section headings match the page title */
+.page-id-203 .wp-block-post-content h2 {
+	font-size: var(--emerson-h1-size);
+	font-weight: 400;
+	line-height: 1.15;
+}
+/** End Religious Education **/
+
+/* Buttons on the home page */
+/* 2024-25 Pledge Form */
+.pledge-button .wp-block-button__link {
+	border-radius: 25px;
+	background: #2e7d5b;
+	color: #fff;
+	transition: all 0.3s ease-in-out;
+}
+.pledge-button .wp-block-button__link:hover {
+	background: #2e7d5b;
+	color: #fff;
+	transform: scale(1.05);
+}
+/* Approximate Paypal Fees */
+.paypal-fees-button .wp-block-button__link {
+	background: var(--emerson-blue);
+	color: #fff;
+	border-radius: 25px;
+	transition: all 0.3s ease-in-out;
+}
+.paypal-fees-button .wp-block-button__link:hover {
+	background: var(--emerson-blue);
+	color: #fff;
+	transform: scale(1.05);
+}
+/** End Approximate Paypal Fees **/   
+/** End Buttons on the home page **/
+
+/* Typography: fluid heading scale + line wrapping */
+h1 {
+	font-size: var(--emerson-h1-size);
+	line-height: 1.15;
+}
+
+h2 {
+	font-size: clamp(1.5rem, 1.15rem + 1.5vw, 2.125rem);
+	line-height: 1.2;
+}
+
+h3 {
+	font-size: clamp(1.25rem, 1.05rem + 0.85vw, 1.625rem);
+	line-height: 1.3;
+}
+
+h4 {
+	font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+	line-height: 1.35;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	text-wrap: balance;
+	overflow-wrap: break-word;
+}
+
+p,
+li,
+figcaption,
+blockquote {
+	text-wrap: pretty;
+	overflow-wrap: break-word;
+}
+/** End Typography **/
+
+/* Footer */
+.emerson-footer {
+	max-width: var(--wp--style--global--wide-size, 1200px);
+	margin: 0 auto;
+	padding-top: var(--wp--preset--spacing--50, 2.5rem);
+	border-top: 1px solid rgba(0, 0, 0, 0.12);
+	font-size: var(--wp--preset--font-size--small);
+}
+
+.emerson-footer__columns {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+	gap: 2rem 3rem;
+}
+
+.emerson-footer__col p {
+	margin: 0 0 1rem;
+}
+
+.emerson-footer__logo {
+	display: inline-block;
+	line-height: 0;
+	margin-bottom: 1rem;
+}
+
+.emerson-footer__logo img {
+	width: 110px;
+	height: auto;
+}
+
+.emerson-footer__heading {
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 600;
+	margin: 0 0 0.75rem;
+}
+
+.emerson-footer__links {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.emerson-footer__links li {
+	margin-bottom: 0.35rem;
+}
+
+.emerson-footer__bottom {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 0.5rem 1.5rem;
+	margin-top: 2rem;
+	padding: 1.25rem 0 0.5rem;
+	border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.emerson-footer__bottom p {
+	margin: 0;
+}
+
+@media (max-width: 600px) {
+	.emerson-footer {
+		text-align: center;
+	}
+
+	.emerson-footer__bottom {
+		justify-content: center;
+	}
+}
+/** End Footer **/
+

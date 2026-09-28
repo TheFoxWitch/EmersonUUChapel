@@ -1,0 +1,51 @@
+{
+	"folders": [
+		{
+			"name": "Emerson UU — child theme (edit here)",
+			"path": "wp-content/themes/emerson-uuchapel"
+		},
+		{
+			"name": "Parent theme (reference only)",
+			"path": "wp-content/themes/twentytwentythree"
+		},
+		{
+			"name": "Plugins",
+			"path": "wp-content/plugins"
+		},
+		{
+			"name": "Project root (Docker)",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.html": "html"
+		},
+		"files.exclude": {
+			"**/wp-content/plugins/**/vendor/**": true,
+			"**/wp-content/plugins/**/node_modules/**": true,
+			"**/wp-content/uploads/**": true
+		},
+		"search.exclude": {
+			"**/wp-content/plugins/**/vendor/**": true,
+			"**/wp-content/plugins/**/node_modules/**": true,
+			"**/wp-content/uploads/**": true,
+			"**/wp-content/cache/**": true
+		},
+		"emmet.includeLanguages": {
+			"html": "html"
+		},
+		"editor.quickSuggestions": {
+			"strings": true
+		},
+		"[php]": {
+			"editor.defaultFormatter": null
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"bmewburn.vscode-intelephense-client",
+			"wordpresstoolbox.wordpress-toolbox"
+		]
+	}
+}

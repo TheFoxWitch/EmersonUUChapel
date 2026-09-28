@@ -1,0 +1,18 @@
+---
+description: Local WordPress editing paths and conventions for Emerson UU Chapel
+globs: wp-content/**/*
+alwaysApply: false
+---
+
+# Emerson UU Chapel — local WordPress
+
+- **Stack:** Docker Compose in project root; site at http://localhost:8080
+- **Active theme:** `emerson-uuchapel` (child of `twentytwentythree`)
+- **Edit front-end code in the child theme first:**
+  - CSS: `wp-content/themes/emerson-uuchapel/assets/css/custom.css`
+  - JS: `wp-content/themes/emerson-uuchapel/assets/js/custom.js`
+  - PHP: `wp-content/themes/emerson-uuchapel/functions.php`, `patterns/*.php`
+  - Block HTML templates: `templates/*.html`, `parts/*.html`
+- **Page body HTML** is stored in the database as block markup; export/edit via WP admin Code editor, or WP-CLI `wp post get <id> --field=post_content`
+- **Do not edit** third-party plugin `vendor/` trees; prefer child theme or a small custom plugin for site-specific PHP
+- **Refresh:** save file → reload browser (hard refresh if CSS/JS cached; W3 Total Cache may need purge locally)

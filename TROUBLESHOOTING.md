@@ -82,6 +82,31 @@ The restored database has the church's real SMTP login in WP Mail SMTP.
 
 ---
 
+## Newsletter sign-up
+
+### The pop-up never appears
+It's intentionally hidden:
+- **when you're logged in**, so test in a private window;
+- **on pages other than the homepage**;
+- **for 30 days after you close it**, and **for good after you sign up**. The browser remembers this under `localStorage` → `emersonNewsletter`.
+
+**To reset it:** open DevTools (`Cmd + Option + I`) → Console → `localStorage.removeItem('emersonNewsletter')` → reload.
+
+### "Too many sign-up attempts" while testing
+Each connection gets 5 attempts per hour. Clear the limit:
+
+```bash
+docker compose run --rm wpcli eval 'global $wpdb; $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE \"\\_transient\\_%emerson\\_nl\\_%\"");'
+```
+
+### Where did the test emails go?
+Locally they're saved in `wp-content/local-mail/`. The confirmation link is inside the "Please confirm your subscription" file.
+
+### JavaScript: `form.action` returns an element, not a URL
+If a form contains an input named `action` (WordPress `admin-post.php` forms always do), then `form.action` returns that input. Use `form.getAttribute('action')`. The same applies to inputs named `method`, `submit`, `id` and so on.
+
+---
+
 ## Editing content with WP-CLI
 
 ### zsh: a command stored in a variable doesn't run (`$W post get ...`)

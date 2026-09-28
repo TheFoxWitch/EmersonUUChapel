@@ -41,6 +41,13 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
   - Duplicate Profile Builder Register pages drafted.
   - Approval checklist added to the Church Admin sign-up notification.
   - `.gitignore` ready for GitHub.
+  - **Newsletter sign-up:**
+    - homepage pop-up and a Ways to Connect form, with email confirmation;
+    - confirmed subscribers saved to Church Admin as "Mailing List", and the office notified;
+    - the pop-up comes back 30 days after it's closed;
+    - Ways to Connect published, and the Privacy Policy updated.
+
+    Fully tested, including half-finished entries. Three bugs were found and fixed (see `CHANGELOG.md`).
 
 ### In progress
 - Making site edits in Cursor via the child theme
@@ -49,6 +56,7 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
 
 ### Blocked / known issues
 - Waiting on the sitemaster for the 3 missing Welcome! page images
+- Mailchimp is still manual: the office adds each confirmed subscriber. It can be automated through the `emerson_newsletter_confirmed` hook once someone has the Mailchimp API key and audience ID.
 - Sign-up notifications go to `com@emersonuuchapel.org` (probably the webmaster / group lead; fine as-is)
 - The Docker image tag says WordPress 6.8, but the core files in the `wp_core` volume are 7.1.2 (from the restore), matching the live site. PHP is 8.2 locally vs 8.4 live.
 

@@ -83,13 +83,13 @@
 /* 2024-25 Pledge Form */
 .pledge-button .wp-block-button__link {
 	border-radius: 25px;
-	background: #2e7d5b;
-	color: #fff;
+	background: var(--wp--preset--color--vivid-green-cyan);
+	color: #1e1e1e;
 	transition: all 0.3s ease-in-out;
 }
 .pledge-button .wp-block-button__link:hover {
-	background: #2e7d5b;
-	color: #fff;
+	background: var(--wp--preset--color--vivid-green-cyan);
+	color: #1e1e1e;
 	transform: scale(1.05);
 }
 /* Approximate Paypal Fees */
@@ -332,11 +332,13 @@ blockquote {
 	transition: opacity 0.3s ease;
 }
 
+.emerson-nl-dialog.is-opening,
 .emerson-nl-dialog.is-closing {
 	opacity: 0;
 	transform: translateY(0.5rem) scale(0.98);
 }
 
+.emerson-nl-dialog.is-opening::backdrop,
 .emerson-nl-dialog.is-closing::backdrop {
 	opacity: 0;
 }

@@ -123,7 +123,11 @@
 			clearTimeout(timer);
 			window.removeEventListener('scroll', onScroll);
 			dialog.querySelector('input[name="ts"]').value = Math.floor(Date.now() / 1000);
+			dialog.classList.add('is-opening');
 			dialog.showModal();
+			// The hidden starting style has to be applied before it's removed, or there's nothing to fade from.
+			void getComputedStyle(dialog).opacity;
+			dialog.classList.remove('is-opening');
 			dialog.querySelector('input[name="first_name"]').focus();
 		}
 

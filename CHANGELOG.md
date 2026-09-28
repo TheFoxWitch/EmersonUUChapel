@@ -12,6 +12,37 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-09-28
 
+### Homepage "You Are Welcome!" heading colour
+- **Where:** local DB, homepage (15), the heading block
+- **What changed:** the hard-coded green `#318c35` is replaced by the palette colour **Vivid green cyan** (`var(--wp--preset--color--vivid-green-cyan)`, `#00d084`). It's saved in WordPress's palette format (`var:preset|color|vivid-green-cyan`) for the heading and its link colour, so the editor's colour picker shows the palette swatch instead of a custom colour.
+- **Backup:** `backups/homepage/homepage-15-before-welcome-colour.html`
+- **Accessibility note:** `#00d084` on white is about 2 : 1 contrast. WCAG asks for at least 3 : 1 for large headings, so this may be hard for some visitors to read. Worth a second look with the church.
+- **On the live site:** carried by the WPvivid restore.
+
+### Every other green on the site switched to Vivid green cyan
+- **What was searched:** all published or draft pages and posts, templates, template parts, global styles, settings, post meta and the theme files. Searched for `#318c35` and any other green.
+- **What changed:**
+  - **Homepage (15), "August 9"** (`#275329`) and **"Vote on new meeting space"** (`#2c7530`): now `var:preset|color|vivid-green-cyan`, for both the text and the link colour. (Local DB)
+  - **The homepage "2024-25 Pledge Form" button** (`custom.css`, `.pledge-button`): the background changed from `#2e7d5b` to `var(--wp--preset--color--vivid-green-cyan)`. The text changed from white to `#1e1e1e`, because white on mint is too faint to read (about 2 : 1). The dark text is about 9 : 1.
+- **Left alone on purpose:**
+  - The green in the newsletter's "Almost done" / "You're subscribed" messages (`#e7f3ec` / `#1d5b3f`). It's a success colour, paired with the red error colour.
+  - Custom CSS left over from the old Magazine Pro theme (post 88). That theme isn't active, so it has no effect.
+  - Old homepage revisions that still contain `#318c35`. They're history only and never shown.
+- **Checked in the browser:** the only green left on the homepage is `rgb(0, 208, 132)` (`#00d084`).
+- **Backup:** `backups/homepage/homepage-15-before-other-greens.html`
+
+### Newsletter pop-up fades in as well
+- **Where:** `open()` in `assets/js/newsletter.js`; `.emerson-nl-dialog.is-opening` in `custom.css`, which shares the fade-out's hidden style
+- **What changed:** the pop-up and backdrop now fade in over the same 0.3 s when the pop-up opens, with the pop-up rising slightly into place. The cursor still goes straight to "First name".
+- **Tests:**
+
+  | Test | Result |
+  |---|---|
+  | Opens by itself after 5 seconds | Pass: fade animations running on the pop-up and backdrop |
+  | Frozen partway through the fade-in | Pass: semi-transparent (screenshot) |
+  | After the fade-in | Pass: fully visible; "No thanks" still fades out and saves "dismissed" |
+  | Reduced motion switched on | Pass: appears instantly, no animation |
+
 ### Newsletter pop-up fades out instead of vanishing
 - **Where:** `assets/js/newsletter.js` (`dismiss()`) and the "Newsletter" section of `custom.css` (`.emerson-nl-dialog.is-closing`)
 - **What changed:**

@@ -25,5 +25,16 @@ add_action(
 			(string) filemtime( $js_path ),
 			true
 		);
+
+		$newsletter_js = get_stylesheet_directory() . '/assets/js/newsletter.js';
+		wp_enqueue_script(
+			'emerson-uuchapel-newsletter',
+			get_stylesheet_directory_uri() . '/assets/js/newsletter.js',
+			array(),
+			(string) filemtime( $newsletter_js ),
+			true
+		);
 	}
 );
+
+require_once get_stylesheet_directory() . '/inc/newsletter.php';

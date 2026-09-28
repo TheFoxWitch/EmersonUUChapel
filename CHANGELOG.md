@@ -12,6 +12,88 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-09-28
 
+### Newsletter pop-up fades out instead of vanishing
+- **Where:** `assets/js/newsletter.js` (`dismiss()`) and the "Newsletter" section of `custom.css` (`.emerson-nl-dialog.is-closing`)
+- **What changed:**
+  - Every way of closing (×, "No thanks", Esc, clicking outside) now fades the pop-up and the dark backdrop over 0.3 s. The pop-up also sinks slightly as it fades.
+  - After a successful sign-up the "Almost done!" message stays up for 4 seconds, then the pop-up fades out by itself. The visitor can still close it sooner.
+  - Visitors whose device is set to reduce motion get an instant close, with no animation.
+- **Tests:**
+
+  | Test | Result |
+  |---|---|
+  | ×, "No thanks", backdrop, Esc | Pass: the fade animations run (pop-up and backdrop) and "dismissed" is saved |
+  | × clicked twice quickly | Pass: closes once |
+  | Frozen partway through the fade | Pass: semi-transparent, with the homepage showing through |
+  | Valid sign-up | Pass: message still showing at 2 s, closed by 5.5 s, "subscribed" saved |
+  | Reduced motion switched on | Pass: no animation, closes immediately |
+- **Problem found:** the fade was sometimes skipped and the pop-up jumped straight to invisible. Browsers only animate from a style they've already worked out, and a freshly opened pop-up may not have one yet. Fixed by making the browser settle the pop-up's current style before the fade starts.
+- **Test-tool note:** the Cursor test browser barely draws frames when it's in the background, so sampling the opacity mid-fade always read 1. The fade was verified by checking that the browser created the animations, and by freezing one halfway for a screenshot.
+
+### Newsletter sign-up: homepage pop-up and Ways to Connect form
+- **Where:**
+  - **File:**
+    - `inc/newsletter.php` (loaded from `functions.php`)
+    - `assets/js/newsletter.js`
+    - the "Newsletter" section of `custom.css`
+  - **Local DB:**
+    - Ways to Connect (218) published, with the `[emerson_newsletter_form]` shortcode
+    - the homepage (15) "Sign up for our Newsletter!" link now points to `/ways-to-connect/`
+    - Privacy Policy (3) updated
+- **How it works:**
+  - **Who sees the pop-up:** logged-out visitors to the homepage only. Logged-in users never get it; the server leaves it out of the page.
+  - **When it opens:** after 5 seconds, or once the visitor has scrolled 40% of the page.
+  - **Signing up:** first name (required), last name, email (required). The visitor gets a confirm-your-email link that works for 7 days. Nothing is saved to Church Admin until they click it.
+  - **On confirmation:**
+    - They're saved to Church Admin as member type **Mailing List**, with their own private household, hidden from the member directory (`show_me=0`).
+    - The office gets "New newsletter subscriber: Name" at `office@emersonuuchapel.org`, with a reminder to add them in Mailchimp.
+    - If the email is already in Church Admin, no duplicate is made, and the office email says who it matches.
+  - **The browser note:** stored in `localStorage` under `emersonNewsletter`, never sent to the server. It holds `subscribed` (never show again) or `dismissed` plus the date (show again after 30 days). There's no name or email in it.
+  - **Spam protection:**
+    - a hidden trap field;
+    - a minimum of 2 seconds between the form appearing and being sent;
+    - at most 5 sign-up attempts per hour per connection;
+    - no second confirmation email to the same address within 10 minutes;
+    - the same "Almost done" reply whether or not someone is already subscribed, so the form can't be used to check who is on the list.
+  - **Later:** a `do_action( 'emerson_newsletter_confirmed', $data )` hook fires on confirmation. A Mailchimp connection can go there once someone has the API key and audience ID.
+- **Backup:** `backups/newsletter/` (pages 3, 15 and 218 before the change)
+- **On the live site:** carried by the WPvivid restore. See `DEPLOY-WPVIVID.md` step C6 for the checks.
+
+#### Test results (all local; the mail catcher captured every email)
+
+| Test | Result |
+|---|---|
+| Pop-up on the homepage, logged out | Pass: hidden at 0.85 s, open after 5 s, cursor in "First name" |
+| Pop-up for a logged-in user / on other pages | Pass: not in the page |
+| "No thanks", ×, backdrop click, Esc key | Pass: closes and saves "dismissed" (after the fix below) |
+| Reload after dismissing (waiting and scrolling) | Pass: stays hidden |
+| Dismissed 29 days ago / 31 days ago | Pass: hidden / shows again |
+| Browser: only a first name, then `browser@` | Pass: the browser blocks it; nothing is sent |
+| Browser: `browser@example` (no dot in the domain) | Pass: the server's message "Please enter a valid email address" appears (after the fix below) |
+| Browser: valid sign-up | Pass: "Almost done!", form hidden, button changes to "Close", browser stores "subscribed" |
+| Confirmation link clicked in the browser | Pass: green "You're subscribed" notice. The pop-up is suppressed even on a browser that never saw it |
+| Server: empty form; first name only; email only; `alice@` | Pass: specific error messages, HTTP 400, no email, nothing stored |
+| Server: spaces-only name; 61-character name; 101-character email; `<script>` as name | Pass: rejected with a message |
+| Server: hidden trap filled; sent 0 seconds after load | Pass: fake "Almost done", nothing stored or sent |
+| Same email twice in a row (different capitalisation) | Pass: one email only |
+| Sixth attempt within an hour | Pass: "Too many sign-up attempts", HTTP 429 |
+| Without JavaScript (plain form post) | Pass: redirects back to the page with the message; an outside return address is refused and goes home instead |
+| Link clicked twice; made-up, short, empty or junk link; link older than 7 days | Pass: "expired or already used", nothing saved |
+| Existing Church Admin member confirms | Pass: no duplicate; the office email names the existing record |
+| New subscriber in the member directory | Pass: not shown |
+| Phone-sized screen (390 × 844) | Pass: 352 × 625 pop-up, fields stack |
+
+#### Problems found during testing (all fixed)
+1. **No sign-up from the browser could ever work.** The form has a hidden field named `action` (WordPress requires it), and in JavaScript `form.action` returns that field, not the address. Every sign-up went to `/[object HTMLInputElement]` (404) and showed "Something went wrong". The direct server tests didn't catch it because they skip the JavaScript. Fixed by using `form.getAttribute('action')`. The script also now reports a clear error if the reply isn't JSON.
+2. **Closing with Esc could forget the dismissal.** Newer Chrome closes a pop-up on a second Esc press even when the page tries to block it, and then the "dismissed" note wasn't saved, so the pop-up came back on the next visit. Now every way of closing runs through the pop-up's `close` event, and there's an explicit Esc handler.
+3. **Opening the form's address directly** (a GET with no return address) redirected back to `admin-post.php` itself. It now falls back to the homepage.
+4. **The Ways to Connect form was narrower than the text around it.** Now it lines up.
+
+#### Known limits (not bugs)
+- **Email link scanners.** Some work email systems (for example Outlook "Safe Links") open links in incoming mail to scan them, which could confirm a sign-up before the person clicks. Mailchimp's own confirmations work the same way.
+- **One sign-up per browser.** The pop-up can't recognise someone who subscribed on another device until they confirm there or log in.
+- **Browser-test tool limitation.** Its "press Esc" closes the pop-up without firing real keyboard events, so Esc was verified by sending a genuine keyboard event from inside the page instead.
+
 ### Deploy guide written
 - **Where:** File, [`DEPLOY-WPVIVID.md`](DEPLOY-WPVIVID.md)
 - **What:** Steps to back up the local site with WPvivid, restore it onto the live site, and reconnect what differs locally:

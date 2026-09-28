@@ -74,6 +74,13 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
    - While logged out, open `/member-home/`. It should send you to `/members/`.
    - Log in as a normal member: Members should show "My Emerson experience" and My schedule. This also confirms the Church Admin Premium licence.
    - `/register-2/` and `/register-3/` should be 404.
+   - **Newsletter:**
+     1. In a private window, open the homepage. The "Stay connected" pop-up should appear after about 5 seconds.
+     2. Sign up with your own email and click the confirmation link.
+     3. Check that `office@` receives "New newsletter subscriber", and that the person appears in Church Admin as "Mailing List".
+     4. Delete that test entry afterwards.
+
+     With page caching on, the pop-up is part of the cached homepage. That's intended, because the decision to show it is made in the visitor's browser. Confirmation links bypass the cache because they have a `?` in the address.
 7. **Look over the pages.**
    - homepage buttons
    - footer and Privacy Policy link

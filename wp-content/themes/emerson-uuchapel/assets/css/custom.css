@@ -218,3 +218,226 @@ blockquote {
 }
 /** End Footer **/
 
+/* Newsletter sign-up (pop-up, Ways to Connect form, confirmation notice) */
+.emerson-nl-form__row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+	gap: 0 1rem;
+}
+
+.emerson-nl-form__field {
+	margin: 0 0 0.9rem;
+	text-align: left;
+}
+
+.emerson-nl-form__field label {
+	display: block;
+	margin-bottom: 0.25rem;
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+}
+
+.emerson-nl-form__field input {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid rgba(0, 0, 0, 0.3);
+	border-radius: 6px;
+	font: inherit;
+}
+
+.emerson-nl-form__field input:focus-visible {
+	outline: 2px solid var(--emerson-blue);
+	outline-offset: 1px;
+	border-color: var(--emerson-blue);
+}
+
+.emerson-nl-form__actions {
+	margin: 0.25rem 0 0;
+}
+
+.emerson-nl-form__submit {
+	padding: 0.7rem 1.75rem;
+	border: 0;
+	border-radius: 25px;
+	background: var(--emerson-blue);
+	color: #fff;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s ease-in-out;
+}
+
+.emerson-nl-form__submit:hover,
+.emerson-nl-form__submit:focus-visible {
+	background: var(--emerson-blue-dark);
+}
+
+.emerson-nl-form__submit:disabled {
+	opacity: 0.7;
+	cursor: wait;
+}
+
+.emerson-nl-form__message:empty {
+	display: none;
+}
+
+.emerson-nl-form__message {
+	margin: 0.9rem 0 0;
+	padding: 0.6rem 0.8rem;
+	border-radius: 6px;
+	font-size: var(--wp--preset--font-size--small);
+}
+
+.emerson-nl-form__message.is-success {
+	background: #e7f3ec;
+	color: #1d5b3f;
+}
+
+.emerson-nl-form__message.is-error {
+	background: #fbeaea;
+	color: #8a1f1f;
+}
+
+.emerson-nl-form.is-done .emerson-nl-form__row,
+.emerson-nl-form.is-done .emerson-nl-form__field,
+.emerson-nl-form.is-done .emerson-nl-form__actions {
+	display: none;
+}
+
+.emerson-nl-hp {
+	position: absolute;
+	left: -10000px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+.emerson-nl-inline .emerson-nl-form {
+	margin-block: 0 1.5rem;
+}
+
+.emerson-nl-dialog {
+	width: min(30rem, calc(100vw - 2rem));
+	max-height: calc(100vh - 2rem);
+	padding: 0;
+	border: 0;
+	border-radius: 12px;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+	transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.emerson-nl-dialog::backdrop {
+	background: rgba(20, 24, 48, 0.55);
+	transition: opacity 0.3s ease;
+}
+
+.emerson-nl-dialog.is-closing {
+	opacity: 0;
+	transform: translateY(0.5rem) scale(0.98);
+}
+
+.emerson-nl-dialog.is-closing::backdrop {
+	opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.emerson-nl-dialog,
+	.emerson-nl-dialog::backdrop {
+		transition: none;
+	}
+}
+
+.emerson-nl-dialog__inner {
+	position: relative;
+	padding: 2rem 1.75rem 1.25rem;
+	text-align: center;
+}
+
+.emerson-nl-dialog__close {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.6rem;
+	padding: 0.25rem 0.6rem;
+	border: 0;
+	background: none;
+	font-size: 1.75rem;
+	line-height: 1;
+	color: inherit;
+	cursor: pointer;
+}
+
+.emerson-nl-dialog__title {
+	margin: 0 0 0.5rem;
+	font-size: clamp(1.5rem, 1.3rem + 1vw, 1.875rem);
+}
+
+.emerson-nl-dialog__intro {
+	margin: 0 0 1.25rem;
+}
+
+.emerson-nl-dialog__fine {
+	margin: 1rem 0 0;
+	font-size: var(--wp--preset--font-size--small);
+	opacity: 0.8;
+}
+
+.emerson-nl-dialog__fine a {
+	color: var(--emerson-blue);
+}
+
+.emerson-nl-dialog__decline {
+	margin: 0.5rem 0 0;
+}
+
+.emerson-nl-dialog__no {
+	padding: 0.25rem 0.5rem;
+	border: 0;
+	background: none;
+	font: inherit;
+	font-size: var(--wp--preset--font-size--small);
+	text-decoration: underline;
+	color: inherit;
+	cursor: pointer;
+}
+
+.emerson-nl-toast {
+	position: fixed;
+	left: 50%;
+	bottom: 1.5rem;
+	z-index: 1000;
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	width: min(32rem, calc(100vw - 2rem));
+	padding: 1rem 1.25rem;
+	border-radius: 10px;
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+	transform: translateX(-50%);
+}
+
+.emerson-nl-toast p {
+	margin: 0;
+	flex: 1;
+}
+
+.emerson-nl-toast.is-success {
+	background: #e7f3ec;
+	color: #1d5b3f;
+}
+
+.emerson-nl-toast.is-error {
+	background: #fbeaea;
+	color: #8a1f1f;
+}
+
+.emerson-nl-toast__close {
+	border: 0;
+	background: none;
+	font-size: 1.5rem;
+	line-height: 1;
+	color: inherit;
+	cursor: pointer;
+}
+/** End Newsletter **/
+

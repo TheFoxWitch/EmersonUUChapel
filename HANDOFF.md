@@ -1,6 +1,6 @@
 # Session handoff — UUA Church WordPress local dev
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 **Full list of changes (and how to repeat each on the live site): [`CHANGELOG.md`](CHANGELOG.md).
 Problems hit and their fixes: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
@@ -8,7 +8,7 @@ Going live with a WPvivid backup of this local site: [`DEPLOY-WPVIVID.md`](DEPLO
 
 GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contains the docs, the Docker setup, the child theme, the mail catcher and `backups/`. No plugins, uploads or site backups (see `.gitignore`).
 
-> Local email is switched off (`wp-content/mu-plugins/local-mail-catcher.php`); messages are saved to `wp-content/local-mail/` instead of being sent.
+> **Local email is in redirect mode (since 2026-09-29):** every email is really sent, through the church's NetSol account, but only to the intern's test mailbox. The subject shows the original recipient. A copy is also saved in `wp-content/local-mail/`. **Before the WPvivid backup**, switch back to save only with `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`. Every local-only setting and how to undo it is in the table at the top of [`DEPLOY-WPVIVID.md`](DEPLOY-WPVIVID.md). The testing list is in [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md).
 
 ## Where we are
 
@@ -52,7 +52,8 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
 ### In progress
 - Making site edits in Cursor via the child theme
 - **Sign-up and member access:** proposal drafted (single sign-up through Church Admin; access tiers). Waiting on church leadership decisions.
-- **Going live:** follow `DEPLOY-WPVIVID.md`. The main post-restore task is turning W3 Total Cache page caching back on.
+- **Testing forms and sign-ups with real email:** work through `TEST-AND-LAUNCH-CHECKLIST.md`, section 1.
+- **Going live:** follow `DEPLOY-WPVIVID.md`. Before the backup, turn email redirect off. After the restore, turn W3 Total Cache page caching back on.
 
 ### Blocked / known issues
 - Waiting on the sitemaster for the 3 missing Welcome! page images

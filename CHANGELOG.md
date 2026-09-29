@@ -10,6 +10,27 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-09-29
+
+### Local email can now be sent for real, to one test address only
+- **Where:** `wp-content/mu-plugins/local-mail-catcher.php`. The switch is the option `emerson_local_mail_redirect_to` in the local DB.
+- **What changed:** the catcher has a second mode.
+  - **No address set** (default): it saves only, as before.
+  - **Address set:** email goes out through the original WP Mail SMTP (NetSol) settings, but every message is sent only to that address. To, CC and BCC are replaced, and the subject is prefixed with `[LOCAL TEST → original recipient]`.
+  - It still does nothing on the live site.
+- **Why this approach:** the local database has the real members and users. A redirect guarantees that no test, bulk email or password reset can reach them.
+- **Checked:** every mail-sending plugin (Church Admin, WPForms, Profile Builder, Zephyr, Calculated Fields) goes through `wp_mail()`, so the redirect covers them all. Church Admin's "SMTP server" setting doesn't bypass it. Both NetSol SMTP hosts answer from the Docker container on port 587.
+- **How to switch:** see `TROUBLESHOOTING.md`, "Testing real email locally".
+- **Current state:** redirect mode **on**, set to the intern's personal test address. The address is deliberately left out of these files.
+  - Test email sent on 2026-09-29; NetSol accepted it.
+  - **Undo for production:** delete the option before the WPvivid backup (`DEPLOY-WPVIVID.md` step A3). It's listed in the local-vs-live table in that file.
+
+### Overdue scheduled jobs rescheduled
+- **What changed:** the Zephyr jobs (hourly, daily and weekly, including task notifications) had been overdue since March 2025. So had the WPForms weekly summary. They would have fired as soon as email worked, locally and again on the live site after the restore. The Zephyr jobs now run on their normal timing from 2026-09-29. WPForms rescheduled its own summary for 2026-10-05.
+
+### Test and launch checklist
+- **Where:** `TEST-AND-LAUNCH-CHECKLIST.md` (new). `DEPLOY-WPVIVID.md` step A3 now says to switch email back to save only and remove test data before the backup.
+
 ## 2026-09-28
 
 ### Homepage "You Are Welcome!" heading colour

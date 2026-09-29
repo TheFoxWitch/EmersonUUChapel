@@ -16,6 +16,8 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 | `.htaccess` | Plain WordPress rules | W3 Total Cache rules + WordPress rules | Re-saving W3TC settings and permalinks regenerates it (steps C2–C3). A copy of the live file is saved in step B2. |
 | W3 Total Cache page cache | **Off** | **On** (Disk: Enhanced) | **You**: turn it back on (step C3). Everything else in W3TC is identical. |
 | Outgoing email | Caught by `mu-plugins/local-mail-catcher.php` | Sent through WP Mail SMTP (NetSol) | Automatic. The catcher only runs on `localhost`, and the SMTP settings travel in the database. Test in step C5. |
+| Email redirect mode (since 2026-09-29) | **On**: option `emerson_local_mail_redirect_to` = the intern's test address. Everything is sent for real, but only to that address. | Option doesn't exist | **You**: delete the option before the backup (step A3), so a personal address isn't copied to the live database. It would do nothing on live anyway. |
+| Scheduled jobs (WP-Cron) | Zephyr jobs rescheduled on 2026-09-29, after being overdue since March 2025 | Live's own schedule | Nothing to undo. The restore brings the new, non-overdue times, so no backlog fires on live. |
 | WordPress version | 7.1.2 | 7.1.2 | Same. (The Docker image name says 6.8, but the core files are 7.1.2 from the restore.) |
 | PHP / MySQL | 8.2 / MySQL 8.0 | 8.4.25 / MariaDB 11.4 | No action needed. |
 | WPvivid remote storage and schedules | None | None | Nothing to reconnect. |
@@ -34,9 +36,10 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 
    Either copy those changes into the local site first, or re-enter them after the restore.
 2. **Leadership sign-off.** The Privacy Policy page (3) is published locally and will go live with the restore.
-3. **Optional tidy-up.** In **WPvivid → Backups**, delete the old 2026-09-24 backup from the list so the new one is easy to spot. A full copy stays in the project folder (`www.emersonuuchapel.org_wpvivid-…`).
-4. **Make the backup.** **WPvivid Backup → Backup & Restore → Backup Now** → **Database + Files (WordPress Files)** → Save to local. Wait for it to finish.
-5. **Download every part** of the new backup (WPvivid splits it into several zip files). Keep them together in one folder.
+3. **Email back to save only, and test data removed.** Run `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`. Delete test households and people from Church Admin, and any test user accounts. See [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md).
+4. **Optional tidy-up.** In **WPvivid → Backups**, delete the old 2026-09-24 backup from the list so the new one is easy to spot. A full copy stays in the project folder (`www.emersonuuchapel.org_wpvivid-…`).
+5. **Make the backup.** **WPvivid Backup → Backup & Restore → Backup Now** → **Database + Files (WordPress Files)** → Save to local. Wait for it to finish.
+6. **Download every part** of the new backup (WPvivid splits it into several zip files). Keep them together in one folder.
 
 ## B. Before restoring (on the destination site)
 

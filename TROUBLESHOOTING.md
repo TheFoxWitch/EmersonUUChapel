@@ -80,6 +80,25 @@ The restored database has the church's real SMTP login in WP Mail SMTP.
 
 `wp-content/mu-plugins/local-mail-catcher.php` stops all email when the site address is `localhost` and saves each message to `wp-content/local-mail/`. If real email ever goes out locally, check that the file is still there and that the site address is still `http://localhost:8080` (**Settings → General**).
 
+### Testing real email locally (redirect mode)
+The catcher has two modes:
+
+- **Save only** (default): nothing is sent.
+- **Redirect**: email is sent for real through the church's NetSol account, but only to one test address. CC and BCC copies are removed, and the subject starts with `[LOCAL TEST → original recipient]`. A copy is still saved in `local-mail/`.
+
+```bash
+export PATH="$HOME/.docker/bin:$PATH"
+# Redirect mode on (use your own address):
+docker compose run --rm -T wpcli option update emerson_local_mail_redirect_to you@example.com
+# Back to save only:
+docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to
+```
+
+Switch back to save only before making the WPvivid backup. The mode would do nothing on the live site anyway, because the catcher only runs on `localhost`.
+
+### Old scheduled emails fire all at once
+The backup was made in March 2025, so WP-Cron jobs such as Zephyr reminders and the WPForms weekly summary were over a year overdue. They would have run the moment email worked. On 2026-09-29 they were rescheduled to run from that day on their normal timing. If an old backup is ever restored again, run `docker compose run --rm -T wpcli cron event list` and look for events dated in the past before turning email on.
+
 ---
 
 ## Newsletter sign-up

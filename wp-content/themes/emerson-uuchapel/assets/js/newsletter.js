@@ -12,6 +12,7 @@
 	var OPEN_AT_SCROLL = 0.4;
 	var FADE_MS = 300; // Match the transition on .emerson-nl-dialog in custom.css.
 	var CLOSE_AFTER_SUCCESS_MS = 4000;
+	var SLOW_NOTICE_MS = 2000;
 
 	function storageWorks() {
 		try {
@@ -40,8 +41,14 @@
 	function showMessage(form, text, kind) {
 		var box = form.querySelector('.emerson-nl-form__message');
 		box.textContent = text;
-		box.classList.remove('is-success', 'is-error');
+		box.classList.remove('is-success', 'is-error', 'is-info');
 		box.classList.add('is-' + kind);
+	}
+
+	function clearMessage(form) {
+		var box = form.querySelector('.emerson-nl-form__message');
+		box.textContent = '';
+		box.classList.remove('is-success', 'is-error', 'is-info');
 	}
 
 	function setupForm(form) {
@@ -59,7 +66,12 @@
 			var data = new FormData(form);
 			data.append('ajax', '1');
 			button.disabled = true;
+			button.classList.add('is-busy');
 			button.textContent = 'Sending…';
+			clearMessage(form);
+			var slowNotice = setTimeout(function () {
+				showMessage(form, 'Still working on it. This can take a few seconds…', 'info');
+			}, SLOW_NOTICE_MS);
 
 			// form.action would return the hidden input named "action", not the URL.
 			fetch(form.getAttribute('action'), { method: 'POST', body: data, credentials: 'same-origin' })
@@ -86,7 +98,9 @@
 					showMessage(form, 'Something went wrong. Please check your connection and try again.', 'error');
 				})
 				.then(function () {
+					clearTimeout(slowNotice);
 					button.disabled = false;
+					button.classList.remove('is-busy');
 					button.textContent = 'Subscribe';
 				});
 		});

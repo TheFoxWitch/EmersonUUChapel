@@ -19,7 +19,11 @@ function emerson_local_mail_save( $atts, $note = '' ) {
 	$headers = is_array( $atts['headers'] ) ? implode( "\n", $atts['headers'] ) : (string) $atts['headers'];
 	$body    = $note . "To: {$to}\nSubject: {$atts['subject']}\n{$headers}\n\n{$atts['message']}\n";
 
-	$name = gmdate( 'Y-m-d_His' ) . '_' . sanitize_file_name( substr( $atts['subject'], 0, 60 ) ) . '.txt';
+	$base = gmdate( 'Y-m-d_His' ) . '_' . sanitize_file_name( substr( $atts['subject'], 0, 60 ) );
+	$name = "{$base}.txt";
+	for ( $n = 2; file_exists( "{$dir}/{$name}" ); $n++ ) {
+		$name = "{$base}-{$n}.txt";
+	}
 	file_put_contents( "{$dir}/{$name}", $body );
 }
 

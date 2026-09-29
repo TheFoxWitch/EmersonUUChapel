@@ -96,6 +96,24 @@ docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to
 
 Switch back to save only before making the WPvivid backup. The mode would do nothing on the live site anyway, because the catcher only runs on `localhost`.
 
+### Submitting a form takes about 10 seconds
+NetSol's SMTP server is slow: about 7 seconds to connect, encrypt and log in, then the message itself. Anything that waits for `wp_mail()` before answering the visitor feels frozen.
+
+- **Newsletter:** it answers first and sends afterwards (`emerson_nl_release_visitor()` in `inc/newsletter.php`).
+- **Newcomer form:** WPForms' "Optimize Email Sending" setting does the same through a background job.
+- **For real speed everywhere:** switch WP Mail SMTP to a sending service (Brevo, SendLayer, etc.) instead of the NetSol mailbox.
+
+To time the SMTP steps without sending anything, use WordPress's bundled `PHPMailer\PHPMailer\SMTP` class in `wp eval`. Time `connect()`, `hello()`, `startTLS()`, `authenticate()` and `quit()` separately.
+
+### Background jobs never run locally (WP-Cron, WPForms background email, Site Health loopback)
+The site address is `localhost:8080`, but inside Docker Apache listens on port 80, so WordPress can't reach itself. `mu-plugins/local-loopback.php` redirects those requests to the `wordpress` container. If background jobs stop again, check that the file is there and that the web service in `docker-compose.yml` is still called `wordpress`.
+
+### Two caught emails, only one file
+Fixed on 2026-09-29. The catcher used to name files by the second and the subject, so two emails with the same subject in the same second overwrote each other. It now adds `-2`, `-3` and so on.
+
+### Testing email failures in "save only" mode
+The catcher's `pre_wp_mail` filter always reports success. A test filter that makes email fail has to run **after** it (priority `PHP_INT_MAX`), or the catcher overrides it.
+
 ### Old scheduled emails fire all at once
 The backup was made in March 2025, so WP-Cron jobs such as Zephyr reminders and the WPForms weekly summary were over a year overdue. They would have run the moment email worked. On 2026-09-29 they were rescheduled to run from that day on their normal timing. If an old backup is ever restored again, run `docker compose run --rm -T wpcli cron event list` and look for events dated in the past before turning email on.
 

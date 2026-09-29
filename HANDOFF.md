@@ -53,10 +53,16 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
 - Making site edits in Cursor via the child theme
 - **Sign-up and member access:** proposal drafted (single sign-up through Church Admin; access tiers). Waiting on church leadership decisions.
 - **Testing forms and sign-ups with real email:** work through `TEST-AND-LAUNCH-CHECKLIST.md`, section 1.
+- **Members area (2026-09-29):**
+  - `/members/` is the login page when logged out and the members' hub when logged in (`inc/members.php`).
+  - Login attempts are limited by the Limit Login Attempts Reloaded plugin.
+  - Only 2 households have opted into the directory. That's a church decision.
+  - The newsletter and the Newcomer form no longer wait about 10 seconds for NetSol; their emails are sent after the visitor has their answer.
+  - `mu-plugins/local-loopback.php` lets WordPress's background jobs run locally.
 - **Going live:** follow `DEPLOY-WPVIVID.md`. Before the backup, turn email redirect off. After the restore, turn W3 Total Cache page caching back on.
 
 ### Blocked / known issues
-- Waiting on the sitemaster for the 3 missing Welcome! page images
+- Waiting on the sitemaster for the 3 missing Welcome! page images, and 5 banner photos for Serve Emerson Chapel (`service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg`, `board-meetings.jpg`). Those are also missing on the live site. The banners are solid blue for now.
 - Mailchimp is still manual: the office adds each confirmed subscriber. It can be automated through the `emerson_newsletter_confirmed` hook once someone has the Mailchimp API key and audience ID.
 - Sign-up notifications go to `com@emersonuuchapel.org` (probably the webmaster / group lead; fine as-is)
 - The Docker image tag says WordPress 6.8, but the core files in the `wp_core` volume are 7.1.2 (from the restore), matching the live site. PHP is 8.2 locally vs 8.4 live.

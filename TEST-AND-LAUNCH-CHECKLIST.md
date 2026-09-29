@@ -1,6 +1,6 @@
 # Test and launch checklist
 
-Tick items off as you go. Deployment steps in detail: [`DEPLOY-WPVIVID.md`](DEPLOY-WPVIVID.md). How to switch email modes: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md#testing-real-email-locally-redirect-mode).
+Tick items off as you go. Deployment steps in detail: `[DEPLOY-WPVIVID.md](DEPLOY-WPVIVID.md)`. How to switch email modes: `[TROUBLESHOOTING.md](TROUBLESHOOTING.md#testing-real-email-locally-redirect-mode)`.
 
 ## 1. Local testing (email in redirect mode)
 
@@ -8,13 +8,16 @@ In redirect mode every email really goes out, but only to your test mailbox. The
 
 Use a private window (Cmd+Shift+P) for anything that should be tested logged out.
 
-- [ ] **Newcomer Information form** (`/contact-newcomer-information/`)
-  - "Newcomer information" email arrives (original recipient: `office@`)
+- [x] **Newcomer Information form** (`/contact-newcomer-information/`)
+  - "Thanks for contacting us!" appears within about a second
+  - "Newcomer information" email arrives within a minute or so (original recipient: `office@`). It's sent as a background job.
   - Replying to it goes to the address typed in the form
   - The phone field accepts `(636) 555-0123`, `636-555-0123` and `6365550123`
-- [ ] **Newsletter pop-up** (homepage, logged out)
+  - Answering **Yes** to the newsletter question also sends the "Please confirm your subscription" email. After the click, "New newsletter subscriber" says "Signed up from: Newcomer Information form". Answering **No** sends only the office email.
+- [x] **Newsletter pop-up** (homepage, logged out)
   - Opens after 5 seconds, fades in; ×, "No thanks", Esc and clicking outside all fade it out
-  - Sign-up shows "Almost done!" and fades out after about 4 seconds
+  - Sign-up shows "Almost done!" within about a second (not about 10), then fades out after about 4 seconds
+  - The confirmation email arrives a few seconds later. It's sent after the visitor has their answer.
   - "Please confirm your subscription" email arrives
   - The link shows the green "You're subscribed" notice
   - "New newsletter subscriber" email arrives (original recipient: `office@`)
@@ -25,10 +28,20 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - The registrant gets a confirm-your-email message
   - After confirming, the "new household" email with the approval steps arrives (original recipient: `com@`)
   - Approving them in Church Admin sends the "user login created" email
-- [ ] **Login and password reset** (Members page)
-  - The reset email arrives and its link works
-  - Only one login form shows on the page
-- [ ] **Restricted pages** (for example Member Home) when logged out: redirect to the Members login, then back to the page after logging in
+- [ ] **Members page: login, hub and password reset**
+  - Logged out, `/members/` shows the login form, "Lost your password?" and the registration form, with no member content
+  - A wrong password gives an on-page error
+  - A correct login shows the hub on the same page:
+    - Sunday services
+    - my serving schedule and dates I can't serve
+    - upcoming events
+    - the directory
+  - The admin toolbar doesn't appear
+  - "Edit my profile or password" works, and "Log out" goes to the homepage
+  - "Lost your password?": the reset email arrives and its link works
+  - Old addresses (`/member-login/`, `/member-home/`, `/login/`) go to `/members/`
+- [ ] **Test with a real member login:** promote one of the test subscribers (alice fox or test Mctest) to **Member** in Church Admin, give them a login, and tick "show me". They should appear in the directory, and "My serving schedule" should work instead of saying the login isn't connected.
+- [ ] **Four wrong passwords in a row** lock you out for 20 minutes. Afterwards, clear the lockout on the **Limit Login Attempts** screen in wp-admin.
 - [ ] **Clean up afterwards:** delete test households, people and user accounts. Church Admin should be back to 65 people.
 
 ## 2. Before making the WPvivid backup
@@ -36,11 +49,21 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [ ] Email back to save only: `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`
 - [ ] Test data removed (see the last item above)
 - [ ] No scheduled jobs in the past: `docker compose run --rm -T wpcli cron event list`. The overdue ones were rescheduled on 2026-09-29.
-- [ ] Leadership has approved the Privacy Policy wording, including the newsletter and local-storage sections
-- [ ] The 3 missing Welcome! page images from the sitemaster are added
+- [ ] Leadership has approved the Privacy Policy wording, including the newsletter, local-storage and login-protection sections
+- [ ] **Church decision: the member directory.** Only households that opted in ("show me") are listed, currently 2 of the 32 Members. Decide whether to ask members to opt in, for example with a note in the newsletter or Church Admin's "update your details" email.
+- [ ] Optional: hide the Website and Biographical Info fields on Edit Profile (**Profile Builder → Form Fields**)
+- [ ] The missing images from the sitemaster are added:
+  - 3 on the Welcome! page
+  - 5 on Serve Emerson Chapel: `service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg`, `board-meetings.jpg` (uploaded 2021/11 and 2022/07). Until then those banners are solid blue. See `CHANGELOG.md` for how to put the photos back.
 - [ ] Decision on the mint green (`#00d084`), which has low contrast as text on white
 - [ ] Someone monitors `office@emersonuuchapel.org` (newsletter and Newcomer form) and `com@emersonuuchapel.org` (Church Admin and the site admin)
 - [ ] Optional: delete unused forms. That's 6 Calculated Fields demo forms that email `com@` and copy the visitor, the "Emerson 2023-24 Pledge Drive" WPForm and the "Simple Contact Form" WPForm.
+- [ ] **To build: social media icons in the footer.** Use the links already on Ways to Connect:
+  - Facebook `https://www.facebook.com/emersonuuchapel`
+  - Instagram `https://instagram.com/emersonuuchapel`
+  - Twitter/X `https://twitter.com/EmersonChapel`
+
+  All three answered on 2026-09-29. Ask the church whether the Twitter/X account is still used before including it.
 - [ ] Anything changed on the live site since 2026-09-24 has been copied into the local site (the restore replaces it)
 
 ## 3. After restoring to the live site
@@ -50,5 +73,8 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [ ] No leftover `localhost:8080` links (spot-check the homepage, the menu and the footer)
 - [ ] Logged out, the homepage pop-up still opens with page caching on; logged in, it never shows
 - [ ] One real newsletter sign-up and one Newcomer form submission reach `office@`
+  - Both should answer within about a second.
+  - If the Newcomer email never arrives, see `DEPLOY-WPVIVID.md` step C5 (WP-Cron / loopback on the host).
+- [ ] Optional: ask the church about a sending service (Brevo, SendLayer) instead of the NetSol mailbox, for faster and more reliable email everywhere
 - [ ] Mailchimp: the office adds new subscribers by hand until someone provides an API key and audience ID
 - [ ] Remove your own test sign-up from Church Admin and Mailchimp afterwards

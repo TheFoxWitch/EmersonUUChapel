@@ -17,6 +17,10 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 | W3 Total Cache page cache | **Off** | **On** (Disk: Enhanced) | **You**: turn it back on (step C3). Everything else in W3TC is identical. |
 | Outgoing email | Caught by `mu-plugins/local-mail-catcher.php` | Sent through WP Mail SMTP (NetSol) | Automatic. The catcher only runs on `localhost`, and the SMTP settings travel in the database. Test in step C5. |
 | Email redirect mode (since 2026-09-29) | **On**: option `emerson_local_mail_redirect_to` = the intern's test address. Everything is sent for real, but only to that address. | Option doesn't exist | **You**: delete the option before the backup (step A3), so a personal address isn't copied to the live database. It would do nothing on live anyway. |
+| WordPress calling itself (loopback) | Needs `mu-plugins/local-loopback.php`, because of Docker's port 8080 → 80 mapping | Works normally | Automatic. The file only runs when the site address is `localhost:8080`, so it can travel with the backup. |
+| WPForms "Optimize Email Sending" | **On** since 2026-09-29 | Off (2026-09-24 backup) | **Keep it on**; it's intended for production. It depends on WP-Cron working on the live host. Check in step C5 that the Newcomer email arrives. |
+| Limit Login Attempts Reloaded | **Installed** 2026-09-29 (default settings) | Not installed | Carried by the backup's plugins. After the restore, check that failed logins are counted per visitor, not all from one address (see step C6). |
+| Members page login | Profile Builder form on `/members/`, which is never page-cached (`DONOTCACHEPAGE`) | `wp-login.php` link | Automatic. Test logging in and out in step C6. |
 | Scheduled jobs (WP-Cron) | Zephyr jobs rescheduled on 2026-09-29, after being overdue since March 2025 | Live's own schedule | Nothing to undo. The restore brings the new, non-overdue times, so no backlog fires on live. |
 | WordPress version | 7.1.2 | 7.1.2 | Same. (The Docker image name says 6.8, but the core files are 7.1.2 from the restore.) |
 | PHP / MySQL | 8.2 / MySQL 8.0 | 8.4.25 / MariaDB 11.4 | No action needed. |
@@ -73,13 +77,23 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 5. **Email.**
    - **WP Mail SMTP → Tools → Email Test** to your own address. It should arrive, which proves the local mail catcher isn't interfering.
    - Submit the Contact/Newcomer form once and confirm it reaches `office@emersonuuchapel.org`.
+     - "Thanks for contacting us!" should appear within about a second, and the email should follow within a minute or two. It's sent as a background job.
+     - If the email never arrives, the host is probably blocking WordPress from calling itself. Check **Tools → Site Health** for a "loopback request" or "scheduled event" problem. As a quick fix, turn off **WPForms → Settings → Email → Optimize Email Sending**. The form goes back to waiting about 10 seconds, but the email is sent reliably.
 6. **Membership and access.**
    - While logged out, open `/member-home/`. It should send you to `/members/`.
+   - On `/members/`, log in as a normal member with the form on the page.
+     - The members' hub should appear on the same page, without the admin toolbar.
+     - "Log out" should return you to the homepage, logged out.
+   - Enter a wrong password once.
+     - Then open **Settings → Limit Login Attempts** (or its dashboard). The failed attempt should be listed under **your** IP address.
+     - If every attempt shows the same server or proxy address instead, the host sits behind a proxy. Set the plugin's "trusted IP origins" (for example `HTTP_X_FORWARDED_FOR`), or one person's typos would lock everyone out.
    - Log in as a normal member: Members should show "My Emerson experience" and My schedule. This also confirms the Church Admin Premium licence.
    - `/register-2/` and `/register-3/` should be 404.
    - **Newsletter:**
      1. In a private window, open the homepage. The "Stay connected" pop-up should appear after about 5 seconds.
-     2. Sign up with your own email and click the confirmation link.
+     2. Sign up with your own email. "Almost done!" should appear within about a second.
+        - If the spinner and "Still working on it" appear instead, the host can't answer before the email is sent. Sign-up still works, it just takes about 10 seconds.
+        - Then click the confirmation link in the email.
      3. Check that `office@` receives "New newsletter subscriber", and that the person appears in Church Admin as "Mailing List".
      4. Delete that test entry afterwards.
 

@@ -79,33 +79,65 @@
 }
 /** End Religious Education **/
 
-/* Buttons on the home page */
-/* 2024-25 Pledge Form */
-.pledge-button .wp-block-button__link {
+/* Buttons on the home page (and matching buttons on Serve Emerson Chapel) */
+/* 2024-25 Pledge Form, Make a Contribution */
+.pledge-button .wp-block-button__link,
+.contribute-button .wp-block-button__link {
 	border-radius: 25px;
 	background: var(--wp--preset--color--vivid-green-cyan);
 	color: #1e1e1e;
 	transition: all 0.3s ease-in-out;
 }
-.pledge-button .wp-block-button__link:hover {
+.pledge-button .wp-block-button__link:hover,
+.contribute-button .wp-block-button__link:hover {
 	background: var(--wp--preset--color--vivid-green-cyan);
 	color: #1e1e1e;
 	transform: scale(1.05);
 }
-/* Approximate Paypal Fees */
-.paypal-fees-button .wp-block-button__link {
+/* Approximate Paypal Fees, Newcomer Information Form */
+.paypal-fees-button .wp-block-button__link,
+.newcomer-button .wp-block-button__link {
 	background: var(--emerson-blue);
 	color: #fff;
 	border-radius: 25px;
 	transition: all 0.3s ease-in-out;
 }
-.paypal-fees-button .wp-block-button__link:hover {
+.paypal-fees-button .wp-block-button__link:hover,
+.newcomer-button .wp-block-button__link:hover {
 	background: var(--emerson-blue);
 	color: #fff;
 	transform: scale(1.05);
 }
 /** End Approximate Paypal Fees **/   
 /** End Buttons on the home page **/
+
+/* Members page: Profile Builder login / profile / password forms */
+.wppb-user-forms input[type="submit"] {
+	padding: 0.7rem 1.75rem;
+	border: 0;
+	border-radius: 25px;
+	background: var(--emerson-blue);
+	color: #fff;
+	font: inherit;
+	cursor: pointer;
+}
+
+.wppb-user-forms input[type="submit"]:hover,
+.wppb-user-forms input[type="submit"]:focus-visible {
+	background: var(--emerson-blue-dark);
+}
+
+.emerson-member-links {
+	text-align: center;
+}
+/** End Members page **/
+
+/* Section banners without a photo (Serve Emerson Chapel). Photos are awaited from the sitemaster. */
+.wp-block-cover.emerson-banner {
+	min-height: 12rem;
+	border-radius: 12px;
+}
+/** End Section banners **/
 
 /* Typography: fluid heading scale + line wrapping */
 h1 {
@@ -278,6 +310,25 @@ blockquote {
 	cursor: wait;
 }
 
+.emerson-nl-form__submit.is-busy::before {
+	content: "";
+	display: inline-block;
+	width: 0.9em;
+	height: 0.9em;
+	margin-inline-end: 0.5em;
+	border: 2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: 50%;
+	vertical-align: -0.1em;
+	animation: emerson-nl-spin 0.8s linear infinite;
+}
+
+@keyframes emerson-nl-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 .emerson-nl-form__message:empty {
 	display: none;
 }
@@ -297,6 +348,11 @@ blockquote {
 .emerson-nl-form__message.is-error {
 	background: #fbeaea;
 	color: #8a1f1f;
+}
+
+.emerson-nl-form__message.is-info {
+	background: #eef0f8;
+	color: var(--emerson-blue-dark);
 }
 
 .emerson-nl-form.is-done .emerson-nl-form__row,
@@ -347,6 +403,10 @@ blockquote {
 	.emerson-nl-dialog,
 	.emerson-nl-dialog::backdrop {
 		transition: none;
+	}
+
+	.emerson-nl-form__submit.is-busy::before {
+		animation-duration: 2.4s;
 	}
 }
 

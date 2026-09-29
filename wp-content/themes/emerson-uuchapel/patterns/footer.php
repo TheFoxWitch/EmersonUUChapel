@@ -38,7 +38,7 @@ $privacy_url = get_privacy_policy_url();
 			</p>
 			<ul class="emerson-footer__links">
 				<li><a href="<?php echo esc_url( home_url( '/contact-newcomer-information/' ) ); ?>">Newcomer Information</a></li>
-				<li><a href="<?php echo esc_url( home_url( '/giving/' ) ); ?>">Giving</a></li>
+				<li><a href="<?php echo esc_url( home_url( '/make-a-contribution/' ) ); ?>">Giving</a></li>
 			</ul>
 		</section>
 

@@ -12,6 +12,135 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-09-29
 
+### Members page (32) is now the login page and the members' hub
+- **What was wrong before:**
+  - The menu's "Member Login" linked to `wp-login.php`, the WordPress admin screen.
+  - "Member Home" (706) was only a placeholder.
+  - The "Rota" and "My availability to serve" links pointed at pages that don't exist.
+- **Logged out,** the page shows:
+  - the **Profile Builder login form**, in the site's design, with errors shown on the page and "Lost your password?" linking to `/password-reset/`;
+  - the existing Church Admin **registration** form, which still needs office approval.
+- **Logged in,** the same page shows the **hub**:
+  - "Signed in as … · Edit my profile or password · Log out"
+  - **Sunday services:** Zoom, service schedule, order of service, past sermons
+  - **My serving schedule** (`my-rota`) and **Dates I can't serve** (`not-available`)
+  - **Upcoming events** (the next 28 days) and a link to the full calendar
+  - the **member directory** (Church Admin address list, map off because no Google Maps key is set)
+- **How it's built** (`inc/members.php`, new):
+  - `[emerson_visitors_only]` and `[emerson_members_only]` wrap the two halves, and can span several blocks.
+  - `[emerson_member_links]` prints the signed-in line.
+  - The logged-out half sets `DONOTCACHEPAGE`, so W3 Total Cache never caches the login form. Its security nonce would expire in a cached copy.
+- **Logging in and out:**
+  - Members, meaning anyone who can't edit posts, who log in through `wp-login.php` land on `/members/`. Staff still get wp-admin.
+  - Log out goes to the homepage.
+- **Church Admin bug worked around:** `[church_admin type="my-rota"]` adds an extra `</div>` when a login isn't linked to a directory person. That pushed the rest of the page out of the content column. Church Admin shortcode output now goes through `force_balance_tags()`.
+- **Old pages** changed to drafts, with 301 redirects:
+  - `/member-login/`, `/member-home/`, `/login/` and `/log-in/` redirect to `/members/`
+  - `/edit-profile-2/` redirects to `/edit-profile/`
+- **Menu:** "Members" is now a plain link. Its only sub-item was "Member Login".
+- **Styling:** the Profile Builder buttons use the blue pill style.
+- **Backup:** `backups/members/members-32-before-hub.html`
+- **The directory shows only households that opted in** (`show_me`). Right now that's 2 of the 32 Members. Whether and how to ask members to opt in is a church decision.
+- **Tests:**
+  - logged-out view (no hub content leaks)
+  - a wrong password gives an on-page error and the limiter counts it
+  - correct login shows the hub, with no admin bar
+  - "Edit my profile" loads, and "Log out" lands on the homepage, logged out
+  - `wp-login.php` sends a member to `/members/`
+  - old URLs redirect
+  - A temporary test account was created and deleted afterwards.
+
+### Login attempt limiting: Limit Login Attempts Reloaded 3.3.10 installed
+- **Defaults kept:**
+  - 4 wrong passwords lock that address out for 20 minutes.
+  - 4 lockouts mean 24 hours.
+  - After 3 lockouts the site admin (`com@`) is emailed.
+- It covers `wp-login.php` and the Profile Builder form, because both use WordPress's own login check.
+- **Privacy Policy (3):** new sentence about recording the IP address and username on failed logins. Backup: `backups/newsletter/privacy-policy-3-before-login-limits.html`. **Needs the church's review** with the rest of the policy.
+
+### Newcomer form hand-off now finds its own fields
+- The name, email and newsletter question are found by type and wording: the first Name field, the first Email field, and the multiple-choice question whose label contains "newsletter". The fixed field IDs are gone.
+- If the form is deleted, or the question disappears or loses its "Yes" choice, administrators see a **warning at the top of wp-admin** and the error log records it.
+- **Tested:**
+  - on the real form, it finds name 0, email 1 and answer 6, with no warning
+  - with the question deleted or renamed, it's reported as missing
+  - with the question recreated as a new field, it's still found
+
+### Newcomer form: "Yes" to the newsletter starts the same email confirmation
+- **Where:** `inc/newsletter.php`, a `wpforms_process_complete` hook for form 351. The field IDs are constants at the top: name 0, email 1, newsletter answer 6.
+  - The form, field and answer checks are exact. If the form is rebuilt or the question is renamed or given new IDs, update those constants.
+- **What happens now:** a "Yes" answer does exactly what the pop-up does.
+  - A waiting sign-up is created (7 days).
+  - The "Please confirm your subscription" email is sent as an **Action Scheduler background job**, so the form's "Thanks" isn't held up by NetSol.
+  - After the click, the person is saved to Church Admin as Mailing List, and the office gets "New newsletter subscriber" with **Signed up from: Newcomer Information form**.
+  - The office still gets the usual "Newcomer information" email too.
+- **"No", or no answer:** nothing extra happens.
+- **Shared code:** the pop-up, Ways to Connect and the Newcomer form now use the same `emerson_nl_start_pending()` and `emerson_nl_send_confirmation()`. The 10-minute resend wait, the lower-casing and the failure clean-up apply to all three.
+- **Record labels:** Church Admin's recorded reason now names the source in words, for example `Confirmed newsletter sign-up (Newcomer Information form)` or `(homepage pop-up)`. Earlier test records still say `(website popup)` / `(website page)`.
+- **Thank-you message:** form 351's confirmation text gained "If you asked to receive our newsletter, please check your inbox for an email from us and click the link inside to confirm." Backup: `backups/forms/wpforms-351-before-newsletter-confirmation.json`.
+- **Tests** (save-only mode):
+  - **"Yes":** confirmation email "Hi Nora", sent by a background job. The capitalised address was lower-cased. The link showed "You're subscribed", and the Church Admin record and office email were correct.
+  - **"No":** only the office email.
+  - **Pop-up:** still answers in 0.19 s.
+- The Privacy Policy wording already covers any website newsletter sign-up, so no change was needed.
+
+### Main menu: "Ways to Connect" added under Engage; dead "Engage" item fixed
+- **Where:** `parts/header.html`. The header has no override saved in the database, so the theme file is what shows.
+- **Ways to Connect (218)** was only reachable through inline links: one on the homepage, five each on Engage and Serve Emerson Chapel. It's now the third item in the Engage dropdown, after Engage and Serve Emerson Chapel.
+- **Why it isn't redundant with the pop-up or the Newcomer form:**
+  - The pop-up is homepage-only, is hidden from logged-in members, and stays away for 30 days after "No thanks", so it isn't a place people can come back to.
+  - The Newcomer form's newsletter question only emails the office. It skips the confirmation email and Church Admin's Mailing List.
+  - Ways to Connect is also where the social media links live.
+- **The "Engage" item inside the Engage dropdown** linked to `#`, so it just reloaded the current page. It now goes to the Engage page (68).
+
+### Serve Emerson Chapel page (344): missing photos and the two "forms"
+- **What was wrong:** the live site has the same problems; our copy didn't cause them.
+  - **Five banner photos are missing.** They're gone from the Media Library (attachments 25, 140–143), the uploads folder, the 2026-09-24 live backup and the live server (404), and the Wayback Machine never saved them. They came from the old dev site `emersondev1.bloomenterprises.org`, which no longer responds. Each showed as a 430 px grey box with a broken-image icon.
+  - **"Make a Contribution" and "Newcomer Information Form"** at the bottom were only plain text, never forms. The March 2023 revision already looked like this.
+- **What changed:**
+  - **Banners:** the five cover blocks now have a solid logo-blue (`#3f4fa0`) background instead of the missing photo. They use the new class `emerson-banner` (12 rem tall, rounded corners, in `custom.css`) and keep the same white titles.
+  - **Buttons:** the two text lines became buttons, matching the homepage pair.
+    - **"Make a Contribution"** (mint, class `contribute-button`) links to `/make-a-contribution/`, which has the PayPal Donate button.
+    - **"Newcomer Information Form"** (blue, class `newcomer-button`) links to `/contact-newcomer-information/`.
+    - Both reuse the homepage button styles in `custom.css`.
+- **To put the photos back later:** the original addresses are in `backups/serve/serve-344-before.html`. They are `2021/11/service-1024x407.png` (page banner), `2022/07/women-together-1024x682.jpeg`, `2022/07/men-together-1024x628.jpeg`, `2022/07/circle-suppers-1024x683.jpeg` and `2022/07/board-meetings-1024x684.jpg`. Once uploaded, pick each one as the cover block's image in the editor and set the overlay back to about 50 %.
+- **Backup:** `backups/serve/serve-344-before.html`
+
+### Footer "Giving" link now goes to Make A Contribution
+`patterns/footer.php`. It used to point to `/giving/`, which is a Church Admin giving report. Logged-out visitors got "Only users with giving permission have access" and a login box, not a way to give.
+
+### "Pledges-Testing" page (417) changed to a draft
+It was a published test page showing only a login box. Nothing linked to it. It's still there in **Pages → Drafts** if anyone needs it.
+
+### Sign-ups no longer wait about 10 seconds for email
+- **Why it was slow:** NetSol's SMTP server takes about 10 seconds per message. Measured without sending: connect 1.9 s, TLS 1.2 s, login 2.3 s, plus the message itself. Every form waited for its email before answering the visitor.
+- **Newsletter** (`inc/newsletter.php`):
+  - The sign-up and the confirmation link now answer the browser first, then send their email. The new `emerson_nl_release_visitor()` handles PHP-FPM, LiteSpeed and Apache mod_php.
+  - If the confirmation email fails, the waiting sign-up and the 10-minute resend wait are removed, so the person can retry at once. The failure goes to the PHP error log.
+  - The resend wait now starts when the sign-up is accepted, so a double-click can't send two emails.
+  - The "mailfail" message was removed, because the visitor has already had their answer by the time sending could fail.
+- **Newsletter button** (`newsletter.js`, `custom.css`): a spinner shows while sending. After 2 seconds the note "Still working on it. This can take a few seconds…" appears. It's a fallback in case the live host can't answer early.
+- **Newcomer form:** **WPForms → Settings → Email → Optimize Email Sending** is turned **on** (`wpforms_settings['email-async']`, local DB). WPForms sends the notification as a background job.
+- **Tests**, with an artificial 8-second delay added to every email and nothing sent:
+
+  | Test | Before | After |
+  |---|---|---|
+  | Newsletter sign-up, with JavaScript | ~10 s | 0.25 s; email sent 8 s later in the background |
+  | Newsletter sign-up, without JavaScript | ~10 s | 0.24 s |
+  | Confirmation link | ~10 s | 0.24 s; Church Admin record and office email follow |
+  | Confirmation link used twice | n/a | "expired or already used" |
+  | Email fails after the answer | n/a | waiting sign-up removed, retry allowed, error logged |
+  | Slow reply (4 s, forced) | n/a | spinner at 1 s, "Still working" note at 2.5 s, then "Almost done!" |
+  | Newcomer form | ~10 s | 0.25 s; background job sent the office email with Reply-To set to the newcomer |
+
+### Local loopback fix (new `mu-plugins/local-loopback.php`)
+- **Problem:** locally, WordPress couldn't call itself. The site address uses the Mac's port 8080, but Apache inside Docker listens on port 80. So WP-Cron, WPForms background email, Action Scheduler and the Site Health loopback test never ran.
+- **Fix:** requests to `http://localhost:8080/` from inside Docker are sent to the web container (`http://wordpress/`) with the original Host header. It does nothing unless the site address is `localhost:8080`.
+- **Side effect:** scheduled jobs (Zephyr, WPForms summaries) now run locally on their normal schedule. With redirect mode on, anything they send goes only to the test mailbox.
+
+### Local mail catcher: file names no longer collide
+Two emails with the same subject in the same second used to overwrite each other in `local-mail/`. A `-2`, `-3` and so on is now added instead.
+
 ### Local email can now be sent for real, to one test address only
 - **Where:** `wp-content/mu-plugins/local-mail-catcher.php`. The switch is the option `emerson_local_mail_redirect_to` in the local DB.
 - **What changed:** the catcher has a second mode.

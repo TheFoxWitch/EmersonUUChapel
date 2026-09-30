@@ -66,6 +66,7 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
 - Mailchimp is still manual: the office adds each confirmed subscriber. It can be automated through the `emerson_newsletter_confirmed` hook once someone has the Mailchimp API key and audience ID.
 - Sign-up notifications go to `com@emersonuuchapel.org` (probably the webmaster / group lead; fine as-is)
 - The Docker image tag says WordPress 6.8, but the core files in the `wp_core` volume are 7.1.2 (from the restore), matching the live site. PHP is 8.2 locally vs 8.4 live.
+- Since 2026-09-30 the web container is built from the project `Dockerfile` (the stock image plus PHP's `calendar` extension, for Church Admin's calendar PDF). `docker compose up -d` builds it the first time. After changing the Dockerfile, run `docker compose build wordpress && docker compose up -d wordpress`.
 
 ### How forms and sign-up work (findings 2026-09-28)
 - **Newcomer Information form (WPForms 351, page 325):** emails `office@emersonuuchapel.org` only. Submissions aren't stored (WPForms Lite), no account is created, and visitors get no email.

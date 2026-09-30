@@ -24,7 +24,15 @@ On the live site, the limit comes from the host's PHP settings. Check it under *
 
 ---
 
+### Calendar "This calendar PDF" gives a server error (`cal_days_in_month()` undefined)
+Church Admin needs PHP's `calendar` extension, which the stock `wordpress` Docker image doesn't include. The project `Dockerfile` adds it (`docker-php-ext-install calendar`). If the error comes back, check `docker compose exec wordpress php -m | grep calendar`. If it's missing, run `docker compose build wordpress && docker compose up -d wordpress`.
+
 ## Pages and styles
+
+### Checking the whole site for broken links
+Collect every `href` and `src` inside `<main>` on each published page, plus the header and footer once. Then test each unique address. Beware of two traps:
+- macOS `python3` has no certificate bundle, so every `https` check fails (`CERTIFICATE_VERIFY_FAILED`). Set `SSL_CERT_FILE=/etc/ssl/cert.pem`, or check outside links with `curl`.
+- Some sites (Cloudflare-protected ones, Poetry Foundation, Intuit) answer scripts with 403 or 429 even though they work in a browser. Treat those as "click to confirm", not broken.
 
 ### Every page except the homepage returns an Apache 404
 The `.htaccess` file is missing. This happens after a restore or `docker compose down -v`. WP-CLI can't write it, because the `wpcli` container can't write to that location.

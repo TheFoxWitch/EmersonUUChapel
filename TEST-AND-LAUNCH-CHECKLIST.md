@@ -57,6 +57,12 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - **Plan once known:** a members' hub section shown only to flagged people, either through Church Admin permissions or the unused WordPress **"finance"** role. It's left out on the server for everyone else, not just hidden on screen.
   - **Also:** a "WordPress dashboard" link on the hub for staff roles only (administrators, editors). Harlan Bloom's account is currently a **subscriber**; check whether he uses another login.
 
+- [ ] **Broken-link follow-ups from the 2026-09-30 scan: ask the church**
+  - **Who Are We, "vision"** (in "Part of our vision is…") links to `/our-vision`, which doesn't exist. Is there a vision statement page to create, or should the link be removed?
+  - **Who Are We, "here"** (Covenant of Right Relations) links to an old Squarespace PDF that isn't on the site. Ask for the current Covenant PDF so it can be uploaded and linked.
+  - **Engage, Outreach Partners: three organisations have closed or gone offline.** Caminamos Juntos of San Miguel de Allende (`cjsma.org` no longer exists), Saint Louis Story Stitchers (site reports it's permanently gone) and the UU Trauma Response Ministry (`traumaministry.org` doesn't respond). Keep them as a historical list without links, remove them, or replace the links?
+  - **Click once to confirm** (these sites block automated checks, so they're probably fine): Holocaust Museum (`hmlc.org`), O.A.S.I.S. Food Pantry, KIND (`supportkind.org`), the Poetry Foundation's Ralph Waldo Emerson page (FAQ), and the Intuit Mailchimp privacy statement (Privacy Policy).
+
 ## 2. Before making the WPvivid backup
 
 - [ ] Email back to save only: `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`
@@ -68,7 +74,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [ ] Optional: hide the Website and Biographical Info fields on Edit Profile (**Profile Builder → Form Fields**)
 - [ ] The missing images from the sitemaster are added:
   - 3 on the Welcome! page
-  - 5 on Serve Emerson Chapel: `service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg`, `board-meetings.jpg` (uploaded 2021/11 and 2022/07). Until then those banners are solid blue. See `CHANGELOG.md` for how to put the photos back.
+  - Serve Emerson Chapel and Engage banners: `service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg` and `board-meetings.jpg` (uploaded 2021/11 and 2022/07). Engage also needs `image.jpeg` (2022/07), the "Serve Our Wider Community" photo. Until then those banners are solid blue. See `CHANGELOG.md` for how to put the photos back.
 - [ ] Decision on the mint green (`#00d084`), which has low contrast as text on white
 - [ ] Someone monitors `office@emersonuuchapel.org` (newsletter and Newcomer form) and `com@emersonuuchapel.org` (Church Admin and the site admin)
 - [ ] Optional: delete unused forms. That's 6 Calculated Fields demo forms that email `com@` and copy the visitor, the "Emerson 2023-24 Pledge Drive" WPForm and the "Simple Contact Form" WPForm.
@@ -93,3 +99,4 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [ ] Optional: ask the church about a sending service (Brevo, SendLayer) instead of the NetSol mailbox, for faster and more reliable email everywhere
 - [ ] Mailchimp: the office adds new subscribers by hand until someone provides an API key and audience ID
 - [ ] Remove your own test sign-up from Church Admin and Mailchimp afterwards
+- [ ] **Calendar → "This calendar PDF"** downloads a PDF. Church Admin needs PHP's `calendar` extension. Locally it's added by the project `Dockerfile`; most hosts have it. If the live site gives a server error there, ask the host to enable it.

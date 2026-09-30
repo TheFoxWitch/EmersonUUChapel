@@ -33,18 +33,41 @@ add_shortcode(
 	}
 );
 
+/**
+ * Whether Church Admin → Settings → Permissions lists this user for any area (Directory, Rota, Giving…).
+ * Those users are often plain subscribers who work in Church Admin inside wp-admin.
+ */
+function emerson_has_church_admin_permission( int $user_id ): bool {
+	foreach ( (array) get_option( 'church_admin_user_permissions', array() ) as $ids ) {
+		if ( in_array( $user_id, array_map( 'intval', (array) maybe_unserialize( $ids ) ), true ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
 add_shortcode(
 	'emerson_member_links',
 	static function (): string {
 		if ( ! is_user_logged_in() ) {
 			return '';
 		}
-		$user = wp_get_current_user();
+		$user  = wp_get_current_user();
+		$links = array(
+			sprintf( '<a href="%s">Edit my profile or password</a>', esc_url( home_url( '/edit-profile/' ) ) ),
+		);
+		if ( current_user_can( 'edit_posts' ) ) {
+			$links[] = sprintf( '<a href="%s">WordPress dashboard</a>', esc_url( admin_url() ) );
+		}
+		if ( current_user_can( 'manage_options' ) || emerson_has_church_admin_permission( $user->ID ) ) {
+			$links[] = sprintf( '<a href="%s">Church Admin</a>', esc_url( admin_url( 'admin.php?page=premium_church_admin' ) ) );
+		}
+		$links[] = sprintf( '<a href="%s">Log out</a>', esc_url( wp_logout_url( home_url( '/' ) ) ) );
+
 		return sprintf(
-			'<p class="emerson-member-links">Signed in as <strong>%1$s</strong> · <a href="%2$s">Edit my profile or password</a> · <a href="%3$s">Log out</a></p>',
+			'<p class="emerson-member-links">Signed in as <strong>%1$s</strong> · %2$s</p>',
 			esc_html( $user->display_name ),
-			esc_url( home_url( '/edit-profile/' ) ),
-			esc_url( wp_logout_url( home_url( '/' ) ) )
+			implode( ' · ', $links )
 		);
 	}
 );
@@ -58,6 +81,78 @@ add_filter(
 	},
 	10,
 	2
+);
+
+// Church Admin loads Google Maps (for the registration form's address map) even when no API key is set,
+// which only produces "no API key" console warnings and an unnecessary request to Google. Skip it until
+// a key is entered in Church Admin → Settings; it then loads again automatically.
+add_filter(
+	'script_loader_tag',
+	static function ( $tag, $handle ) {
+		if ( 'church_admin_premium_google_maps_api' === $handle && '' === trim( (string) get_option( 'church_admin_google_api_key' ) ) ) {
+			return '';
+		}
+		return $tag;
+	},
+	10,
+	2
+);
+add_filter(
+	'wp_resource_hints',
+	static function ( $urls, $relation ) {
+		if ( 'dns-prefetch' !== $relation || '' !== trim( (string) get_option( 'church_admin_google_api_key' ) ) ) {
+			return $urls;
+		}
+		return array_values(
+			array_filter(
+				$urls,
+				static fn( $url ) => false === strpos( is_array( $url ) ? (string) ( $url['href'] ?? '' ) : (string) $url, 'maps.googleapis.com' )
+			)
+		);
+	},
+	10,
+	2
+);
+
+// Edit Profile: a link back to the members' area beside "Update". It reads "Cancel" until Profile Builder
+// reports a successful save, then "Return"; editing again after a save switches it back to "Cancel".
+add_action(
+	'wppb_edit_profile_success',
+	static function (): void {
+		$GLOBALS['emerson_profile_saved'] = true;
+	}
+);
+
+add_action(
+	'wppb_form_after_submit_button',
+	static function ( $args ): void {
+		if ( 'edit_profile' !== ( $args['form_type'] ?? '' ) ) {
+			return;
+		}
+		$saved = ! empty( $GLOBALS['emerson_profile_saved'] );
+		printf(
+			'<a class="emerson-profile-back" href="%1$s" data-saved="%2$d">%3$s</a>',
+			esc_url( home_url( EMERSON_MEMBERS_PAGE ) ),
+			$saved ? 1 : 0,
+			$saved ? 'Return' : 'Cancel'
+		);
+		if ( $saved ) {
+			?>
+			<script>
+			( function () {
+				var back = document.querySelector( '.emerson-profile-back[data-saved="1"]' );
+				var form = back && back.closest( 'form' );
+				if ( ! form ) {
+					return;
+				}
+				form.addEventListener( 'input', function () {
+					back.textContent = 'Cancel';
+				}, { once: true } );
+			}() );
+			</script>
+			<?php
+		}
+	}
 );
 
 // Members who log in through wp-login.php land on the members' hub instead of their wp-admin profile.

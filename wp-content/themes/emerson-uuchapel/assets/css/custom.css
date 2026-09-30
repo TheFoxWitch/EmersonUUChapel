@@ -130,7 +130,68 @@
 .emerson-member-links {
 	text-align: center;
 }
+
+/* Edit Profile: Cancel / Return link beside Update, styled as a light grey button */
+.wppb-user-forms a.emerson-profile-back {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 150px;
+	min-height: 50px;
+	margin-inline-start: 0.75rem;
+	padding: 0 15px;
+	border-radius: 3px;
+	background: #efefef;
+	color: #1e1e1e;
+	font-size: 16px;
+	text-decoration: none;
+	vertical-align: middle;
+}
+
+.wppb-user-forms a.emerson-profile-back:hover,
+.wppb-user-forms a.emerson-profile-back:focus-visible {
+	background: #e0e0e0;
+	color: #1e1e1e;
+}
+
+/* Church Admin registration "Next" button: same size as the Log In button above, keeping its light grey */
+#ca-first-step input[type="submit"] {
+	min-width: 150px;
+	min-height: 50px;
+	padding: 0 15px;
+	border: 0;
+	border-radius: 3px;
+	background: #efefef;
+	color: #1e1e1e;
+	font: inherit;
+	font-size: 16px;
+	cursor: pointer;
+}
+
+#ca-first-step input[type="submit"]:hover,
+#ca-first-step input[type="submit"]:focus-visible {
+	background: #e0e0e0;
+}
 /** End Members page **/
+
+/* Columns with a background colour (e.g. Order of Service on Sunday Services): keep text off the edges */
+.wp-block-column.has-background {
+	padding: 1.5rem 1.75rem;
+	border-radius: 12px;
+}
+
+.wp-block-column.has-background > p {
+	text-align: center;
+}
+
+.wp-block-column.has-background > :first-child {
+	margin-block-start: 0;
+}
+
+.wp-block-column.has-background > :last-child {
+	margin-block-end: 0;
+}
+/** End Columns with a background **/
 
 /* Section banners without a photo (Serve Emerson Chapel). Photos are awaited from the sitemaster. */
 .wp-block-cover.emerson-banner {

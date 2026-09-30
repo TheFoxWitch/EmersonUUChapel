@@ -12,6 +12,51 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-09-30
 
+### Site-wide broken link scan, and fixes
+- **Scan:** all 61 published pages and posts, every link, button and image inside the content, plus the header and footer once. That's 236 unique addresses.
+  - Pages on this site were checked for 404s. Outside sites were checked with a browser-like request.
+  - **Buttons without a link: 0.**
+- **Fixed** (page backups in `backups/links/`):
+  - **Engage and Serve Emerson Chapel:**
+    - "Worship" (in "Worship Team") went to `/how-we-worship` (404). It now goes to **An Overview of Worship** (`/an-overview-of-worship/`).
+    - "lay-led congregation" went to `/layled-congregation` (404). It now goes to **Our Congregation** (`/our-congregation/`).
+  - **Engage, Outreach Partners:** two links pointed at pages that have moved.
+    - Youth In Need Street Outreach now goes to `https://www.youthinneed.org/`.
+    - Planned Parenthood of the St. Louis Region now goes to `https://www.plannedparenthood.org/planned-parenthood-great-rivers`, the affiliate's current name.
+  - **Welcome! (412):**
+    - "Newcomer Information Form" went to `/newcomer-information-form` (404). It now goes to `/contact-newcomer-information/`.
+    - "Learn More…" went to the dead dev site (`emersondev1.bloomenterprises.org/about/`). It now goes to **Who Are We**.
+  - **Church Leadership (192):** "View the Constitution and Bylaws" pointed at an old Squarespace `/s/…pdf` address. It now uses the same PDF from the Media Library (`2023/04/Emerson_Bylaws_July_2019_ApprovedAmendedVersion.pdf`, attachment 482).
+  - **Giving (621)** changed to a **draft**. It showed visitors a Church Admin "Please setup payment gateway" message with a broken setup link, and nothing links to it since the footer change.
+- **Waiting on the church** (in the checklist):
+  - Who Are We "vision" (`/our-vision` doesn't exist)
+  - Who Are We Covenant "here" (the PDF isn't on the site)
+  - three Outreach Partners that closed: Caminamos Juntos, Story Stitchers, UU Trauma Response Ministry
+  - five sites that block automated checks
+  - the 3 Welcome! images, which are still loaded from the dead dev site
+- **Scanning note:** macOS `python3` has no CA bundle by default, so every `https` check failed with `CERTIFICATE_VERIFY_FAILED` until `SSL_CERT_FILE=/etc/ssl/cert.pem` was set. Cross-check outside links with `curl`, which uses the system certificates.
+
+### Local Docker: PHP calendar extension added (Calendar PDF works)
+- The Calendar page's "This calendar PDF" link gave HTTP 500 locally: `Call to undefined function cal_days_in_month()`. Church Admin needs PHP's `calendar` extension, which the stock `wordpress` image lacks.
+- **New `Dockerfile`:** `FROM wordpress:6.8-php8.2-apache` plus `docker-php-ext-install calendar`. `docker-compose.yml` now builds it (`build: .`, image `emerson-wordpress:6.8-php8.2-apache-calendar`).
+  - The `wp_core` and `db_data` volumes are unchanged, so no site data was touched.
+- **Test:** the PDF downloads (HTTP 200, `application/pdf`, 24 KB).
+- **On the live site:** nothing travels with WPvivid here, because this is the server's PHP setup. The checklist has a post-restore check.
+
+### Engage (68): missing banner photos replaced with blue banners
+- The same treatment as Serve Emerson Chapel: the six cover blocks now use a solid logo-blue background (`#3f4fa0`, class `emerson-banner`, 12 rem, rounded) instead of photos that are missing everywhere, live site included (404).
+  - The banners are "Serve Our Wider Community" (`2022/07/image.jpeg`, attachment 136), "Serve Emerson Chapel", "Womyn's Web", "Men's Night", "Circle Suppers" and "Board Meetings".
+- All six were kept. On Engage both "Serve…" banners are section headings, not a repeat of the page title.
+- A leftover `id="yui_3_17_2_…"` (from the old Squarespace site) was removed from the first banner.
+- **Backup:** `backups/engage/engage-68-before.html`
+- **Bottom of the page:** the plain "Make a Contribution" line and the unlinked "Sign up for Newsletter" button became a centred pair of buttons:
+  - **Make a Contribution:** Emerson green (Vivid green cyan `#00d084`, dark text, class `contribute-button`), linking to `/make-a-contribution/`.
+  - **Sign up for Newsletter:** Emerson blue (`#3f4fa0`, white text, new class `newsletter-button`, added to the blue button rule in `custom.css`), linking to `/ways-to-connect/`.
+  - Backup before this step: `backups/engage/engage-68-before-buttons.html`.
+
+### Serve Emerson Chapel (344): first banner removed by the intern
+The "Serve Emerson Chapel" banner at the top of the page was removed in the editor, 2026-09-30 13:27, because it only repeated the page title. Four banners remain.
+
 ### Members' hub: "WordPress dashboard" and "Church Admin" links for the people who use them
 - **Where:** `[emerson_member_links]` in `inc/members.php`, which is the "Signed in as …" line at the top of the hub.
 - **"WordPress dashboard"** (`/wp-admin/`) shows only to users who can edit posts: administrators, editors, authors and contributors.

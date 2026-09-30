@@ -94,16 +94,18 @@
 	color: #1e1e1e;
 	transform: scale(1.05);
 }
-/* Approximate Paypal Fees, Newcomer Information Form */
+/* Approximate Paypal Fees, Newcomer Information Form, Sign up for Newsletter */
 .paypal-fees-button .wp-block-button__link,
-.newcomer-button .wp-block-button__link {
+.newcomer-button .wp-block-button__link,
+.newsletter-button .wp-block-button__link {
 	background: var(--emerson-blue);
 	color: #fff;
 	border-radius: 25px;
 	transition: all 0.3s ease-in-out;
 }
 .paypal-fees-button .wp-block-button__link:hover,
-.newcomer-button .wp-block-button__link:hover {
+.newcomer-button .wp-block-button__link:hover,
+.newsletter-button .wp-block-button__link:hover {
 	background: var(--emerson-blue);
 	color: #fff;
 	transform: scale(1.05);

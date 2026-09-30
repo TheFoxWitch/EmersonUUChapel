@@ -169,6 +169,13 @@ Non-ASCII characters (curly quotes, em dashes) in page output upset macOS `sed`.
 
 ## Images
 
+### A fixed image still looks wrong in one browser
+Browsers don't load the full-size file. They pick one of WordPress's resized copies from the image's `srcset` (for example `-768x763.jpg`) and keep it in their cache. After you replace an image and run `wp media regenerate <id>`, a browser that viewed the page earlier can keep showing its old saved copy. Meanwhile a browser opening the page for the first time, such as Safari, shows the new one.
+- **Check the files themselves first**, with no browser involved: see the GD pixel check in the CHANGELOG entry for "Love at the Center" (2026-09-30).
+- **Then refresh the browser's copy:**
+  - Safari, Chrome, Firefox: Cmd+Shift+R.
+  - The Cursor browser: its cache can't be cleared from the agent tools. Re-downloading each `srcset` URL with `fetch(url, {cache: 'reload'})` and then reloading works.
+
 ### Images hotlinked from another site
 Images loading from `images.squarespace-cdn.com` or the dead dev server `emersondev1.bloomenterprises.org` break when those sites go away. Import them into the Media Library instead (see `CHANGELOG.md`).
 

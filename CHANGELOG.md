@@ -10,7 +10,100 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-09-30
+
+### Members' hub: "WordPress dashboard" and "Church Admin" links for the people who use them
+- **Where:** `[emerson_member_links]` in `inc/members.php`, which is the "Signed in as …" line at the top of the hub.
+- **"WordPress dashboard"** (`/wp-admin/`) shows only to users who can edit posts: administrators, editors, authors and contributors.
+- **"Church Admin"** (`admin.php?page=premium_church_admin`) shows to administrators and anyone listed in **Church Admin → Settings → Permissions** (`church_admin_user_permissions`).
+  - That's currently 10 accounts. Most are regular subscribers, for example Harlan Bloom (directory, rota, calendar, sermons…) and michelle.ziemann (directory, giving).
+  - Church Admin's menu needs only `read`, and then applies its own per-area permissions.
+- **Regular members** see neither link.
+- **Checked** as an administrator, an editor, a contributor, Harlan, Michelle and a plain subscriber.
+- **Why it matters:** since 2026-09-29, members who log in land on `/members/` instead of wp-admin. That includes those subscribers with Church Admin permissions. This link is now their way into Church Admin.
+
+### Edit Profile: "Cancel / Return" button back to the members' area
+- **Where:** `inc/members.php` (Profile Builder hooks) and `custom.css` (`.wppb-user-forms a.emerson-profile-back`).
+- A light grey button now sits beside **Update**, the same size (150 × 50 px). It's a plain link to `/members/`, so it never submits or saves anything.
+  - It reads **Cancel** when the page is opened.
+  - It reads **Return** after Profile Builder reports a successful save (`wppb_edit_profile_success`, "Your profile has been successfully updated!").
+  - If you start editing again after saving, it switches back to **Cancel**, because those changes aren't saved.
+- **Why:** after saving there was no way back to the members' area except the menu.
+- **Tested** with a temporary member account, deleted afterwards:
+  - opened: "Cancel"
+  - Update with no changes: success message and "Return"
+  - typed in Website: "Cancel"
+  - clicked: landed on the members' hub, and the typed change wasn't saved
+- Profile Builder's own **"User to edit"** dropdown, shown only to administrators (`edit_users`) and listing non-admin accounts, is built into the plugin. It was left unchanged on purpose.
+
+### Google Maps no longer loaded while there's no API key
+- **The warning:** the Cursor browser console showed a Google Maps "no API key" warning on the Members page.
+  - Church Admin's registration shortcode loads the Maps API with `key=` left empty, because `church_admin_google_api_key` isn't set, locally or in the live backup. So the live site shows the same warning.
+  - Maps is loaded only on `/members/`.
+- **Fix** (`inc/members.php`): while that setting is blank, the `church_admin_premium_google_maps_api` script tag and WordPress's `dns-prefetch` hint for `maps.googleapis.com` are left out. Visitors' browsers no longer contact Google on that page.
+  - As soon as a key is entered in **Church Admin → Settings**, both come back on their own. Tested with a temporary key, which was removed afterwards.
+- **Registration tested without Maps:**
+  - Step 1 (email, "Next") leads to step 2, the full form with 32 fields.
+  - The address field works, and there are no JavaScript errors.
+  - The test stopped before "Save", so no records were created.
+- **Browser-test note:** Church Admin's step 1 rejects a submission made within 1.5 s of the page loading ("Alright sparky!"). A form that seems to just reload during automated testing may simply have been checked before the next page loaded.
+
+### Members page: registration "Next" button sized like "Log In"
+- **Where:** `custom.css`, `#ca-first-step input[type="submit"]`.
+- Church Admin's email-first registration button had no styling, so it showed as the browser's default (43 × 22 px, 13 px Arial, raised border).
+- It now matches the Profile Builder "Log In" button: at least 150 × 50 px, 0 15 px padding, 16 px site font, 3 px corners, no border. It keeps its light grey (`#efefef`, darker `#e0e0e0` on hover) with dark text (`#1e1e1e`).
+- **Correction to 2026-09-29:** the blue pill style added for Profile Builder buttons (`.wppb-user-forms input[type="submit"]`) never took effect. Profile Builder's own rule, `.wppb-user-forms input[type="submit"]:not(.wppb-delete-account)`, is more specific. So "Log In" is still Profile Builder's dark grey (`#333`). That was left as is on purpose.
+
+### Who Are We (190): Our Values updated
+- **New sentence** after "…each principle is drawn from many sources.": "The Unitarian Universalist Association officially replaced its traditional Seven Principles and six sources in 2024 with a new framework of interconnected shared values centered around love."
+- **Links fixed:** both used to point at pages that don't exist on this site (404). Both now open in a new tab, like the page's other outside links.
+  - **"Seven Principles"** was `/seven-principles/`. It now goes to `https://www.uua.org/beliefs/what-we-believe/principles`.
+  - **"click here"** was `/roots-of-unitarian-universalism/`. It now goes to `https://www.uua.org/beliefs/who-we-are/history`.
+- **Image:** `images/Seven_principles.jpg` was uploaded to the Media Library (attachment 957, 889 × 893). It's placed centred under the paragraph at 480 px wide.
+  - The alt text reproduces the image's words: the heading and all seven principles.
+- **Backup:** `backups/who-we-are/who-are-we-190-before.html`
+- **On the live site:** carried by the WPvivid restore. The image is in `uploads/`, which is in the backup, not in GitHub.
+- **Later the same day:**
+  - The intern removed a stray purple block from `Seven_principles.jpg` in Photoshop and replaced the Media Library file. Its thumbnails were regenerated (`wp media regenerate 957`).
+  - Per the church's notes, **`images/love_at_the_center.jpg`** was added (attachment 959, 1080 × 1080, alt text describing the love-at-the-centre shared-values graphic).
+  - Both images now sit **side by side** under the Our Values paragraph, in a two-column block (class `emerson-values-images`, vertically centred). Seven Principles is on the left and Love at the Center on the right.
+    - On desktop they're 313 px each. Below 782 px wide, including phones, they stack.
+  - Backup before this step: `backups/who-we-are/who-are-we-190-before-side-by-side.html`.
+  - **Dark bar under Love at the Center (fixed):** it looked like part of the heading below, but it was in the image file itself.
+    - Checks: the heading, image, figure and columns have no border, shadow or background. The source file's bottom 6 pixel rows were 100% dark.
+    - The bottom 7 rows were trimmed with WordPress's image editor (GD, `crop(0, 0, 1080, 1073)`, quality 92). The file is now 1080 × 1073, and thumbnails were regenerated.
+    - `images/love_at_the_center.jpg` is the trimmed version. The untouched original is `images/love_at_the_center-original.jpg`.
+    - **Note:** macOS `sips --cropToHeightWidth … --cropOffset 0 0` crops from the **centre**, not the top-left. The first attempt took 3 px off the top and left 3 dark rows at the bottom. Use WordPress's editor or Photoshop for edge trims.
+
 ## 2026-09-29
+
+### Sunday Services (64): padding in the grey Order of Service boxes
+- **Where:** `custom.css`. The rule is general: any `.wp-block-column.has-background` gets 1.5 rem × 1.75 rem of padding and 12 px corners, and the first and last items in it lose their outer margins.
+- Only this page used background colours on columns. Future grey boxes get the same spacing automatically.
+- Paragraphs inside those boxes (the quoted readings and the attribution) are centred to match the centred headings.
+
+### YouTube sermons: checked 2026-09-29
+- **The site has no link to a YouTube channel.** The Sunday Services page's "Past Sermons" section contains only the placeholder text "display recent sermons from YouTube".
+- **Past Sermons page (213):** shows `[aiovg_videos limit="15" orderby="title"]`, from the All-in-One Video Gallery plugin.
+  - There are 35 published videos, and all 35 still play.
+  - 33 are on **@emersonunitarianuniversali1222** ("Emerson Unitarian Universalist Chapel", 2023–2024).
+  - 2 are on **@EmersonUUChapel** (May and July 2026). That one looks like the church's current channel.
+- Both channels are public.
+- **Changes made:**
+  - **Sunday Services (64):** the placeholder is replaced by "Missed a Sunday? Here are our most recent services." It's followed by the 3 newest sermon videos (`[aiovg_videos limit="3" columns="3" orderby="date" order="desc" …]`) and two buttons: **All past sermons** (`/past-sermons/`) and **Our YouTube channel** (`https://www.youtube.com/@EmersonUUChapel`, opens in a new tab).
+  - **Past Sermons (213):**
+    - The page now sorts newest first (`orderby="date" order="desc"`).
+    - It has **page numbers** (`show_pagination="1"`). Before, only the first 15 of 36 videos could be reached.
+    - An empty `<h1>` was removed.
+  - **Video dates:** all 36 gallery videos have their date set to the sermon date in their title, at 10:00. Upload dates were batchy, so 8 would have been out of order, including the top two.
+    - Original dates: `backups/sermons/video-dates-before.json`.
+    - **For future uploads,** set the video's date (Publish → date) to the Sunday it was recorded, or it will sort by upload day.
+- **Backups:** `backups/sermons/sunday-services-64-before.html`, `backups/sermons/past-sermons-213-before.html`
+- **How the videos get onto the site:** no YouTube account, login or API key is involved.
+  - Each sermon is a post in the **All-in-One Video Gallery** plugin (wp-admin → **Video Gallery**), where someone at the church pasted the video's YouTube link.
+  - The pages play those links through YouTube's normal public embed, and the thumbnails come from YouTube's public image server.
+  - The channel names came from YouTube's public lookup for those video links. The "Our YouTube channel" button is new; no channel had been linked on the site before.
+- **Not changed:** the gallery shows its own view counter under each video ("1 views"). It counts plays on this site only, not on YouTube. It can be turned off in **Video Gallery → Settings**.
 
 ### Members page (32) is now the login page and the members' hub
 - **What was wrong before:**

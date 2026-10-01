@@ -190,6 +190,19 @@ add_action(
 	}
 );
 
+// Church Admin 5.7 appends this sentence to the "user login created" email with a doubled "at at".
+add_filter(
+	'gettext',
+	static function ( $translation, $text, $domain ) {
+		if ( 'church-admin' === $domain && 'You can login and view your address details and privacy settings at at %1$s.' === $text ) {
+			return '<p>You can log in, see the members’ area and update your address details and privacy settings at %1$s.</p>';
+		}
+		return $translation;
+	},
+	10,
+	3
+);
+
 // Members who log in through wp-login.php land on the members' hub instead of their wp-admin profile.
 add_filter(
 	'login_redirect',

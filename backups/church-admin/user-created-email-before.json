@@ -1,0 +1,4 @@
+{
+    "church_admin_user_created_email": "The web team at[SITE_URL] have just created a user login for you.Your username is [USERNAME]Your password is [PASSWORD]We also have an app you can download for [ANDROID] and [IOS]",
+    "church_admin_user_created_email_subject": false
+}

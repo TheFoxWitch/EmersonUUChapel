@@ -12,6 +12,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-09-30
 
+### Calendar Previous / Next buttons about twice as big
+- **Where:** `custom.css`, `input.calendar-date-switcher` and `button.ca-calendar-nav`.
+- Church Admin leaves these buttons unstyled, so they showed as the browser default: 13 px Arial, about 22 px tall, raised border.
+  - The `calendar-date-switcher` buttons are Previous / Next on the "Upcoming events" list (members' hub and Calendar page).
+  - The `ca-calendar-nav` buttons are Prev / Next / Today in the Calendar page's day panel.
+- They're now about twice the size: 26 px site font, at least 44 px tall (Previous 68 × 22 to 142 × 47, Next 43 × 22 to 99 × 47). They use the same light grey, borderless, 3 px-corner look as the other secondary buttons.
+- **Checked:** the day panel's buttons still fit inside it, with Prev and Next on one row and Today below.
+
 ### Site-wide broken link scan, and fixes
 - **Scan:** all 61 published pages and posts, every link, button and image inside the content, plus the header and footer once. That's 236 unique addresses.
   - Pages on this site were checked for 404s. Outside sites were checked with a browser-like request.

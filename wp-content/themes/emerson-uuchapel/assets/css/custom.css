@@ -156,6 +156,28 @@
 	color: #1e1e1e;
 }
 
+/* Church Admin calendar Previous / Next buttons (members' hub and Calendar page): about twice the browser default */
+input.calendar-date-switcher,
+button.ca-calendar-nav {
+	min-height: 44px;
+	padding: 0.3em 0.9em;
+	border: 0;
+	border-radius: 3px;
+	background: #efefef;
+	color: #1e1e1e;
+	font: inherit;
+	font-size: 26px;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+input.calendar-date-switcher:hover,
+input.calendar-date-switcher:focus-visible,
+button.ca-calendar-nav:hover,
+button.ca-calendar-nav:focus-visible {
+	background: #e0e0e0;
+}
+
 /* Church Admin registration "Next" button: same size as the Log In button above, keeping its light grey */
 #ca-first-step input[type="submit"] {
 	min-width: 150px;

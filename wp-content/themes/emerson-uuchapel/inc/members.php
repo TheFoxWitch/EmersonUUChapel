@@ -83,6 +83,41 @@ add_filter(
 	2
 );
 
+// Member directory search box: "Member Name" placeholder and a real accessible name (placeholders aren't labels).
+add_filter(
+	'do_shortcode_tag',
+	static function ( $output, $tag ) {
+		if ( 'church_admin' !== $tag || ! is_string( $output ) || false === strpos( $output, 'ca-search-field' ) ) {
+			return $output;
+		}
+		$output = str_replace(
+			'class="ca-search-field" type="text" placeholder="Search"',
+			'class="ca-search-field" type="text" placeholder="Member Name" aria-label="Search the member directory by name"',
+			$output
+		);
+
+		// Searching reloads the page; bring the visitor back down to the directory instead of the top.
+		$directory = get_permalink() . '#member-directory';
+		$output    = str_replace(
+			'<form name="church_admin_search" action="' . esc_url( get_permalink() ) . '"',
+			'<form name="church_admin_search" action="' . esc_url( $directory ) . '"',
+			$output
+		);
+
+		// After a search, offer a way back to the full list (Church Admin shows only the results or "not found").
+		// The search page's URL already ends in #member-directory, so the link needs a query string or the
+		// browser treats it as a jump within the same page and never reloads.
+		if ( ! empty( $_POST['church_admin_search'] ) ) {
+			$full   = add_query_arg( 'directory', 'all', get_permalink() ) . '#member-directory';
+			$reset  = sprintf( '<p class="emerson-directory-reset"><a href="%s">Show the full directory</a></p>', esc_url( $full ) );
+			$output = preg_replace( '#(<h2>Your search for .*?</h2>|<p>&quot;.*?&quot; not found</p>|<p>".*?" not found</p>)#s', '$1' . $reset, $output, 1 );
+		}
+		return $output;
+	},
+	11,
+	2
+);
+
 // Church Admin loads Google Maps (for the registration form's address map) even when no API key is set,
 // which only produces "no API key" console warnings and an unnecessary request to Google. Skip it until
 // a key is entered in Church Admin → Settings; it then loads again automatically.

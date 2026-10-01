@@ -163,10 +163,10 @@ button.ca-calendar-nav {
 	padding: 0.3em 0.9em;
 	border: 0;
 	border-radius: 3px;
-	background: #efefef;
-	color: #1e1e1e;
+	background: #3f4fa0;
+	color: #fff;
 	font: inherit;
-	font-size: 26px;
+	font-size: 20px;
 	line-height: 1.2;
 	cursor: pointer;
 }
@@ -176,6 +176,57 @@ input.calendar-date-switcher:focus-visible,
 button.ca-calendar-nav:hover,
 button.ca-calendar-nav:focus-visible {
 	background: #e0e0e0;
+}
+
+/* Member directory search (Church Admin address list): button 50% larger than the browser default, box to match */
+input.ca-search-field,
+input.ca-search-submit {
+	box-sizing: border-box;
+	min-height: 33px;
+	border-radius: 3px;
+	font: inherit;
+	font-size: 20px;
+	line-height: 1.2;
+	vertical-align: middle;
+}
+
+input.ca-search-field {
+	padding: 0.2em 0.5em;
+	border: 1px solid #b4b4b4;
+	background: #fff;
+}
+
+input.ca-search-submit {
+	margin-inline-start: 0.4rem;
+	padding: 0.2em 0.8em;
+	border: 1px solid transparent;
+	background: #3f4fa0;
+	color: #fff;
+	cursor: pointer;
+}
+
+input.ca-search-submit:hover,
+input.ca-search-submit:focus-visible {
+	background: #e0e0e0;
+}
+
+/* "Show the full directory" after a search: same look as the Search button */
+.emerson-directory-reset a {
+	display: inline-flex;
+	align-items: center;
+	min-height: 34px;
+	padding: 0.2em 0.8em;
+	border-radius: 3px;
+	background: #efefef;
+	color: #1e1e1e;
+	font-size: 20px;
+	text-decoration: none;
+}
+
+.emerson-directory-reset a:hover,
+.emerson-directory-reset a:focus-visible {
+	background: #e0e0e0;
+	color: #1e1e1e;
 }
 
 /* Church Admin registration "Next" button: same size as the Log In button above, keeping its light grey */

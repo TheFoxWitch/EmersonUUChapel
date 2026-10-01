@@ -12,6 +12,24 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-09-30
 
+### Member directory search: larger box and button, "Member Name" placeholder
+- **Where:** `custom.css`, `input.ca-search-field` and `input.ca-search-submit`. The placeholder change is in `inc/members.php` (a `do_shortcode_tag` filter on Church Admin's output).
+- Church Admin's search form was unstyled: 13 px Arial, 22 px tall (box 161 × 22, button 58 × 22), with sunken and raised borders.
+- **The button** is now 50% larger: 20 px site font, 34 px tall, light grey (`#efefef`), flat with 3 px corners. **The box** matches it: same height and font, 1 px grey border, 3 px corners.
+- **The placeholder** "Search" is now **"Member Name"**. The box also gets `aria-label="Search the member directory by name"`, because a placeholder isn't a label for screen readers.
+- **Tested** with a temporary member account, deleted afterwards: both 34 px and level, and a search for "Bloom" still finds Harlan Bloom.
+- **"Show the full directory" after a search.** Church Admin shows only the results (`Your search for "…" yielded N result(s)`) or `"…" not found`, with no way back to the full list. A light grey button matching Search now follows either message and reloads the directory without the search. It doesn't appear when no search has been made.
+- **Lands at the directory:** the Members page's "Member directory" heading has the anchor `#member-directory` (backup: `backups/members/members-32-before-directory-anchor.html`). The search form goes to `/members/#member-directory`, so results open at the directory instead of the top of the hub.
+- **Bug fixed the same evening:** the button first linked to the same `/members/#member-directory` address the search lands on. The browser treated that as a jump within the page, so it only scrolled and never reloaded, and the search stayed. The button now links to `/members/?directory=all#member-directory`, which forces a real reload. (The `directory=all` part does nothing else.)
+- **Tested in the browser** with a temporary member account, deleted afterwards:
+  - search "Zzyzx": "not found", with the button
+  - clicked: the page reloaded, the message and button were gone, the full list was back, and the page opened at the Member directory heading
+- **Also tested on the server:** "Bloom" (2 results) shows the button too, and no search shows no button.
+
+### Calendar Previous / Next buttons: Emerson blue (intern's edit)
+- The intern changed the calendar buttons' colours in `custom.css` (`input.calendar-date-switcher, button.ca-calendar-nav`): background `#3f4fa0` (Emerson blue), white text, and 20 px text instead of 26 px.
+- The hover colour below it is still the light grey `#e0e0e0`, so the buttons turn light grey on hover. Use the darker blue `#2e3a78` instead if that's not wanted.
+
 ### Calendar Previous / Next buttons about twice as big
 - **Where:** `custom.css`, `input.calendar-date-switcher` and `button.ca-calendar-nav`.
 - Church Admin leaves these buttons unstyled, so they showed as the browser default: 13 px Arial, about 22 px tall, raised border.

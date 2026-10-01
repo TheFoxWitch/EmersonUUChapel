@@ -27,6 +27,13 @@ On the live site, the limit comes from the host's PHP settings. Check it under *
 ### Calendar "This calendar PDF" gives a server error (`cal_days_in_month()` undefined)
 Church Admin needs PHP's `calendar` extension, which the stock `wordpress` Docker image doesn't include. The project `Dockerfile` adds it (`docker-php-ext-install calendar`). If the error comes back, check `docker compose exec wordpress php -m | grep calendar`. If it's missing, run `docker compose build wordpress && docker compose up -d wordpress`.
 
+### "My password is right but I still can't log in" (even after a reset)
+Usually it's the **Limit Login Attempts** lockout, not the database. Four failed tries lock that connection out for 20 minutes, and during that time even the correct password is refused. A password reset doesn't lift it.
+- **Check:** `docker compose run --rm -T wpcli eval 'print_r(get_option("limit_login_lockouts")); print_r(get_option("limit_login_logged"));'`. The log shows the *username that was typed*.
+  - On 2026-10-01 the log showed a shortened name, but that admin account's username is its full email address.
+- **Clear it:** wp-admin → **Limit Login Attempts**, or `update_option()` the options `limit_login_lockouts`, `limit_login_retries` and `limit_login_retries_valid` to `array()`.
+- **Locally,** every visit comes through Docker's one internal address (`172.18.0.1`), so one person's lockout blocks every local login.
+
 ## Pages and styles
 
 ### Checking the whole site for broken links

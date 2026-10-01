@@ -10,6 +10,19 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-01
+
+### Real member login tested; "user login created" email tidied
+- **Checklist test:** the intern promoted test Mctest to **Member** in Church Admin, ticked "To show me on the password protected address list", clicked **Create user account** and logged in as `testmctest`. The serving schedule worked, and test Mctest appeared in the member directory once the "show me" box was ticked.
+  - Route: **Church Admin Premium → People card → Search → Go → first name → Edit person**.
+- **The login email** sent by **Create user account** (`church_admin_user_created_email`, local DB) ran together: "The web team athttp://… have just created a user login for you.Your username is …Your password is …". The stored template had no spaces or line breaks, and Church Admin only adds paragraphs at blank lines.
+  - It's now separate paragraphs, with "has just created a member login".
+  - It adds a line asking new members to choose their own password through **Edit my profile or password**.
+  - The username and password are in bold, as before.
+  - Backup: `backups/church-admin/user-created-email-before.json`.
+- **Church Admin's own closing sentence** said "…privacy settings **at at** …", a plugin typo. It's corrected through a `gettext` filter in `inc/members.php`, so the plugin files aren't edited.
+- **Lockout during testing:** four logins with a shortened username, when the admin account's username is its full email address, locked the connection out for 20 minutes, and even the new password was refused. Cleared, and documented in `TROUBLESHOOTING.md`.
+
 ## 2026-09-30
 
 ### Member directory search: larger box and button, "Member Name" placeholder

@@ -178,6 +178,77 @@ button.ca-calendar-nav:focus-visible {
 	background: #e0e0e0;
 }
 
+/* Church admin serving date save button: same big Emerson-blue pill as the Newcomer / Newsletter buttons */
+.wp-block-post-content input.button-primary-calendar-save,
+.wp-block-post-content button.button-primary-calendar-save {
+	padding: calc(0.667em + 2px) calc(1.111em + 2px);
+	border: 0;
+	border-radius: 25px;
+	background: var(--emerson-blue);
+	color: #fff;
+	font: inherit;
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.6;
+	cursor: pointer;
+	transition: all 0.3s ease-in-out;
+}
+.wp-block-post-content input.button-primary-calendar-save:hover,
+.wp-block-post-content input.button-primary-calendar-save:focus-visible,
+.wp-block-post-content button.button-primary-calendar-save:hover,
+.wp-block-post-content button.button-primary-calendar-save:focus-visible {
+	background: var(--emerson-blue);
+	color: #fff;
+	transform: scale(1.05);
+}
+/** End Church admin serving date save button **/
+/* Church Admin's front-end primary buttons (e.g. "Choose person" for admins under Dates I can't serve):
+   the same big Emerson-blue pill as the Newcomer / Newsletter buttons */
+.wp-block-post-content input.button-primary,
+.wp-block-post-content button.button-primary {
+	padding: calc(0.667em + 2px) calc(1.111em + 2px);
+	border: 0;
+	border-radius: 25px;
+	background: var(--emerson-blue);
+	color: #fff;
+	font: inherit;
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.6;
+	cursor: pointer;
+	transition: all 0.3s ease-in-out;
+}
+
+.wp-block-post-content input.button-primary:hover,
+.wp-block-post-content input.button-primary:focus-visible,
+.wp-block-post-content button.button-primary:hover,
+.wp-block-post-content button.button-primary:focus-visible {
+	background: var(--emerson-blue);
+	color: #fff;
+	transform: scale(1.05);
+}
+/* Save button on the Church Admin Calendar page: same big Emerson-blue pill as the Newcomer / Newsletter buttons */
+.wp-block-post-content input.button-primary,
+.wp-block-post-content button.button-primary-calendar-save { 
+	padding: calc(0.667em + 2px) calc(1.111em + 2px);
+	border: 0;
+	border-radius: 25px;
+	background: var(--emerson-blue);
+	color: #fff;
+	font: inherit;
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.6;
+	cursor: pointer;
+	transition: all 0.3s ease-in-out;
+}
+
+.wp-block-post-content input.button-primary:hover,
+.wp-block-post-content input.button-primary:focus-visible,
+.wp-block-post-content button.button-primary:hover,
+.wp-block-post-content button.button-primary:focus-visible {
+	background: var(--emerson-blue);
+	color: #fff;
+	transform: scale(1.05);
+}
+/** End Save button on the Church Admin Calendar page **/
 /* Member directory search (Church Admin address list): button 50% larger than the browser default, box to match */
 input.ca-search-field,
 input.ca-search-submit {

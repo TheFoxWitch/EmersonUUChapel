@@ -10,7 +10,49 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-02
+
+### "Dates I can't serve" Save button: big Emerson-blue pill
+- **CSS** (written by the intern): `custom.css`, the `.button-primary-calendar-save` rule. It sets Emerson blue, white text, 25 px rounded ends, padding `calc(0.667em + 2px) calc(1.111em + 2px)`, and a slight grow on hover.
+  - Added to it: `font: inherit`, `font-size: var(--wp--preset--font-size--medium)`, `line-height: 1.6`, `cursor: pointer` and the transition.
+  - Without a font setting the button kept the browser's 13 px Arial. Its `em` padding scaled down with it, so it came out 64 × 37 instead of 56 tall.
+- **The class:** Church Admin prints the button itself (`display/not-available.php`, `<input type="submit" class="button" value="Save">`), so there was nowhere to add the class by hand. Editing the plugin file would be overwritten by the next Church Admin update.
+  - A `do_shortcode_tag` filter in `inc/members.php` now adds `button-primary-calendar-save` to that one button. It matches the hidden `not-available` field just before it.
+- **Result:** 81 × 56 px, 17.6 px site font, Emerson blue. Checked as test Mctest on the members' hub.
+- **Method for future plugin buttons:** add the class in `inc/members.php` with a `do_shortcode_tag` filter, then style it in `custom.css`.
+
+### "Dates I can't serve": saved dates listed, and Save returns to the section
+- **Report:** after ticking a date and clicking Save, nothing seemed to change. The date *was* saved (checked: November 1, 2026 for test Mctest).
+  - Church Admin's only feedback is that the box stays ticked among the next 26 service dates, plus a "Unavailable dates saved" heading.
+  - The form reloaded at the top of the page, so that heading was out of sight.
+- **Changes** (`inc/members.php`, a `do_shortcode_tag` filter on Church Admin's `not-available` output):
+  - **A summary above the checkboxes:** "Dates you've marked as unavailable: **November 1, 2026**", or "You haven't marked any dates as unavailable."
+    - It reads Church Admin's own table (`church_admin_not_available`) at page time, so it reflects a save straight away. Only today's date and later are listed.
+    - When an admin has picked someone with **Choose person**, it names that person instead.
+  - **Return to the section:** the "Dates I can't serve" heading on the Members page has the anchor `#dates-unavailable` (backup: `backups/members/members-32-before-dates-anchor.html`). Both Church Admin forms in that section now post to `/members/#dates-unavailable`.
+- **Tested** as test Mctest: the summary showed November 1. Ticking December 6 and saving landed on the section with "Unavailable dates saved", and the summary listed both dates. December 6 was then removed again.
+
+### Logins with no directory entry
+- **Report:** the intern's Contributor login (WordPress user #47) saw no serving dates, only "Your login is not connected to a directory entry".
+- **Cause:** serving schedules and unavailable dates belong to a Church Admin **person**, not to a WordPress login.
+  - Logins made through the Members page sign-up get a person automatically. This one was made directly in WordPress, so it had none.
+  - Real members can hit the same message if the office creates their login in WordPress, or if their login email doesn't match their directory entry.
+- **Friendlier message** (`inc/members.php`): "Your login isn't linked to a directory entry yet, so serving dates can't be shown. Contact the office at office@emersonuuchapel.org and they'll connect it."
+- **Local data:** added person #84 "Fox Metz" (household #46) for user #47.
+  - Mailing List type, hidden from the directory, with all email and text settings off.
+  - Listed in the checklist's test-data cleanup.
+
 ## 2026-10-01
+
+### "Choose person" button: big Emerson-blue pill
+- **Where:** `custom.css`, `.wp-block-post-content input.button-primary` (and `button.button-primary`).
+- **The button:** Church Admin's **"Choose person"** button sits under **Dates I can't serve** on the members' hub, and appears only for users with Church Admin's Rota permission, such as administrators. It used wp-admin's small `button-primary` style.
+- **The new style** matches the Newcomer / Newsletter buttons:
+  - Emerson blue `#3f4fa0` with white text
+  - the theme's medium font size (about 17.6 px)
+  - `calc(0.667em + 2px) calc(1.333em + 2px)` padding, 25 px rounded ends, and a slight grow on hover
+  - It measures 56 px tall. The dropdown beside it is unchanged.
+- **Only this button is affected:** "Choose person" is the only `button-primary` in page content. Profile Builder's **Log In** also carries `button-primary`, but its own, more specific rule still wins, so it's unchanged (150 × 50, dark grey). Checked by measuring copies of both buttons on the live page.
 
 ### Real member login tested; "user login created" email tidied
 - **Checklist test:** the intern promoted test Mctest to **Member** in Church Admin, ticked "To show me on the password protected address list", clicked **Create user account** and logged in as `testmctest`. The serving schedule worked, and test Mctest appeared in the member directory once the "show me" box was ticked.

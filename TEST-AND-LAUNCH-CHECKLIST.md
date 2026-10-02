@@ -40,9 +40,12 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - "Edit my profile or password" works, and "Log out" goes to the homepage
   - "Lost your password?": the reset email arrives and its link works
   - Old addresses (`/member-login/`, `/member-home/`, `/login/`) go to `/members/`
-- [x] **Test with a real member login** (done 2026-10-01 with test Mctest): promote one of the test subscribers (alice fox, test Mctest or Test Testing) to **Member** in Church Admin, give them a login, and tick "show me". Church Admin route: **Church Admin Premium → People card → Search → Go**. Click the first name, then set **Member type: Member** and tick **"To show me on the password protected address list"**, then **Save Details**. Back in the search results, click **Create user account**. They should appear in the directory, and "My serving schedule" should work instead of saying the login isn't connected.
-- [x] **Four wrong passwords in a row** (happened for real on 2026-10-01: the lockout held even with the new password, and was cleared afterwards) lock you out for 20 minutes. Afterwards, clear the lockout on the **Limit Login Attempts** screen in wp-admin.
+- [x] **Test with a real member login:** promote one of the test subscribers (alice fox, test Mctest or Test Testing) to **Member** in Church Admin, give them a login, and tick "show me". Church Admin route: **Church Admin Premium → People card → Search → Go**. Click the first name, then set **Member type: Member** and tick **"To show me on the password protected address list"**, then **Save Details**. Back in the search results, click **Create user account**. They should appear in the directory, and "My serving schedule" should work instead of saying the login isn't connected.
+- [x] **Four wrong passwords in a row** lock you out for 20 minutes. Afterwards, clear the lockout on the **Limit Login Attempts** screen in wp-admin.
 - [ ] **Clean up afterwards:** delete test households, people and user accounts. Church Admin should be back to 65 people.
+  - On 2026-10-02 there are 70. The five extra people are #79 alice fox, #80 test Mctest, #82 Test Testing, #83 (auto-created for the intern admin login) and #84 Fox Metz.
+  - #84 Fox Metz (household #46) was added by hand so the intern's Contributor login (user #47) could test serving dates. It's hidden from the directory, with all email and text settings off.
+  - Delete the person and household, but **keep user #47**. That login was made in WordPress, not through sign-up.
 - [ ] **Google Maps: ask the church** (the intern is contacting them). Do they want maps, and who would own the Google account?
   - Church Admin can show a map on the registration form and in the member directory, but only with a Google Maps API key.
   - That needs a Google Cloud account with billing turned on; normal church use should stay within the free allowance.
@@ -67,12 +70,14 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - **Steps:**
     1. Quit Terminal, and close Cursor's terminals.
     2. Open `~/.zprofile` in Cursor (Cmd+Shift+G in Finder, type `~/`, then show hidden files with Cmd+Shift+.).
-       - Keep the block with the comment `# Docker Desktop CLI + credential helpers` and its line `export PATH="$HOME/.docker/bin:$PATH"`.
-       - Delete line 2, `export PATH="$PATH:/Users/kitsunearisu/.docker/bin"`.
+      - Keep the block with the comment `# Docker Desktop CLI + credential helpers` and its line `export PATH="$HOME/.docker/bin:$PATH"`.
+      - Delete line 2, `export PATH="$PATH:/Users/kitsunearisu/.docker/bin"`.
     3. Open `~/.zshrc` and delete its line `export PATH="$HOME/.docker/bin:$PATH"`. Keep the `fpath=(…/.docker/completions …)` line, which gives Docker tab-completion.
     4. Open a new Terminal and run `command -v docker`. It should print `/Users/kitsunearisu/.docker/bin/docker`. Then run `docker compose ps` in the project folder, and it should list `db` and `wordpress`.
-  - **If `docker` isn't found afterwards,** put the deleted `.zprofile` line back.
+  - **If** `docker` **isn't found afterwards,** put the deleted `.zprofile` line back.
   - **Not needed:** `brew uninstall docker`. Docker Desktop wasn't installed with Homebrew, which is why Homebrew said the cask "is not installed". Leave it alone.
+
+
 
 ## 2. Before making the WPvivid backup
 

@@ -25,6 +25,7 @@ wp-content/local-mail/
 
 # Third-party code (reinstall from wordpress.org or the WPvivid backup; Church Admin Premium is a paid licence)
 wp-content/plugins/
+backups/plugins/
 wp-content/themes/*
 !wp-content/themes/emerson-uuchapel/
 

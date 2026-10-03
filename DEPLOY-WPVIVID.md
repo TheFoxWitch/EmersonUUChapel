@@ -22,6 +22,7 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 | Limit Login Attempts Reloaded | **Installed** 2026-09-29 (default settings) | Not installed | Carried by the backup's plugins. After the restore, check that failed logins are counted per visitor, not all from one address (see step C6). |
 | Members page login | Profile Builder form on `/members/`, which is never page-cached (`DONOTCACHEPAGE`) | `wp-login.php` link | Automatic. Test logging in and out in step C6. |
 | Scheduled jobs (WP-Cron) | Zephyr jobs rescheduled on 2026-09-29, after being overdue since March 2025 | Live's own schedule | Nothing to undo. The restore brings the new, non-overdue times, so no backlog fires on live. |
+| Serving dates (since 2026-10-02) | Members tick the dates they **can** serve (`inc/serving-dates.php`). The extra table `wp_emerson_serving_answers` holds their answers. Church Admin's `wp_church_admin_not_available` is filled with a "can't serve" row for every unanswered date, 6 months ahead, kept up to date by the daily job `emerson_serving_daily_sync`. | Church Admin's own "dates I can't serve" form; unanswered dates count as available | Automatic. The code, the table and the option `emerson_serving_db_version` all travel in the backup. Check after the restore (section 3 of `TEST-AND-LAUNCH-CHECKLIST.md`, "Serving dates still work after the restore"). If the live site's Church Admin data is brought over separately, reset the feature first (step A1.5). |
 | WordPress version | 7.1.2 | 7.1.2 | Same. (The Docker image name says 6.8, but the core files are 7.1.2 from the restore.) |
 | PHP / MySQL | 8.2 / MySQL 8.0 | 8.4.25 / MariaDB 11.4 | No action needed. |
 | WPvivid remote storage and schedules | None | None | Nothing to reconnect. |
@@ -30,15 +31,32 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 
 ## A. Before making the backup (on the local site)
 
-1. **Check the live site for changes made since 2026-09-24.** Anything created there after that date will be **replaced** by the restore:
+1. **Bring in what changed on the live site since 2026-09-24.** The restore replaces the live site's **whole database** with the local one. The local code does not merge anything into it. Anything created or edited on the live site after that date is lost unless it's copied in first:
    - new user accounts or password changes
-   - Church Admin households and registrations
-   - rota edits
-   - new or edited pages and posts
+   - Church Admin people, households, registrations, member-type changes and "show me" ticks
+   - serving schedule (rota) edits and dates people marked as unavailable
+   - new or edited pages, posts, sermons and calendar events
    - media uploads
    - plugin settings
 
-   Either copy those changes into the local site first, or re-enter them after the restore.
+   **Steps:**
+   1. **Pick a launch date and ask for a freeze.** For a day or two before launch, nobody edits Church Admin, posts or pages on the live site. Anything that can't wait gets emailed to the intern instead, to be entered locally.
+   2. **Get a fresh WPvivid backup from Harlan** (Database + Files) at the start of the freeze, and download every part. Keep it next to the 2026-09-24 backup in the project folder. It's also a rollback point.
+   3. **Compare it with the local site.** Restore the fresh backup into a **separate** local copy, never over this one: a second Docker project with its own database volume. Then compare the two databases:
+      - **Church Admin:** `wp_church_admin_people`, `_household`, `_people_meta`, `_new_rota`, `_not_available`, `_calendar_date`. Compare by `last_updated` and `first_registered` after 2026-09-24, and by row counts. Local counts on 2026-10-02: 70 people (65 once test data is removed), 38 households, 2,951 schedule entries.
+        - **Leave out** the local `_not_available` rows the serving feature adds (see the table above). Compare only the live site's own unavailable dates.
+      - **Logins:** `wp_users` (new accounts, `user_registered`; password changes show as a different `user_pass`).
+      - **Content:** posts, pages, sermons and media with `post_modified` after 2026-09-24.
+      - **Plugin settings:** spot-check anything the office mentions changing.
+   4. **Copy the changes into the local site**, using the normal screens (Church Admin, Users, the editor). This is the usual case: a few weeks of church activity is normally a handful of edits.
+      - **New logins:** re-create them locally and send a password reset after launch. WordPress can't copy a password across, so people get a "set your password" email instead.
+      - **Unavailable dates people marked on the live site:** enter them through **Choose person** on the Members page as "can't serve". The other dates then count as unanswered, as for everyone else.
+   5. **If the directory changed a lot instead** (many new people or households), bring their Church Admin data over in one go, **after** the restore in section C:
+      1. Export from the fresh backup's database copy: `wp_church_admin_people`, `_household`, `_people_meta`, `_new_rota`, `_not_available`. Use `mysqldump` in the database container; see TROUBLESHOOTING → "Serving dates".
+      2. Import them into the live database (phpMyAdmin on the host). WPvivid changes the prefix to `wptf_` on the way in, so rename the tables in the file first.
+      3. Reset the serving feature so it converts their old-style dates on the next page load. Delete the option `emerson_serving_db_version`, and empty `wptf_emerson_serving_answers`. Their unavailable dates become real "can't serve" answers, and every other date counts as unanswered.
+      4. **Check logins:** Church Admin people are linked to WordPress accounts by `user_id`. Anyone who created or changed a login on the live site after 2026-09-24 has to be re-linked or sent a password reset. That's why this route is the exception, not the rule.
+   6. **Keep the freeze until the restore is done** (section C), so nothing new appears in between.
 2. **Leadership sign-off.** The Privacy Policy page (3) is published locally and will go live with the restore.
 3. **Email back to save only, and test data removed.** Run `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`. Delete test households and people from Church Admin, and any test user accounts. See [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md).
 4. **Optional tidy-up.** In **WPvivid → Backups**, delete the old 2026-09-24 backup from the list so the new one is easy to spot. A full copy stays in the project folder (`www.emersonuuchapel.org_wpvivid-…`).
@@ -47,7 +65,7 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 
 ## B. Before restoring (on the destination site)
 
-1. **Take a fresh WPvivid backup of the live site and download it.** This is your rollback.
+1. **Take a fresh WPvivid backup of the live site and download it.** This is your rollback. If the freeze from step A1 has held since Harlan's backup, that backup will do; otherwise take a new one now.
 2. **Save copies of the live `.htaccess` and `wp-config.php`** (cPanel → File Manager → site root → Download). A copy of the 2026-09-24 `.htaccess` is also inside the old backup's `*_backup_core.zip`.
 3. **New hosting only:**
    - Install WordPress with PHP 8.4.

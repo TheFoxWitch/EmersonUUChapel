@@ -101,59 +101,6 @@ add_filter(
 	2
 );
 
-// "Dates I can't serve": Church Admin only keeps the saved dates ticked among two dozen checkboxes, and the form
-// reloads at the top of the page. List the saved dates above the checkboxes and bring the visitor back to the section.
-add_filter(
-	'do_shortcode_tag',
-	static function ( $output, $tag ) {
-		global $wpdb;
-		if ( 'church_admin' !== $tag || ! is_string( $output ) || false === strpos( $output, 'name="not-available"' ) ) {
-			return $output;
-		}
-
-		$output = str_replace(
-			'<form action="" method="POST">',
-			'<form action="' . esc_url( get_permalink() . '#dates-unavailable' ) . '" method="POST">',
-			$output
-		);
-
-		// Same person Church Admin shows: someone an admin picked with "Choose person", otherwise the logged-in member.
-		$people = $wpdb->prefix . 'church_admin_people';
-		$person = null;
-		if ( ! empty( $_REQUEST['people_id'] ) && function_exists( 'church_admin_premium_level_check' ) && church_admin_premium_level_check( 'Rota' ) ) {
-			$person = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$people} WHERE people_id = %d", (int) $_REQUEST['people_id'] ) );
-		}
-		if ( ! $person ) {
-			$person = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$people} WHERE user_id = %d", get_current_user_id() ) );
-		}
-		if ( ! $person ) {
-			return $output;
-		}
-
-		$dates = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT unavailable FROM {$wpdb->prefix}church_admin_not_available WHERE people_id = %d AND unavailable >= %s ORDER BY unavailable",
-				(int) $person->people_id,
-				current_time( 'Y-m-d' )
-			)
-		);
-		$own = (int) $person->user_id === get_current_user_id();
-		if ( $dates ) {
-			$list    = implode( ', ', array_map( static fn( $d ) => mysql2date( get_option( 'date_format' ), $d ), $dates ) );
-			$summary = $own
-				? sprintf( 'Dates you&#8217;ve marked as unavailable: <strong>%s</strong>', esc_html( $list ) )
-				: sprintf( 'Dates %1$s has marked as unavailable: <strong>%2$s</strong>', esc_html( trim( $person->first_name . ' ' . $person->last_name ) ), esc_html( $list ) );
-		} else {
-			$summary = $own ? 'You haven&#8217;t marked any dates as unavailable.' : esc_html( trim( $person->first_name . ' ' . $person->last_name ) ) . ' hasn&#8217;t marked any dates as unavailable.';
-		}
-
-		// Put it just above Church Admin's own heading for the checkbox list.
-		return preg_replace( '#(<h3>(?:Please choose dates|Set non availability))#', '<p class="emerson-unavailable-summary">' . $summary . '</p>$1', $output, 1 );
-	},
-	12,
-	2
-);
-
 // Logins made straight in WordPress (rather than through the Members page sign-up) have no Church Admin directory
 // entry, so serving features stop with a terse plugin message. Tell the member who can fix it.
 add_filter(

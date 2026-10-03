@@ -33,7 +33,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - A wrong password gives an on-page error
   - A correct login shows the hub on the same page:
     - Sunday services
-    - my serving schedule and dates I can't serve
+    - my serving schedule and dates I can serve
     - upcoming events
     - the directory
   - The admin toolbar doesn't appear
@@ -42,29 +42,14 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - Old addresses (`/member-login/`, `/member-home/`, `/login/`) go to `/members/`
 - [x] **Test with a real member login:** promote one of the test subscribers (alice fox, test Mctest or Test Testing) to **Member** in Church Admin, give them a login, and tick "show me". Church Admin route: **Church Admin Premium → People card → Search → Go**. Click the first name, then set **Member type: Member** and tick **"To show me on the password protected address list"**, then **Save Details**. Back in the search results, click **Create user account**. They should appear in the directory, and "My serving schedule" should work instead of saying the login isn't connected.
 - [x] **Four wrong passwords in a row** lock you out for 20 minutes. Afterwards, clear the lockout on the **Limit Login Attempts** screen in wp-admin.
+- [x] **"Dates I can serve"** (tested 2026-10-02 as Fox Metz, and as an admin using Choose person): boxes start unticked; Mark all and Clear all work; Save returns to the section with "Your serving dates are saved" and the summary ("You can serve 24 of the 26 dates listed. Not available: …").
 - [ ] **Clean up afterwards:** delete test households, people and user accounts. Church Admin should be back to 65 people.
+  - Then remove their serving answers too: `docker compose run --rm -T wpcli eval 'global $wpdb; $wpdb->query("DELETE a FROM {$wpdb->prefix}emerson_serving_answers a LEFT JOIN {$wpdb->prefix}church_admin_people p ON p.people_id = a.people_id WHERE p.people_id IS NULL"); $wpdb->query("DELETE n FROM {$wpdb->prefix}church_admin_not_available n LEFT JOIN {$wpdb->prefix}church_admin_people p ON p.people_id = n.people_id WHERE p.people_id IS NULL");'`
   - On 2026-10-02 there are 70. The five extra people are #79 alice fox, #80 test Mctest, #82 Test Testing, #83 (auto-created for the intern admin login) and #84 Fox Metz.
   - #84 Fox Metz (household #46) was added by hand so the intern's Contributor login (user #47) could test serving dates. It's hidden from the directory, with all email and text settings off.
   - Delete the person and household, but **keep user #47**. That login was made in WordPress, not through sign-up.
-- [ ] **Google Maps: ask the church** (the intern is contacting them). Do they want maps, and who would own the Google account?
-  - Church Admin can show a map on the registration form and in the member directory, but only with a Google Maps API key.
-  - That needs a Google Cloud account with billing turned on; normal church use should stay within the free allowance.
-  - If yes: restrict the key to the church's domain and paste it into **Church Admin → Settings**. Then test the registration form's address map, and turn the directory map on (`map="1"` in the address-list shortcode on the Members page).
-  - Until then, Maps isn't loaded at all (`inc/members.php`), so there's no console warning and no request to Google.
-
-- [ ] **Spreadsheets for certain members: ask the church** (the intern is finding the person who keeps them)
-  - **Ask:** who needs to see them? View only, or editing too? What information is in them (giving by person, pledge totals, budget, attendance)? Where does it live now (Church Admin, Google Sheets, Excel)? How often is it updated? Who must *not* see it?
-  - **Likely sources on the site:**
-    - Church Admin **Giving**, which is already limited to the two accounts with Church Admin's Giving permission, `Michelle Z.` and `[member email removed]`. `/giving/` shows its totals to them.
-    - TablePress tables. The four present are public meeting and document lists on Documents.
-  - **Plan once known:** a members' hub section shown only to flagged people, either through Church Admin permissions or the unused WordPress **"finance"** role. It's left out on the server for everyone else, not just hidden on screen.
-  - **Also:** a "WordPress dashboard" link on the hub for staff roles only (administrators, editors). Harlan Bloom's account is currently a **subscriber**; check whether he uses another login.
-
-- [ ] **Broken-link follow-ups from the 2026-09-30 scan: ask the church**
-  - **Who Are We, "vision"** (in "Part of our vision is…") links to `/our-vision`, which doesn't exist. Is there a vision statement page to create, or should the link be removed?
-  - **Who Are We, "here"** (Covenant of Right Relations) links to an old Squarespace PDF that isn't on the site. Ask for the current Covenant PDF so it can be uploaded and linked.
-  - **Engage, Outreach Partners: three organisations have closed or gone offline.** Caminamos Juntos of San Miguel de Allende (`cjsma.org` no longer exists), Saint Louis Story Stitchers (site reports it's permanently gone) and the UU Trauma Response Ministry (`traumaministry.org` doesn't respond). Keep them as a historical list without links, remove them, or replace the links?
-  - **Click once to confirm** (these sites block automated checks, so they're probably fine): Holocaust Museum (`hmlc.org`), O.A.S.I.S. Food Pantry, KIND (`supportkind.org`), the Poetry Foundation's Ralph Waldo Emerson page (FAQ), and the Intuit Mailchimp privacy statement (Privacy Policy).
+- [ ] **Click once to confirm these outside links** (from the 2026-09-30 broken-link scan; these sites block automated checks, so they're probably fine): Holocaust Museum (`hmlc.org`), O.A.S.I.S. Food Pantry, KIND (`supportkind.org`), the Poetry Foundation's Ralph Waldo Emerson page (FAQ), and the Intuit Mailchimp privacy statement (Privacy Policy).
+- [ ] **Questions for the church:** see section 4.
 - [ ] **Last before the WPvivid backup: tidy the Mac's Docker PATH lines.** This is optional and housekeeping only; nothing is broken.
   - Docker's command folder (`~/.docker/bin`) is added to the PATH **three times**: twice in `~/.zprofile` (lines 2 and 8) and once in `~/.zshrc` (line 2). Since the 2026-10-01 Docker Desktop settings fix, new terminals find `docker` on their own, so only one is needed.
   - **Steps:**
@@ -84,22 +69,16 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [ ] Email back to save only: `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`
 - [ ] Test data removed (see "Clean up afterwards" in section 1)
 - [ ] No scheduled jobs in the past: `docker compose run --rm -T wpcli cron event list`. The overdue ones were rescheduled on 2026-09-29.
-- [ ] Leadership has approved the Privacy Policy wording, including the newsletter, local-storage and login-protection sections
-- [ ] **Church question: YouTube.** Confirm that **@EmersonUUChapel** is the current channel. Sunday Services links to it, but 33 of the 35 sermon videos are on the older **@emersonunitarianuniversali1222**. Also ask whoever uploads sermons to set each gallery video's date to the Sunday it was recorded, so Past Sermons stays in order.
-- [ ] **Church decision: the member directory.** Only households that opted in ("show me") are listed, currently 2 of the 32 Members. Decide whether to ask members to opt in, for example with a note in the newsletter or Church Admin's "update your details" email.
+- [ ] Every question in section 4 (questions for the church) is answered, and its change made or deliberately left for later
 - [ ] Optional: hide the Website and Biographical Info fields on Edit Profile (**Profile Builder → Form Fields**)
-- [ ] The missing images from the sitemaster are added:
-  - 3 on the Welcome! page
-  - Serve Emerson Chapel and Engage banners: `service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg` and `board-meetings.jpg` (uploaded 2021/11 and 2022/07). Engage also needs `image.jpeg` (2022/07), the "Serve Our Wider Community" photo. Until then those banners are solid blue. See `CHANGELOG.md` for how to put the photos back.
-- [ ] Decision on the mint green (`#00d084`), which has low contrast as text on white
 - [ ] Someone monitors `office@emersonuuchapel.org` (newsletter and Newcomer form) and `com@emersonuuchapel.org` (Church Admin and the site admin)
 - [ ] Optional: delete unused forms. That's 6 Calculated Fields demo forms that email `com@` and copy the visitor, the "Emerson 2023-24 Pledge Drive" WPForm and the "Simple Contact Form" WPForm.
 - [ ] **To build: social media icons in the footer.** Use the links already on Ways to Connect:
   - Facebook `https://www.facebook.com/emersonuuchapel`
   - Instagram `https://instagram.com/emersonuuchapel`
   - Twitter/X `https://twitter.com/EmersonChapel`
-  All three answered on 2026-09-29. Ask the church whether the Twitter/X account is still used before including it.
-- [ ] Anything changed on the live site since 2026-09-24 has been copied into the local site (the restore replaces it)
+  All three answered on 2026-09-29. Whether to include Twitter/X is a question in section 4.
+- [ ] Anything changed on the live site since 2026-09-24 has been copied into the local site (the restore replaces it). Follow `DEPLOY-WPVIVID.md` step A1: compare Harlan's fresh backup with the local site, then copy the changes in.
 
 
 
@@ -115,4 +94,42 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [ ] Optional: ask the church about a sending service (Brevo, SendLayer) instead of the NetSol mailbox, for faster and more reliable email everywhere
 - [ ] Mailchimp: the office adds new subscribers by hand until someone provides an API key and audience ID
 - [ ] Remove your own test sign-up from Church Admin and Mailchimp afterwards
-- [ ] **Calendar → "This calendar PDF"** downloads a PDF. Church Admin needs PHP's `calendar` extension. Locally it's added by the project `Dockerfile`; most hosts have it. If the live site gives a server error there, ask the host to enable it.
+- [ ] **Serving dates still work after the restore.** Logged in as a member, "Dates I can serve" shows their ticks. In `wp eval`, `wp_next_scheduled('emerson_serving_daily_sync')` returns a time (the daily job that keeps unanswered dates blocked for auto-fill). The `wp_emerson_serving_answers` table travels with the WPvivid database backup.
+- [ ] **Calendar PDFs** (in Firefox or Safari; Cursor's browser doesn't show PDFs): a Yearly Planner option gives January–December of that year; "This month's PDF" after moving to another month gives that month, with events in their boxes.
+- [ ] **Calendar → "This calendar PDF"** downloads a PDF.
+
+## 4. Questions for the church
+
+Ask these before the WPvivid backup where possible; section 2 checks they're answered. The intern is contacting the church.
+
+- [ ] **Launch date and freeze.** Agree a launch date. For a day or two before it, nobody edits Church Admin, posts or pages on the live site; urgent changes are emailed to the intern instead. The restore replaces the live database, so anything changed during the freeze would be lost.
+- [ ] **A fresh WPvivid backup from Harlan** (Database + Files) at the start of the freeze. It's used to find what changed on the live site since 2026-09-24 (`DEPLOY-WPVIVID.md` step A1), and it's a rollback point.
+
+- [ ] **Serving schedule: Monday dates.** "Dates I can't serve" lists every Monday as well as every Sunday (October 5, 12…).
+  - Church Admin has **two services, both called "Sunday Service" at 10:00 AM**. Service #1 is set to **Monday**, and service #2 has no day set.
+  - **Ask:** is there a Monday service or gathering that needs volunteers? If not, the fix is to correct service #1 to Sunday and remove the duplicate (**Church Admin → Schedules → Services**). Back up the database first, and check which service the past schedules use before removing one.
+  - Also: no one is scheduled on any future date yet. Who builds the serving schedule now, and do they use Church Admin for it?
+- [ ] **Google Maps.** Do they want maps, and who would own the Google account?
+  - Church Admin can show a map on the registration form and in the member directory, but only with a Google Maps API key.
+  - That needs a Google Cloud account with billing turned on; normal church use should stay within the free allowance.
+  - If yes: restrict the key to the church's domain and paste it into **Church Admin → Settings**. Then test the registration form's address map, and turn the directory map on (`map="1"` in the address-list shortcode on the Members page).
+  - Until then, Maps isn't loaded at all (`inc/members.php`), so there's no console warning and no request to Google.
+- [ ] **Spreadsheets for certain members** (the intern is finding the person who keeps them)
+  - **Ask:** who needs to see them? View only, or editing too? What information is in them (giving by person, pledge totals, budget, attendance)? Where does it live now (Church Admin, Google Sheets, Excel)? How often is it updated? Who must *not* see it?
+  - **Likely sources on the site:**
+    - Church Admin **Giving**, which is already limited to the two accounts with Church Admin's Giving permission (Michelle Z.'s login and one other member's personal-email login; see **Church Admin → Settings → Permissions**). `/giving/` shows its totals to them.
+    - TablePress tables. The four present are public meeting and document lists on Documents.
+  - **Plan once known:** a members' hub section shown only to flagged people, either through Church Admin permissions or the unused WordPress **"finance"** role. It's left out on the server for everyone else, not just hidden on screen.
+  - **Also:** the hub's "WordPress dashboard" link shows for staff roles only (administrators, editors). Harlan Bloom's account is currently a **subscriber**; check whether he uses another login.
+- [ ] **Broken links from the 2026-09-30 scan**
+  - [x] **Who Are We, "vision"** (in "Part of our vision is…") linked to `/our-vision`, which doesn't exist. **Answered 2026-10-02 (board member):** link removed; "vision" stays bold.
+  - **Who Are We, "here"** (Covenant of Right Relations) links to an old Squarespace PDF that isn't on the site. Ask for the current Covenant PDF so it can be uploaded and linked.
+  - **Engage, Outreach Partners: three organisations have closed or gone offline.** Caminamos Juntos of San Miguel de Allende (`cjsma.org` no longer exists), Saint Louis Story Stitchers (site reports it's permanently gone) and the UU Trauma Response Ministry (`traumaministry.org` doesn't respond). Keep them as a historical list without links, remove them, or replace the links?
+- [ ] **YouTube.** Confirm that **@EmersonUUChapel** is the current channel. Sunday Services links to it, but 33 of the 35 sermon videos are on the older **@emersonunitarianuniversali1222**. Also ask whoever uploads sermons to set each gallery video's date to the Sunday it was recorded, so Past Sermons stays in order.
+- [ ] **The member directory.** Only households that opted in ("show me") are listed, currently 2 of the 32 Members. Decide whether to ask members to opt in, for example with a note in the newsletter or Church Admin's "update your details" email.
+- [ ] **Missing images (from the sitemaster)**
+  - 3 on the Welcome! page
+  - Serve Emerson Chapel and Engage banners: `service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg` and `board-meetings.jpg` (uploaded 2021/11 and 2022/07). Engage also needs `image.jpeg` (2022/07), the "Serve Our Wider Community" photo. Until then those banners are solid blue. See `CHANGELOG.md` for how to put the photos back.
+- [ ] **Twitter/X.** Is the account still used? Decides whether it goes in the footer's social icons (section 2).
+- [ ] **Mint green (`#00d084`).** It has low contrast as text on white. Keep it, or choose a darker green for text?
+- [ ] **Privacy Policy.** Leadership approves the wording, including the newsletter, local-storage and login-protection sections. Church Admin needs PHP's `calendar` extension. Locally it's added by the project `Dockerfile`; most hosts have it. If the live site gives a server error there, ask the host to enable it.

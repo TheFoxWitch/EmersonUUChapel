@@ -35,6 +35,13 @@
 }
 /** End Logo **/
 
+/* Header menu drop-downs open to the right. The menu is right-justified, so WordPress opens them leftward;
+   when the menu wraps under the logo (about 844–1124 px wide) About and Worship then ran off the left edge. */
+header .wp-block-navigation.items-justified-right .wp-block-navigation__container > .has-child > .wp-block-navigation__submenu-container {
+	left: 0;
+	right: auto;
+}
+
 /* All pages: centre page titles and content headings; paragraphs stay left-aligned */
 .wp-block-post-title,
 .wp-block-post-content :is(h1, h2, h3, h4, h5, h6) {
@@ -171,6 +178,42 @@ button.ca-calendar-nav {
 	cursor: pointer;
 }
 
+/* Month grid's Prev / Next (Church Admin gives them btn-info; Today is btn-warning): plain ← and → arrows beside the month name.
+   The words stay in the button (font-size 0) so screen readers still announce "Prev" and "Next". */
+button.ca-calendar-nav.btn-info,
+button.ca-calendar-nav.btn-info:hover,
+button.ca-calendar-nav.btn-info:focus-visible {
+	min-height: 0;
+	padding: 0 0.15em;
+	background: none;
+	color: var(--emerson-blue);
+	font-size: 0;
+	line-height: 1;
+	vertical-align: middle;
+}
+
+button.ca-calendar-nav.btn-info::before {
+	position: relative;
+	top: -3px;
+	font-size: 28px;
+	line-height: 1;
+}
+
+button.ca-calendar-nav.btn-info:first-of-type::before {
+	content: "\2190";
+	content: "\2190" / "";
+}
+
+button.ca-calendar-nav.btn-info:last-of-type::before {
+	content: "\2192";
+	content: "\2192" / "";
+}
+
+button.ca-calendar-nav.btn-info:hover::before,
+button.ca-calendar-nav.btn-info:focus-visible::before {
+	color: var(--emerson-blue-dark);
+}
+
 input.calendar-date-switcher:hover,
 input.calendar-date-switcher:focus-visible,
 button.ca-calendar-nav:hover,
@@ -298,6 +341,29 @@ input.ca-search-submit:focus-visible {
 .emerson-directory-reset a:focus-visible {
 	background: #e0e0e0;
 	color: #1e1e1e;
+}
+
+/* Serving dates: "Mark all" / "Clear all", same light grey as the directory reset */
+.emerson-serve-bulk {
+	display: flex;
+	gap: 0.6em;
+}
+
+.emerson-serve-bulk button {
+	min-height: 34px;
+	padding: 0.2em 0.8em;
+	border: 0;
+	border-radius: 3px;
+	background: #efefef;
+	color: #1e1e1e;
+	font: inherit;
+	font-size: 20px;
+	cursor: pointer;
+}
+
+.emerson-serve-bulk button:hover,
+.emerson-serve-bulk button:focus-visible {
+	background: #e0e0e0;
 }
 
 /* Church Admin registration "Next" button: same size as the Log In button above, keeping its light grey */

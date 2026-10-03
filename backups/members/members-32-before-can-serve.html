@@ -1,0 +1,110 @@
+<!-- wp:shortcode -->
+[emerson_visitors_only]
+<!-- /wp:shortcode -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Member login</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Log in to see the member directory, your serving schedule, Sunday service details and upcoming events.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:shortcode -->
+[wppb-login lostpassword_url="http://localhost:8080/password-reset/"]
+<!-- /wp:shortcode -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">New to Emerson? Register</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Fill in the form below and confirm your email address. The office then reviews each registration, and you'll receive an email with your login details once you're approved.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:shortcode -->
+[church_admin_register member_type_id=1]
+<!-- /wp:shortcode -->
+
+<!-- wp:shortcode -->
+[/emerson_visitors_only]
+<!-- /wp:shortcode -->
+
+<!-- wp:shortcode -->
+[emerson_members_only]
+<!-- /wp:shortcode -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Welcome to the members' area</h2>
+<!-- /wp:heading -->
+
+<!-- wp:shortcode -->
+[emerson_member_links]
+<!-- /wp:shortcode -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Sunday services</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><a href="http://zoom.us/j/92538603507?pwd=K3NJWVE4ZnhvWkJWK1Nmbm8zOXhQUT09">Join the Sunday service on Zoom</a> (10:00 AM)</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><a href="http://localhost:8080/schedule/">Service schedule</a></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><a href="http://localhost:8080/order-of-service/">Order of service</a></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><a href="http://localhost:8080/past-sermons/">Past sermons</a></li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">My serving schedule</h3>
+<!-- /wp:heading -->
+
+<!-- wp:shortcode -->
+[church_admin type="my-rota"]
+<!-- /wp:shortcode -->
+
+<!-- wp:heading {"level":4,"anchor":"dates-unavailable"} -->
+<h4 class="wp-block-heading" id="dates-unavailable">Dates I can't serve</h4>
+<!-- /wp:heading -->
+
+<!-- wp:shortcode -->
+[church_admin type="not-available"]
+<!-- /wp:shortcode -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Upcoming events</h3>
+<!-- /wp:heading -->
+
+<!-- wp:shortcode -->
+[church_admin type="calendar-list" days="28" category="1,2,3"]
+<!-- /wp:shortcode -->
+
+<!-- wp:paragraph -->
+<p><a href="http://localhost:8080/calendar/">See the full calendar</a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3,"anchor":"member-directory"} -->
+<h3 class="wp-block-heading" id="member-directory">Member directory</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Only households that have chosen to be listed appear here. To be added, or to change your listing, contact the office at <a href="mailto:office@emersonuuchapel.org">office@emersonuuchapel.org</a>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:shortcode -->
+[church_admin type="address-list" loggedin="1" member_type_id="#" people_type_id="1,2,3" photo="1" updateable="1" map="0"]
+<!-- /wp:shortcode -->
+
+<!-- wp:shortcode -->
+[/emerson_members_only]
+<!-- /wp:shortcode -->
+

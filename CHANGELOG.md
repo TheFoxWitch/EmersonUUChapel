@@ -32,6 +32,96 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
   - **Return to the section:** the "Dates I can't serve" heading on the Members page has the anchor `#dates-unavailable` (backup: `backups/members/members-32-before-dates-anchor.html`). Both Church Admin forms in that section now post to `/members/#dates-unavailable`.
 - **Tested** as test Mctest: the summary showed November 1. Ticking December 6 and saving landed on the section with "Unavailable dates saved", and the summary listed both dates. December 6 was then removed again.
 
+### Calendar PDFs fixed (year planner, "This calendar PDF", "This month's PDF")
+- **Report:** choosing a Yearly Planner PDF, or clicking "This calendar PDF", showed nothing.
+- **Why nothing appeared:** the server did send a PDF each time. Cursor's built-in browser simply doesn't open or download PDFs, so test PDFs in Firefox or Safari.
+- **But the PDFs themselves were wrong.** These are bugs in Church Admin Premium 5.7.19 that are still there after updating to **5.8.0**:
+  1. **Year planner:** all 12 calendars were the current month ("October 2026" ×12), whichever year was chosen.
+  2. **Monthly PDF, months ending on a Saturday** (such as October 2026): an extra grey row didn't fit, so the page spilled onto a second page and every event was printed there instead of in its day.
+  3. **Monthly PDF, January–September:** dates were built without the leading zero ("2026-9-06"), so no events were found.
+  4. **"This month's PDF"** (in the month grid) linked to `/ca_download=…`, an address that doesn't exist. The monthly PDF also ignored which month was asked for.
+- **Fix:**
+  - **New `inc/calendar-pdfs.php`:** it answers the same Church Admin download links first (on `init`, before Church Admin) with corrected versions of both PDFs. It uses Church Admin's own PDF library and fonts, and the same security token for the year planner.
+    - The year planner shows January to December of the chosen year, with event days in their category colour, and a key that fits.
+    - The monthly PDF uses the month asked for (`start_date`), on one page, with up to three events in each day's box, then "More events…".
+    - Files are named, for example `Emerson-calendar-2026-11.pdf` and `Emerson-year-planner-2027.pdf`.
+  - **`assets/js/custom.js`:** corrects the "This month's PDF" address when it's clicked. The grid is redrawn by Ajax, so this is done on click rather than in PHP.
+- **Church Admin updated 5.7.19 → 5.8.0** locally, as part of checking for an upstream fix. It travels to the live site with the WPvivid backup.
+  - Backups, git-ignored because the plugin is a paid licence and the database contains member data:
+    - `backups/plugins/church-admin-premium-5.7.19.tar.gz`
+    - `backups/plugins/database-before-church-admin-5.8.0.sql.gz`
+  - **After the update:** the site, the Calendar page and every Members hub feature still work (serving dates, the Save button, the directory search).
+- **Tested** by rendering the PDFs:
+  - the 2027 planner shows January–December 2027;
+  - October 2026 has all four Sunday Services in their boxes, on one page;
+  - January 2027 shows its events, so the missing zero is fixed;
+  - clicking "This month's PDF" from November's grid returns the November PDF;
+  - a forged year-planner token is still refused.
+
+### Header menu: drop-downs no longer cut off on the left
+- **Problem:** the drop-downs ran off the left edge of the screen: About between 844 and 965 px wide, and About and Worship between 966 and 1124 px.
+  - The header navigation block is set to **justify items right**, so WordPress opens every drop-down leftward, lining up its right edge with the menu item.
+  - At those widths the menu wraps onto its own line under the logo, which puts About and Worship near the left edge, so their 202 px drop-downs ran off it. At 1050 px, About's drop-down started at −114 px.
+- **Fix:** one rule in `custom.css`, under the logo styles. The top-level drop-downs open rightward (`left: 0; right: auto`). There are no second-level drop-downs.
+- **Tested:** I measured every drop-down open at 600, 700, 843, 844, 900, 965, 966, 1050, 1124, 1125, 1280, 1440 and 1920 px, and all fit on screen. The rightmost, Engage at 1920 px, ends at 1017 px. In the phone menu (390 px) drop-downs sit inside the full-screen menu, so they aren't affected.
+
+### Calendar: month grid's Prev / Next are now ← → arrows (board member's notes)
+- The month grid's **Prev** and **Next** buttons were too big for the cell beside the month name.
+  - First they were shrunk to a third of their size, which made the text unreadable.
+  - They're now plain blue **←** and **→** arrows (28 px, no button background), with a darker blue on hover.
+- **How:** CSS only, in `custom.css` under `button.ca-calendar-nav.btn-info`. Church Admin marks the grid's Prev and Next with `btn-info`, and Today with `btn-warning`.
+  - The words "Prev" and "Next" stay in the button at font size 0, so screen readers still announce them. The arrow is drawn by `::before`, with empty alternative text (`content: "\2190" / ""`) so it isn't read out as well.
+  - The word itself wasn't swapped, because Church Admin's "Next" text is also used by other buttons, such as registration's Next. The grid is also loaded by JavaScript, outside the shortcode filters.
+- **Vertical centring:** the arrows sat about 3 px lower than the middle of the month text, measured on the visible ink, not the boxes. The arrow glyph is now lifted 3 px (`position: relative; top: -3px` on `::before`), and the two are level to within 0.1 px.
+- **Tested:** clicking → loads November 2026, and the arrows stay after the reload.
+- **Not changed:** **Today**, and the list view's **Previous** and **Next** (Calendar page, and Upcoming events on the Members hub). A scan of all 96 published pages, posts and sermons found no other Previous or Next controls.
+
+### Who Are We (190): "vision" no longer a broken link (board member's notes)
+- In **Our Purpose, Mission, and Vision**, the third paragraph's "Part of our **vision** is…" linked to `/our-vision`, which has never existed (found in the 2026-09-30 link scan). The link is removed, and "vision" stays bold.
+- Backup: `backups/pages/page-190-who-are-we-before-vision-link.html`. The matching church question in the checklist is ticked.
+- **Then:**
+  - "vision" is **bold italic**, to match "purpose" and "mission" in the paragraphs above.
+  - **Unison Affirmation** added inside the Covenant of Right Relations section, between the heading and the existing Covenant paragraph:
+    - an h3 heading, written the same way as the Covenant h2 (a heading block with `<strong>`), one level down because it sits inside that section;
+    - the eight-line affirmation, centred and italic, one line per line.
+  - Backup: `backups/pages/page-190-who-are-we-before-affirmation.html`.
+- **Church Leadership (192):** waiting for the corrected officer list. The "View the Constitution and Bylaws" link at the bottom already works (`Emerson_Bylaws_July_2019_ApprovedAmendedVersion.pdf`) and stays as it is.
+
+### Seven Principles page (199) published (board member's notes)
+- **What was wrong:** "Click here to read about our Seven Principles" on **What is Unitarian Universalism?** goes to `/seven-principles`. The real page (199) had been a draft since 2023, so that address showed the **attachment page** WordPress makes for every upload. The Seven Principles image (957, uploaded 2026-09 for Who Are We) had taken the slug `seven-principles`, so it showed a 300 px copy, left-aligned under the headline.
+- **Changes:**
+  - The attachment's slug is now `seven-principles-image`. Nothing links to it.
+  - Page 199 is published at `/seven-principles/` and contains:
+    - the image at full resolution (889 × 893 file, shown at the 650 px content width), centred under the headline;
+    - a centred Emerson blue **Learn more** button (`newcomer-button`) that opens https://www.uua.org/beliefs/what-we-believe/principles in a new tab.
+  - The draft's old text (an intro sentence and the 1985 wording of the principles, which differs from the image's newer wording) was left out.
+  - Backups of both, including the old text: `backups/pages/page-199-seven-principles-draft-before.json` and `backups/pages/attachment-957-slug-before.txt`.
+- The page title is still "Seven Principles of Unitarian Universalism"; change it in the editor if the board prefers just "Seven Principles".
+- **Then added** (board member's second note), between the Seven Principles image and the button:
+  - a centred sentence: "The Unitarian Universalist Association officially replaced its traditional Seven Principles and six sources in 2024 with a new framework of interconnected shared values centered around love.";
+  - the **Love at the Center** image (attachment 959, `love_at_the_center.jpg`), centred at full resolution with the same description for screen readers as on Who Are We.
+  - **Learn more** stays at the bottom.
+  - Backup: `backups/pages/page-199-seven-principles-before-love.html`.
+
+### Serving dates: members now tick the dates they CAN serve
+- **Why:** "tick the dates you can't serve" read backwards to the intern. The church also wants a date nobody has answered to count as **can't serve**, rather than Church Admin's default of "available".
+- **How it works** (new `inc/serving-dates.php`; the earlier summary code moved there from `inc/members.php`):
+  - **What members see:** "Dates I can serve" (page heading renamed; backup `backups/members/members-32-before-can-serve.html`), "Tick the dates you can serve", **Mark all** / **Clear all**, and a summary such as "You can serve 24 of the 26 dates listed. Not available: October 4, 2026, October 11, 2026." Boxes are ticked **only** for dates the member has saved as "can serve". With nothing ticked: "Until you do, you won't be put on the serving schedule."
+  - **Admins** still use **Choose person** and see the same wording with that person's name.
+  - **New table `wp_emerson_serving_answers`** (people_id, date, can_serve 1 or 0). It records every Save.
+  - **Church Admin's table is kept in step** (`church_admin_not_available`, which its auto-fill, assignment warnings, clash emails and app read): a "can't serve" row for every person and every service date over the next 6 months (auto-fill's furthest reach) **unless** they've ticked "can serve". A daily job (`emerson_serving_daily_sync`) adds new weeks as they come into range.
+- **Existing data:** test Mctest's two saved dates (November 1 and December 6) were kept as real "can't serve" answers. As chosen, everyone starts fresh: nothing is ticked until they save. Backup of the table before the change: `backups/serving/church_admin_not_available-before-can-serve.sql`.
+- **Numbers on 2026-10-02:** 70 people × 52 service dates (Sundays and Mondays to March 29) = 3,640 "can't serve" rows before anyone answered.
+- **Limits:**
+  - Church Admin's own wp-admin screen (**Schedules → Not available**) and its app still edit the plugin table directly; the daily sync overrides those edits. Use the Members page.
+  - Only weekly services are covered beyond the 26 dates on the form. Both current services are weekly.
+  - **To undo** (see TROUBLESHOOTING): run `emerson_serving_undo()` before removing the file.
+- **Tested** as Fox Metz: Mark all, untick October 4 and 11, Save. Results: 24 "can serve" and 2 "can't serve" answers; Church Admin blocks October 4 and 11 plus the unanswered January–March dates; auto-fill sees Fox Metz available on October 18. As admin, Choose person → test Mctest shows nothing ticked.
+
+### Questions for the church gathered in one place
+- `TEST-AND-LAUNCH-CHECKLIST.md` has a new **section 4, Questions for the church**. The Google Maps, spreadsheets, broken-link, YouTube, directory, missing images, Twitter/X, mint green and Privacy Policy questions moved there; section 2 now has one item checking they're answered.
+- **New question:** the Monday dates in the serving list. Church Admin has two "Sunday Service" entries at 10:00 AM; service #1 is set to Monday, and service #2 has no day set. Also, nobody is scheduled on any future date.
+
 ### Logins with no directory entry
 - **Report:** the intern's Contributor login (WordPress user #47) saw no serving dates, only "Your login is not connected to a directory entry".
 - **Cause:** serving schedules and unavailable dates belong to a Church Admin **person**, not to a WordPress login.

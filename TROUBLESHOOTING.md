@@ -159,6 +159,15 @@ If a form contains an input named `action` (WordPress `admin-post.php` forms alw
 
 ---
 
+## Serving dates (Members page)
+
+Members tick the dates they **can** serve (`inc/serving-dates.php`). Church Admin itself only stores "can't serve" dates, so the theme keeps its table filled in: every date a person hasn't ticked, for the next 6 months, counts as can't serve.
+
+- **Someone says they ticked a date but auto-fill still skips them.** Check their answers: `docker compose run --rm -T wpcli eval 'global $wpdb; print_r($wpdb->get_results("SELECT * FROM {$wpdb->prefix}emerson_serving_answers WHERE people_id = 80"));'` (use their Church Admin person number). Then re-run the sync for everyone: `docker compose run --rm -T wpcli eval 'emerson_serving_sync();'`
+- **An admin changed someone's dates on Church Admin's wp-admin screen (Schedules → Not available) and the change disappeared.** That screen edits Church Admin's table directly, and the daily sync puts it back to match the Members page answers. Use **Choose person** on the Members page instead.
+- **To go back to Church Admin's normal "can't serve" form:** first run `docker compose run --rm -T wpcli eval 'echo emerson_serving_undo();'`. It removes the upcoming "not answered" rows, keeps every real "can't serve" answer, and stops the daily job. Then remove the `require_once` line for `serving-dates.php` from `functions.php`. If you skip the undo step, everyone stays blocked on every unanswered date.
+- **Saving the database with `wp db export` fails** with `caching_sha2_password could not be loaded`: the wp-cli container's MySQL client can't log in to MySQL 8. Export from the database container instead: `docker compose exec -T db sh -c 'mysqldump --no-tablespaces -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" TABLE_NAME' > backup.sql`
+
 ## Editing content with WP-CLI
 
 ### zsh: a command stored in a variable doesn't run (`$W post get ...`)

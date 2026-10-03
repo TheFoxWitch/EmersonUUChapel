@@ -12,6 +12,15 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-02
 
+### Service Schedule (437): Sunday calendar instead of an empty rota
+- The page only had Church Admin's `[church_admin type="rota"]`. That shortcode lists **who is assigned** to greeter, liturgist and the other jobs. Nobody is assigned on any date after 29 September 2024, so it printed "No schedule for this month".
+- **The Sundays themselves were already in Church Admin's calendar** (category "Sunday Service", 10:00 am, through April 2029). The public page just wasn't reading them.
+- **New shortcode** `[emerson_service_schedule]` (`inc/service-schedule.php`): a month grid like the Calendar page, with ← / → for the previous and next month (`?month=YYYY-MM`). Each Sunday shows **10:00 am**, **Sunday Service**, and **Emerson Chapel** linking to Visit Us (`/visit-us/`), where the address and map live. Change Visit Us when the church confirms the address; this page follows it. The question is in the checklist, section 4.
+- **Logged-in members** see an outlined **You can serve** mark on Sundays they ticked on the Members page. If the office later assigns them a job on the rota, that job name is shown instead (solid blue **You're serving: Greeter**). Guests, and members who haven't ticked any dates, see the same calendar without marks. Monday ticks from the serving form are not shown, because this calendar only lists Sunday services.
+- Church Admin's rota shortcode is still on the page underneath. The empty "No schedule for this month" output is hidden; if the office starts assigning people, that roster will appear under the calendar.
+- Style: `custom.css`, the `.emerson-schedule` rules. On phones (under 600 px) the grid becomes a list of the Sundays only.
+- Backup: `backups/pages/page-437-schedule-before-calendar.html`.
+
 ### "Dates I can't serve" Save button: big Emerson-blue pill
 - **CSS** (written by the intern): `custom.css`, the `.button-primary-calendar-save` rule. It sets Emerson blue, white text, 25 px rounded ends, padding `calc(0.667em + 2px) calc(1.111em + 2px)`, and a slight grow on hover.
   - Added to it: `font: inherit`, `font-size: var(--wp--preset--font-size--medium)`, `line-height: 1.6`, `cursor: pointer` and the transition.
@@ -31,6 +40,39 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
     - When an admin has picked someone with **Choose person**, it names that person instead.
   - **Return to the section:** the "Dates I can't serve" heading on the Members page has the anchor `#dates-unavailable` (backup: `backups/members/members-32-before-dates-anchor.html`). Both Church Admin forms in that section now post to `/members/#dates-unavailable`.
 - **Tested** as test Mctest: the summary showed November 1. Ticking December 6 and saving landed on the section with "Unavailable dates saved", and the summary listed both dates. December 6 was then removed again.
+
+### Sunday Services (64): Order of Service columns in Emerson blue
+- The two **Order of Service** columns were light grey (`#e7e7e7`) with black text. They're now **Emerson blue `#3f4fa0` with white text**, set in each column block's colour settings. Headings, verses and the attribution inherit the white; I checked that none stays black.
+- White on Emerson blue has a contrast of about 7.6 : 1, which passes WCAG AA and AAA for normal text.
+- Only these two columns changed. The coloured columns on the homepage (15) are separate blocks and keep their colours.
+- Backup: `backups/pages/page-64-worship-before-blue-columns.html`.
+
+### Visit Us (58): map added (OpenStreetMap, no API key)
+- The placeholder text "Embed Google Map" is replaced by an **OpenStreetMap** map with a pin on the **St. Charles YMCA, 3900 Shady Springs Ln, St Peters** (38.80098, −90.57080, an exact house-level match from OpenStreetMap's address search), plus a "View larger map" link underneath.
+- **Why not Google:** a plain map embed needs no API key with either service, and OpenStreetMap sets no tracking cookies, so the Privacy Policy needs no change. The **Google Maps API key** in the checklist is still only needed for Church Admin's own maps (the directory map and the registration address lookup). Google has no test or dummy key.
+- **Style:** `iframe.emerson-map` in `custom.css`: full column width, 4:3, rounded corners. The frame has a descriptive title for screen readers, loads lazily, and sends no referrer.
+- **Map service question:** OpenStreetMap or Google (a plain embed, or using the church's own API key)? It's in the checklist's church questions, with the steps to switch.
+- **Address question:** the text beside the map still says 122 North Fifth Street, St Charles, as the intern chose. That's in the checklist's church questions, together with the unpublished "Come Visit Us" draft (220).
+- Backup: `backups/pages/page-58-visit-us-before-map.html`.
+
+### Serve Emerson Chapel (344): bottom buttons centred between the text and the footer
+- The **Make a Contribution** and **Newcomer Information Form** buttons sat 28 px below the last link ("Click here to view minutes from previous board meetings") and 122 px above the footer line.
+- Moving the buttons down alone can't centre them, because the footer moves with them: the gap below is the site's normal spacing above the footer.
+- **Fix on this page only:** that buttons block has `margin-top: 66px` and `margin-bottom: -52px` (block spacing settings). That gives **70 px above and 70 px below**, measured in the browser. Other pages are unchanged.
+- Backup: `backups/pages/page-344-serve-before-button-spacing.html`.
+- **Same fix on Engage (68)**, whose bottom buttons are **Make a Contribution** and **Sign up for Newsletter**, under the same board-minutes link. It had the same 28 / 122 px gaps, and is now 70 / 70 px. Backup: `backups/pages/page-68-engage-before-button-spacing.html`.
+- **Same fix on Sunday Services (64, `/worship/`):** the bottom buttons are **All past sermons** and **Our YouTube channel**, under the Past Sermons video previews.
+  - They sat only 11 px below the last preview line, so this page uses `margin-top: 83px` (and the same `margin-bottom: -52px`). That gives 70 px above and 70 px below.
+  - Backup: `backups/pages/page-64-worship-before-button-spacing.html`, taken from WordPress's revision of the page just before the change.
+- **Tip:** the Cursor browser sometimes shows an older copy straight after a save. If a change seems missing, reload once more.
+
+### Religious Education (203): teacher sentence added
+- At the end of the first paragraph, in bold: "Our Religious Education teacher, Lauren, is a paid and certified educationalist who designs the curriculum serving Emerson, and its community of kids." The note's typo "communinty" was corrected to "community".
+- Backup: `backups/pages/page-203-religious-education-before-teacher.html`.
+- **Then cleaned up the rest of the page** (backup: `backups/pages/page-203-religious-education-before-cleanup.html`):
+  - **Children:** "Emerson's volunteer teachers are members of the congregation who are trained to use the UUA's curricula and programs." now reads "Lauren leads the program, drawing on the UUA's curriculum and programs, with help from trained volunteers in the congregation." The UUA link is unchanged; "curricula" was changed to "curriculum" at the intern's request.
+  - **Infants and Toddlers:** "qualifiedchildcare" → "qualified childcare".
+- **Possibly to come:** a photo of Lauren, if she agrees (in the checklist's questions for the church).
 
 ### Git history cleaned: a member's personal email removed (public repository)
 - **What:** a church member's personal email and a member's login name had been committed in `TEST-AND-LAUNCH-CHECKLIST.md` (commit "Polish Who We Are, sermons and the members area", 2026-09-30). The repository is public.

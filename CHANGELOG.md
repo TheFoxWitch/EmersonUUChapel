@@ -19,6 +19,7 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
   - The buttons block has `margin-top: 70px` and `margin-bottom: -41px`, giving **70 px above and 70 px below** (same as Serve / Engage / Sunday Services). Backup: `backups/pages/page-192-leadership-before-button-spacing.html`.
 - **Covenant PDF:** still missing. The broken "here" is on **Who Are We (190)**, in **Covenant of Right Relations**, and points at `/s/Covenant-of-Right-Relations.pdf` (an old Squarespace file path). It is not in the Media Library. When the PDF is in hand: upload it, then replace that link.
 - **Pledge form question** added to the checklist: the homepage button still says 2024-25 and uses last year's Google Form.
+- **Checklist section 5:** switching themes later is not a one-click swap. Launch on `emerson-uuchapel` first; custom CSS, header/footer patterns and `inc/*.php` have to be ported (or kept) if a new theme is chosen.
 
 ### Footer social icons, and the official YouTube channel
 - **YouTube check:** the 36 sermon videos on the site are this church. 34 are on **@emersonunitarianuniversali1222** ("Emerson Unitarian Universalist Chapel", 2022–2024, including the four St. Louis UU churches service and named Emerson speakers). The two newest (19 July and 24 May 2026) are on **@EmersonUUChapel**, with the same "YYYY MM DD" titles. The church's Google listing names the first channel as official.

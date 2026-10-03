@@ -145,3 +145,17 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
 - [ ] **2026 pledge form.** The homepage button still says **2024-25 Pledge Form** and goes to `https://forms.gle/PeAst4DMzSA9FKjG6`. Ask for this year's Google Form (or confirmation the old one is still current), then update the button label and that link. The old Welcome! page (412) still has an even older "Join The 2022-2023 Pledge Drive" link (`forms.gle/GfZt7bZsiYhPiFWX9`); update or remove that too if the page stays.
 - [ ] **Mint green (`#00d084`).** It has low contrast as text on white. Keep it, or choose a darker green for text?
 - [ ] **Privacy Policy.** Leadership approves the wording, including the newsletter, local-storage and login-protection sections. Church Admin needs PHP's `calendar` extension. Locally it's added by the project `Dockerfile`; most hosts have it. If the live site gives a server error there, ask the host to enable it.
+
+## 5. Later: a more modern look (not a launch item)
+
+The President liked some newer themes the intern showed. **Launch on this free theme first** (`emerson-uuchapel`, child of Twenty Twenty-Three). Do not change **Appearance → Themes** to get a modern look. That is not a one-click swap.
+
+- **What does travel** if you activate another theme: pages and posts (Gutenberg blocks in the database), media, and plugins (Church Admin, forms, and so on).
+- **What stops working** unless you move it: almost everything we built. The Emerson-blue pills, calendar, footer icons and spacing live in `assets/css/custom.css`. The header and footer live in the theme patterns. Newsletter, members hub, serving dates, calendar PDFs and the Sunday schedule live in `inc/*.php` and are loaded from `functions.php`. A new theme does not load those files.
+- **Unused themes do nothing.** Leftover Magazine Pro CSS is still in the database; that theme is not active, so it has no effect. A store theme's demo will not restyle Church Admin, the members hub, or classes such as `bylaws-button` / `newcomer-button`.
+- **React kits** (for example Planes, shadcn) are for Next.js apps, not this PHP theme. Treat them as a mood board; rebuild a look in CSS if we want it.
+- **Two sane later options,** once the site works:
+  1. Stay on this child theme and modernise the CSS and templates. Same PHP, less risk.
+  2. Pick a new block theme, then port `custom.css` and the header/footer patterns, and move `inc/*.php` into a small plugin so those features survive a theme change.
+
+- [ ] **After launch only:** if leadership still wants a more modern look, choose option 1 or 2 above. Do not flip themes on the live site to try it.

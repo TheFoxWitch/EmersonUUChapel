@@ -32,6 +32,21 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
   - **Return to the section:** the "Dates I can't serve" heading on the Members page has the anchor `#dates-unavailable` (backup: `backups/members/members-32-before-dates-anchor.html`). Both Church Admin forms in that section now post to `/members/#dates-unavailable`.
 - **Tested** as test Mctest: the summary showed November 1. Ticking December 6 and saving landed on the section with "Unavailable dates saved", and the summary listed both dates. December 6 was then removed again.
 
+### Git history cleaned: a member's personal email removed (public repository)
+- **What:** a church member's personal email and a member's login name had been committed in `TEST-AND-LAUNCH-CHECKLIST.md` (commit "Polish Who We Are, sermons and the members area", 2026-09-30). The repository is public.
+- **Done on 2026-10-02:**
+  1. Removed both from the current files: "Michelle Z.", and "one other member's personal-email login".
+  2. Took a full mirror backup of the repository, outside the project: `~/Desktop/EmersonUUChapel-git-backup-before-history-rewrite-2026-10-02.git`. **It still contains the email; keep it local and delete it once GitHub has purged the old data.**
+  3. Rewrote all history with `git filter-repo --replace-text`, replacing the two items with "[member email removed]" and "Michelle Z.".
+     - All 22 commits are kept, with the same content, messages, authors and dates, but new commit IDs.
+     - The latest files are byte-for-byte identical to before.
+  4. Force-pushed `main`, with a lease guard so it would fail if GitHub had changed. Deleted the 9 merged `cursor/` work branches from GitHub, so only `main` remains.
+- **Still to do: ask GitHub Support to purge.** GitHub keeps pull request copies, which we can't delete, and cached views of old commits.
+  - **Pull request #1** points to old commit `e6ec437`, which still contains the email.
+  - Use the form at https://support.github.com/request (the "Remove sensitive data" topic). Give the repository `TheFoxWitch/EmersonUUChapel`, the affected file `TEST-AND-LAUNCH-CHECKLIST.md`, the old commits (the first containing it was `9b9ca9a`) and PR #1. Ask them to remove cached views and the PR references.
+- **Any other clone** of this repository (another computer) must be deleted and cloned again. Pushing an old copy would bring the email back.
+- **From now on:** every git suite scans for personal data before committing, and these are never committed: member emails, login names, passwords and keys.
+
 ### Calendar PDFs fixed (year planner, "This calendar PDF", "This month's PDF")
 - **Report:** choosing a Yearly Planner PDF, or clicking "This calendar PDF", showed nothing.
 - **Why nothing appeared:** the server did send a PDF each time. Cursor's built-in browser simply doesn't open or download PDFs, so test PDFs in Firefox or Safari.

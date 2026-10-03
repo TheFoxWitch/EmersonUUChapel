@@ -343,6 +343,148 @@ input.ca-search-submit:focus-visible {
 	color: #1e1e1e;
 }
 
+/* Service Schedule page: [emerson_service_schedule] month calendar */
+.emerson-schedule__nav {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6em;
+	font-size: 1.6em;
+}
+
+.emerson-schedule__arrow {
+	color: var(--emerson-blue);
+	text-decoration: none;
+	line-height: 1;
+}
+
+.emerson-schedule__arrow:hover,
+.emerson-schedule__arrow:focus-visible {
+	color: var(--emerson-blue-dark);
+}
+
+.emerson-schedule__grid {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.emerson-schedule__grid th,
+.emerson-schedule__grid td {
+	border: 1px solid #000;
+	padding: 0.4em;
+	vertical-align: top;
+}
+
+.emerson-schedule__grid th {
+	font-size: 0.75em;
+	font-weight: 400;
+	text-align: center;
+}
+
+.emerson-schedule__grid th abbr {
+	text-decoration: none;
+}
+
+.emerson-schedule__grid td {
+	height: auto;
+	font-size: 0.8em;
+}
+
+.emerson-schedule__grid td.emerson-schedule__empty {
+	background: #c8c8c8;
+}
+
+.emerson-schedule__grid td.has-service {
+	background: #eef0fa;
+}
+
+.emerson-schedule__grid td.is-serving {
+	box-shadow: inset 3px 0 0 var(--emerson-blue);
+}
+
+.emerson-schedule__day {
+	display: block;
+	font-size: 1.25em;
+	margin-bottom: 0.25em;
+}
+
+.emerson-schedule__weekday {
+	display: none;
+}
+
+.emerson-schedule__service {
+	display: block;
+	line-height: 1.35;
+}
+
+.emerson-schedule__serving,
+.emerson-schedule__available {
+	display: inline-block;
+	margin-top: 0.35em;
+	padding: 0.1em 0.5em;
+	border-radius: 3px;
+	font-size: 0.9em;
+}
+
+.emerson-schedule__serving {
+	background: var(--emerson-blue);
+	color: #fff;
+}
+
+.emerson-schedule__available {
+	border: 1px solid var(--emerson-blue);
+	color: var(--emerson-blue);
+}
+
+.emerson-schedule__legend,
+.emerson-schedule__none {
+	text-align: center;
+}
+
+/* Phones: a list of the days that have something on, instead of a cramped grid */
+@media (max-width: 600px) {
+	.emerson-schedule__grid,
+	.emerson-schedule__grid tbody,
+	.emerson-schedule__grid tr,
+	.emerson-schedule__grid td {
+		display: block;
+		width: auto;
+		height: auto;
+	}
+
+	.emerson-schedule__grid thead,
+	.emerson-schedule__grid td:not(.has-service) {
+		display: none;
+	}
+
+	.emerson-schedule__grid td.has-service {
+		margin-bottom: 0.6em;
+		border-radius: 8px;
+		font-size: 1em;
+	}
+
+	.emerson-schedule__weekday {
+		display: inline;
+	}
+}
+
+/* Visit Us: OpenStreetMap embed */
+iframe.emerson-map {
+	display: block;
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	height: auto;
+	border: 0;
+	border-radius: 8px;
+}
+
+.emerson-map-link {
+	margin-top: 0.4em;
+	font-size: 0.9em;
+	text-align: center;
+}
+
 /* Serving dates: "Mark all" / "Clear all", same light grey as the directory reset */
 .emerson-serve-bulk {
 	display: flex;

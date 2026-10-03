@@ -41,3 +41,4 @@ require_once get_stylesheet_directory() . '/inc/newsletter.php';
 require_once get_stylesheet_directory() . '/inc/members.php';
 require_once get_stylesheet_directory() . '/inc/serving-dates.php';
 require_once get_stylesheet_directory() . '/inc/calendar-pdfs.php';
+require_once get_stylesheet_directory() . '/inc/service-schedule.php';

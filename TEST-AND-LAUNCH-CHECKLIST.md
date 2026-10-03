@@ -109,6 +109,14 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
   - Church Admin has **two services, both called "Sunday Service" at 10:00 AM**. Service #1 is set to **Monday**, and service #2 has no day set.
   - **Ask:** is there a Monday service or gathering that needs volunteers? If not, the fix is to correct service #1 to Sunday and remove the duplicate (**Church Admin → Schedules → Services**). Back up the database first, and check which service the past schedules use before removing one.
   - Also: no one is scheduled on any future date yet. Who builds the serving schedule now, and do they use Church Admin for it?
+  - The public **Service Schedule** page (437, `/schedule/`) is now its own month calendar of Sunday services from Church Admin's calendar, not the empty rota. Monday ticks on "Dates I can serve" do not appear there, because this calendar only lists Sundays.
+- [ ] **Visit Us: which address?** The page's text says **122 North Fifth Street, St Charles, MO 63301**, but the footer, homepage and Sunday Services say services are at the **St. Charles YMCA, 3900 Shady Springs Ln, St Peters, MO 63376**. The new map (2026-10-02) shows the YMCA. Is Fifth Street still used for anything, such as an office or mail? Then update the text, or the map, to match. There's also an unpublished draft, "Come Visit Us" (page 220): keep or delete?
+  - The **Service Schedule** page says **Emerson Chapel** and links that name to Visit Us. Update Visit Us when the address is confirmed; the schedule page follows it. Change the words "Emerson Chapel" only if the church wants a different label (`EMERSON_SERVICE_PLACE` in `inc/service-schedule.php`).
+- [ ] **Visit Us: which map service?** The page uses an **OpenStreetMap** embed (added 2026-10-02): free, no account or API key, and no tracking cookies. Would the church prefer **Google Maps** instead?
+  - **A plain Google map embed** needs no key either, but Google may set cookies, so the Privacy Policy would need a line about it.
+  - **With their own Google Maps API key** (see "Google Maps" below), the same key would also turn on Church Admin's directory map and registration address lookup.
+  - **To switch:** replace the `<iframe class="emerson-map">` on Visit Us (page 58) with Google's **Share → Embed a map** code. Keep `class="emerson-map"` so the styling stays.
+- [ ] **Religious Education: photo of Lauren.** The board would like to add a photo of the RE teacher, if she agrees. Get her written OK and the photo, then add it near the teacher sentence at the top of the page.
 - [ ] **Google Maps.** Do they want maps, and who would own the Google account?
   - Church Admin can show a map on the registration form and in the member directory, but only with a Google Maps API key.
   - That needs a Google Cloud account with billing turned on; normal church use should stay within the free allowance.

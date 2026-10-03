@@ -10,6 +10,22 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-03
+
+### Twitter/X removed; Church Leadership list updated
+- They no longer use X/Twitter. The footer icon is gone. Ways to Connect (218) now lists Facebook, Instagram and YouTube only. Two leftover empty Twitter links on Religious Education (203) and Our Congregation (209) are removed.
+- **Church Leadership (192):** officers and ministry leads updated from the board's list (Nancy Fish is no longer president). Personal emails stay off the page until leadership confirms they want them public (checklist, section 4). Backup: `backups/pages/page-192-leadership-before-board-update.html`.
+- **"View the Constitution and Bylaws"** is now a centred Emerson-blue pill button (`bylaws-button`, same style as Newcomer / Newsletter). The PDF address is unchanged. Backup: `backups/pages/page-192-leadership-before-bylaws-button.html`.
+  - The buttons block has `margin-top: 70px` and `margin-bottom: -41px`, giving **70 px above and 70 px below** (same as Serve / Engage / Sunday Services). Backup: `backups/pages/page-192-leadership-before-button-spacing.html`.
+- **Covenant PDF:** still missing. The broken "here" is on **Who Are We (190)**, in **Covenant of Right Relations**, and points at `/s/Covenant-of-Right-Relations.pdf` (an old Squarespace file path). It is not in the Media Library. When the PDF is in hand: upload it, then replace that link.
+- **Pledge form question** added to the checklist: the homepage button still says 2024-25 and uses last year's Google Form.
+
+### Footer social icons, and the official YouTube channel
+- **YouTube check:** the 36 sermon videos on the site are this church. 34 are on **@emersonunitarianuniversali1222** ("Emerson Unitarian Universalist Chapel", 2022–2024, including the four St. Louis UU churches service and named Emerson speakers). The two newest (19 July and 24 May 2026) are on **@EmersonUUChapel**, with the same "YYYY MM DD" titles. The church's Google listing names the first channel as official.
+- **Sunday Services (64):** "Our YouTube channel" now goes to `https://www.youtube.com/@emersonunitarianuniversali1222` instead of `@EmersonUUChapel`. Backup: `backups/pages/page-64-worship-before-official-youtube.html`.
+- **Ways to Connect (218):** the social sentence now also links YouTube. Instagram stays `emersonuuchapel` (the listing). The typed handle `emersonuucommunity` is Emerson UU Church in Canoga Park, California, not this chapel. Backup: `backups/newsletter/ways-to-connect-218-before-youtube.html`.
+- **Footer** (`patterns/footer.php`): Facebook, Instagram and YouTube icons sit under the logo and the "A liberal, welcoming…" line. Style: `.emerson-footer__social` in `custom.css` (Emerson blue, 24 px, centred on phones). After editing a pattern file, the pattern cache was cleared.
+
 ## 2026-10-02
 
 ### Service Schedule (437): Sunday calendar instead of an empty rota

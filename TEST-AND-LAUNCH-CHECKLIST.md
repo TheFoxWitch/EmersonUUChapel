@@ -73,11 +73,11 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [ ] Optional: hide the Website and Biographical Info fields on Edit Profile (**Profile Builder → Form Fields**)
 - [ ] Someone monitors `office@emersonuuchapel.org` (newsletter and Newcomer form) and `com@emersonuuchapel.org` (Church Admin and the site admin)
 - [ ] Optional: delete unused forms. That's 6 Calculated Fields demo forms that email `com@` and copy the visitor, the "Emerson 2023-24 Pledge Drive" WPForm and the "Simple Contact Form" WPForm.
-- [ ] **To build: social media icons in the footer.** Use the links already on Ways to Connect:
+- [x] **Social media icons in the footer** (added 2026-10-03, under the logo and the "A liberal, welcoming…" line). Official accounts from the church's Google listing:
   - Facebook `https://www.facebook.com/emersonuuchapel`
-  - Instagram `https://instagram.com/emersonuuchapel`
-  - Twitter/X `https://twitter.com/EmersonChapel`
-  All three answered on 2026-09-29. Whether to include Twitter/X is a question in section 4.
+  - Instagram `https://www.instagram.com/emersonuuchapel` (not `emersonuucommunity`, which is Emerson UU Church in Canoga Park, CA)
+  - YouTube `https://www.youtube.com/@emersonunitarianuniversali1222`
+  Twitter/X was removed on 2026-10-03; they no longer use it.
 - [ ] Anything changed on the live site since 2026-09-24 has been copied into the local site (the restore replaces it). Follow `DEPLOY-WPVIVID.md` step A1: compare Harlan's fresh backup with the local site, then copy the changes in.
 
 
@@ -131,13 +131,17 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
   - **Also:** the hub's "WordPress dashboard" link shows for staff roles only (administrators, editors). Harlan Bloom's account is currently a **subscriber**; check whether he uses another login.
 - [ ] **Broken links from the 2026-09-30 scan**
   - [x] **Who Are We, "vision"** (in "Part of our vision is…") linked to `/our-vision`, which doesn't exist. **Answered 2026-10-02 (board member):** link removed; "vision" stays bold.
-  - **Who Are We, "here"** (Covenant of Right Relations) links to an old Squarespace PDF that isn't on the site. Ask for the current Covenant PDF so it can be uploaded and linked.
+  - **Who Are We (190), Covenant of Right Relations, the word "here".** It links to `/s/Covenant-of-Right-Relations.pdf`, a leftover Squarespace path. The file is not in the Media Library or anywhere else on the site. When you have the PDF: upload it in **Media**, then replace that href. The Bylaws PDF on Church Leadership is a different file and already works.
   - **Engage, Outreach Partners: three organisations have closed or gone offline.** Caminamos Juntos of San Miguel de Allende (`cjsma.org` no longer exists), Saint Louis Story Stitchers (site reports it's permanently gone) and the UU Trauma Response Ministry (`traumaministry.org` doesn't respond). Keep them as a historical list without links, remove them, or replace the links?
-- [ ] **YouTube.** Confirm that **@EmersonUUChapel** is the current channel. Sunday Services links to it, but 33 of the 35 sermon videos are on the older **@emersonunitarianuniversali1222**. Also ask whoever uploads sermons to set each gallery video's date to the Sunday it was recorded, so Past Sermons stays in order.
+- [x] **YouTube.** Confirmed 2026-10-03 from the church's Google listing: the official channel is **@emersonunitarianuniversali1222** ("Emerson Unitarian Universalist Chapel"). Sunday Services, the footer and Ways to Connect now link there.
+  - Of the 36 gallery videos, 34 are on that channel (2022–2024). The two newest (May and July 2026) are on a second channel, **@EmersonUUChapel**, with the same dated titles. Both are this church. The individual video embeds are unchanged.
+  - Still ask whoever uploads sermons to set each gallery video's date to the Sunday it was recorded, so Past Sermons stays in order.
 - [ ] **The member directory.** Only households that opted in ("show me") are listed, currently 2 of the 32 Members. Decide whether to ask members to opt in, for example with a note in the newsletter or Church Admin's "update your details" email.
 - [ ] **Missing images (from the sitemaster)**
   - 3 on the Welcome! page
   - Serve Emerson Chapel and Engage banners: `service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg` and `board-meetings.jpg` (uploaded 2021/11 and 2022/07). Engage also needs `image.jpeg` (2022/07), the "Serve Our Wider Community" photo. Until then those banners are solid blue. See `CHANGELOG.md` for how to put the photos back.
-- [ ] **Twitter/X.** Is the account still used? Decides whether it goes in the footer's social icons (section 2).
+- [x] **Twitter/X.** They no longer use it (2026-10-03). Removed from the footer, Ways to Connect, and two leftover empty links on Religious Education and Our Congregation.
+- [ ] **Church Leadership: personal emails and extra contact details.** The page lists names and roles only. Two board members' personal emails were sent for a possible contact list; they are **not** on the page, and must not go into GitHub. Ask leadership whether they want personal emails (or other private contact details) on this public page. If yes: add them on the page only, not in the repo. If no: leave the names as they are.
+- [ ] **2026 pledge form.** The homepage button still says **2024-25 Pledge Form** and goes to `https://forms.gle/PeAst4DMzSA9FKjG6`. Ask for this year's Google Form (or confirmation the old one is still current), then update the button label and that link. The old Welcome! page (412) still has an even older "Join The 2022-2023 Pledge Drive" link (`forms.gle/GfZt7bZsiYhPiFWX9`); update or remove that too if the page stays.
 - [ ] **Mint green (`#00d084`).** It has low contrast as text on white. Keep it, or choose a darker green for text?
 - [ ] **Privacy Policy.** Leadership approves the wording, including the newsletter, local-storage and login-protection sections. Church Admin needs PHP's `calendar` extension. Locally it's added by the project `Dockerfile`; most hosts have it. If the live site gives a server error there, ask the host to enable it.

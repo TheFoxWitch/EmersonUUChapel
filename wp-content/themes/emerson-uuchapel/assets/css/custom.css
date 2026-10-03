@@ -104,7 +104,8 @@ header .wp-block-navigation.items-justified-right .wp-block-navigation__containe
 /* Approximate Paypal Fees, Newcomer Information Form, Sign up for Newsletter */
 .paypal-fees-button .wp-block-button__link,
 .newcomer-button .wp-block-button__link,
-.newsletter-button .wp-block-button__link {
+.newsletter-button .wp-block-button__link,
+.bylaws-button .wp-block-button__link {
 	background: var(--emerson-blue);
 	color: #fff;
 	border-radius: 25px;
@@ -112,7 +113,8 @@ header .wp-block-navigation.items-justified-right .wp-block-navigation__containe
 }
 .paypal-fees-button .wp-block-button__link:hover,
 .newcomer-button .wp-block-button__link:hover,
-.newsletter-button .wp-block-button__link:hover {
+.newsletter-button .wp-block-button__link:hover,
+.bylaws-button .wp-block-button__link:hover {
 	background: var(--emerson-blue);
 	color: #fff;
 	transform: scale(1.05);
@@ -640,6 +642,36 @@ blockquote {
 	margin-bottom: 0.35rem;
 }
 
+.emerson-footer__social {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.emerson-footer__social a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	color: var(--emerson-blue);
+}
+
+.emerson-footer__social a:hover,
+.emerson-footer__social a:focus-visible {
+	color: var(--emerson-blue-dark);
+}
+
+.emerson-footer__social svg {
+	display: block;
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
 .emerson-footer__bottom {
 	display: flex;
 	flex-wrap: wrap;
@@ -657,6 +689,10 @@ blockquote {
 @media (max-width: 600px) {
 	.emerson-footer {
 		text-align: center;
+	}
+
+	.emerson-footer__social {
+		justify-content: center;
 	}
 
 	.emerson-footer__bottom {

@@ -10,6 +10,16 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-04
+
+### Docker PATH tidy (this Mac only)
+- Removed the extra `~/.docker/bin` lines from `~/.zprofile` (Docker Desktop's auto-added block) and `~/.zshrc`. One line remains in `.zprofile`, ahead of Homebrew. Completions in `.zshrc` are unchanged.
+- Checked in a clean login shell: `command -v docker` is `/Users/kitsunearisu/.docker/bin/docker` once, and `docker compose ps` still shows `db` and `wordpress`.
+- **Where:** this Mac's shell files, not the repo. Checklist section 1 is ticked.
+- **Checklist section 2:** added the Harlan-backup compare note (what to look at, and why `_not_available` row counts must not be compared).
+
+---
+
 ## 2026-10-03
 
 ### Twitter/X removed; Church Leadership list updated

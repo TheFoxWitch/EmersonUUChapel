@@ -50,7 +50,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - Delete the person and household, but **keep user #47**. That login was made in WordPress, not through sign-up.
 - [ ] **Click once to confirm these outside links** (from the 2026-09-30 broken-link scan; these sites block automated checks, so they're probably fine): Holocaust Museum (`hmlc.org`), O.A.S.I.S. Food Pantry, KIND (`supportkind.org`), the Poetry Foundation's Ralph Waldo Emerson page (FAQ), and the Intuit Mailchimp privacy statement (Privacy Policy).
 - [ ] **Questions for the church:** see section 4.
-- [ ] **Last before the WPvivid backup: tidy the Mac's Docker PATH lines.** This is optional and housekeeping only; nothing is broken.
+- [x] **Last before the WPvivid backup: tidy the Mac's Docker PATH lines.** Done 2026-10-04. Housekeeping only; nothing was broken.
   - Docker's command folder (`~/.docker/bin`) is added to the PATH **three times**: twice in `~/.zprofile` (lines 2 and 8) and once in `~/.zshrc` (line 2). Since the 2026-10-01 Docker Desktop settings fix, new terminals find `docker` on their own, so only one is needed.
   - **Steps:**
     1. Quit Terminal, and close Cursor's terminals.
@@ -78,9 +78,43 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - Instagram `https://www.instagram.com/emersonuuchapel` (not `emersonuucommunity`, which is Emerson UU Church in Canoga Park, CA)
   - YouTube `https://www.youtube.com/@emersonunitarianuniversali1222`
   Twitter/X was removed on 2026-10-03; they no longer use it.
-- [ ] Anything changed on the live site since 2026-09-24 has been copied into the local site (the restore replaces it). Follow `DEPLOY-WPVIVID.md` step A1: compare Harlan's fresh backup with the local site, then copy the changes in.
+- [ ] Anything changed on the live site since 2026-09-24 has been copied into the local site (the restore replaces it). Follow `DEPLOY-WPVIVID.md` step A1: compare Harlan's fresh backup with the local site, then copy the changes in. The note below is the serving-dates version of that compare.
 
+### How to compare Harlan's backup with this site
 
+Compare **Harlan's fresh live backup** to **this local site**, not to the WPvivid backup you will export later. The export is the *result* of this compare-and-copy. The restore then replaces the live database with yours, so anything the church did on live after **2026-09-24** is lost unless you copy it in first.
+
+Restore Harlan's zip into a **second** Docker project with its own database. Never over this one.
+
+**What to look at**
+
+| Area | Tables / screens | What "changed on live" looks like |
+|---|---|---|
+| People | `people`, `household`, `people_meta` | New people, member-type, "show me", contact edits after 24 Sept (`last_updated` / `first_registered`) |
+| Logins | `wp_users` | New accounts (`user_registered`); password changes (`user_pass` differs). Recreate locally; they get a reset after launch |
+| Pages / sermons / media | posts | `post_modified` after 24 Sept |
+| Calendar | `_calendar_date` | New or edited events |
+| Rota (who is assigned) | `_new_rota` | Same meaning on both sides; compare normally |
+| Plugin settings | as the office mentions | Spot-check |
+
+Local counts from 2 Oct (after test people are gone): **65 people**, **38 households**, **2,951** schedule rows.
+
+**Serving dates are the exception.** The two databases do **not** mean the same thing in `_not_available`.
+
+- **Live (Harlan):** Church Admin's old form. A row = someone marked that date as **unavailable**. Unanswered dates count as available. There is **no** `emerson_serving_answers` table.
+- **Local:** members tick dates they **can** serve. Those answers live in `wp_emerson_serving_answers`. `_not_available` is then filled with a "can't serve" row for every *other* date six months ahead, so Church Admin's auto-fill still works. That table will look huge. **Do not compare row counts.**
+
+When you compare serving data:
+
+1. Ignore local `_not_available` bulk rows.
+2. On the Harlan copy, list only **their** unavailable dates (real ticks since 24 Sept, or any you care about).
+3. Enter those on **this** site with **Choose person** as "can't serve". Everyone else stays unanswered until they save.
+
+The new code, `emerson_serving_answers`, and `emerson_serving_db_version` go out with **your** WPvivid backup. Live picks them up on restore. After restore, check ticks and that `emerson_serving_daily_sync` is scheduled (section 3).
+
+Only if the **whole directory** changed a lot do you use the bulk import (`DEPLOY-WPVIVID.md` step A1.5): dump Church Admin tables from Harlan's copy, import after restore, then delete `emerson_serving_db_version` and empty `emerson_serving_answers` so their old "can't serve" dates convert on the next page load. That's the exception.
+
+So: Harlan's backup is a **diff of church activity since 24 Sept**. Your serving rewrite is already in this project and will overwrite live's old form. You only need to carry across any **real** unavailable dates (and rota / people / content edits) from that fresh copy.
 
 ## 3. After restoring to the live site
 

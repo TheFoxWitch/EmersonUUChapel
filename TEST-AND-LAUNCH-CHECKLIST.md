@@ -170,6 +170,10 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
 - [x] **YouTube.** Confirmed 2026-10-03 from the church's Google listing: the official channel is **@emersonunitarianuniversali1222** ("Emerson Unitarian Universalist Chapel"). Sunday Services, the footer and Ways to Connect now link there.
   - Of the 36 gallery videos, 34 are on that channel (2022–2024). The two newest (May and July 2026) are on a second channel, **@EmersonUUChapel**, with the same dated titles. Both are this church. The individual video embeds are unchanged.
   - Still ask whoever uploads sermons to set each gallery video's date to the Sunday it was recorded, so Past Sermons stays in order.
+- [ ] **YouTube sermons: pull new videos onto the site automatically?** Sunday Services and Past Sermons only list videos that someone has already added in **Video Gallery** (paste the YouTube watch URL). A new upload on YouTube does **not** appear by itself.
+  - **Ask:** do they want us to look into auto-import (a gallery add-on, or a small job that checks the official channel), or keep pasting each sermon by hand?
+  - Auto-import needs **one official channel**. Right now sermons live on two. It also needs a rule for the gallery date (the Sunday in the title, not the weekday it was uploaded), or Past Sermons will sort wrong.
+  - Until then: **Video Gallery → Add New** → paste the watch URL → set Publish date to that Sunday. The two pages then pick it up.
 - [ ] **The member directory.** Only households that opted in ("show me") are listed, currently 2 of the 32 Members. Decide whether to ask members to opt in, for example with a note in the newsletter or Church Admin's "update your details" email.
 - [ ] **Missing images (from the sitemaster)**
   - 3 on the Welcome! page

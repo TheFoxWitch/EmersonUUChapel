@@ -171,6 +171,11 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	color: #1e1e1e;
 }
 
+/* Yearly Planner PDF dropdown sits a hair low next to its label */
+.church-admin-calendar form[name="guideform"] {
+	margin-top: -7px;
+}
+
 /* Church Admin calendar Previous / Next buttons (members' hub and Calendar page): about twice the browser default */
 input.calendar-date-switcher,
 button.ca-calendar-nav {

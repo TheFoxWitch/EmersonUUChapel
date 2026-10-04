@@ -8,6 +8,36 @@ export PATH="$HOME/.docker/bin:$PATH"
 
 ---
 
+## Browsers (local site)
+
+### Safari still shows the WordPress “W” in the tab
+Chrome and Firefox show the chalice. The files are correct (`/favicon.ico` and `/apple-touch-icon.png` both return the Emerson icon).
+
+Safari’s **tab** icon is not the same as Chrome’s. Safari uses `<link rel="mask-icon">` with a one-colour SVG (`assets/images/safari-pinned-tab.svg`). The regular `.ico` / PNG only covers the address field and other browsers ([Stack Overflow](https://stackoverflow.com/questions/68885882/favicon-not-displaying-on-safari)).
+
+Safari 27 on this Mac also loaded the homepage and **did not request any favicon URL**. It can keep the WordPress “W” it stored when `/favicon.ico` used to redirect to `w-logo-blue.png`. A Private Window uses that same store.
+
+**To make Safari fetch the new icon:**
+
+1. **Safari → Settings → Tabs** and turn on **Show website icons in tabs**. If this is off, no site (including this one) shows a tab icon. This is the usual reason wiping the cache does nothing.
+2. Quit Safari completely (Cmd+Q).
+3. In Finder, **Go → Go to Folder** (Cmd+Shift+G) and open `~/Library/Safari/Favicon Cache`. If that folder exists, move it to the Trash. Also check `~/Library/Safari/Touch Icons Cache`.
+4. Reopen Safari and go to `http://localhost:8080/favicon.svg` (you should see the chalice), then `http://localhost:8080/`.
+5. `mask-icon` is only for a **pinned** tab (drag the tab to the left of the tab bar). Regular tabs use `rel="icon"`.
+
+If the cache folder is missing or macOS blocks it, the live HTTPS site is a new origin and should pick up the icon after launch. Local Safari may keep the “W” until Apple’s store expires. This is a Safari bug, not a missing file.
+
+### Firefox will not load localhost
+Firefox is almost certainly opening `https://localhost:8080` (HTTPS-Only Mode). This site is plain `http://` in Docker; there is no certificate, so Firefox stops.
+
+1. Type the full address: `http://localhost:8080/`
+2. If Firefox still upgrades it: **Settings → Privacy & Security → HTTPS-Only Mode → Manage Exceptions…** and add `http://localhost:8080`.
+3. Or, on the error page, choose to continue to the HTTP site if Firefox offers that.
+
+`curl -I http://localhost:8080/` should return `200`. `curl -Ik https://localhost:8080/` failing with a TLS error is expected.
+
+---
+
 ## Docker
 
 ### `docker-credential-desktop: executable file not found`

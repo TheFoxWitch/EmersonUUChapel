@@ -42,6 +42,12 @@ header .wp-block-navigation.items-justified-right .wp-block-navigation__containe
 	right: auto;
 }
 
+/* About / Worship are labels only (no page). Keep the same type as the other items. */
+header .wp-block-navigation-item > span.wp-block-navigation-item__content {
+	cursor: default;
+	text-decoration: none;
+}
+
 /* All pages: centre page titles and content headings; paragraphs stay left-aligned */
 .wp-block-post-title,
 .wp-block-post-content :is(h1, h2, h3, h4, h5, h6) {
@@ -953,4 +959,37 @@ blockquote {
 	cursor: pointer;
 }
 /** End Newsletter **/
+
+/* Sunday Services: AIOVG "Load more" under the three sermon previews */
+.page-id-64 .aiovg-more {
+	margin-top: 1.25rem;
+}
+
+.page-id-64 .aiovg-link-more {
+	display: inline-block;
+	padding: 0.35rem 1.1rem;
+	border: 0;
+	border-radius: 25px;
+	background: #e5e5e5;
+	color: #1e1e1e;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	cursor: pointer;
+	transition: background 0.2s ease, color 0.2s ease;
+}
+
+.page-id-64 .aiovg-link-more:hover,
+.page-id-64 .aiovg-link-more:focus-visible,
+.page-id-64 .aiovg-link-more:active {
+	background: #1e1e1e;
+	color: #fff;
+}
+
+/* While AIOVG fetches the next row, hide the pill so its background
+   does not cover the plugin spinner (our display:inline-block was
+   tying the plugin's ".aiovg-more.aiovg-spinner * { display:none }"). */
+.page-id-64 .aiovg-more.aiovg-spinner .aiovg-link-more {
+	display: none;
+}
+
 

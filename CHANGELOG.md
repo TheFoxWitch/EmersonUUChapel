@@ -12,6 +12,16 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-04
 
+### Header: About and Worship are labels, not links
+- There is no About page and no Worship page. Those words were `#` custom links so they would look like the rest of the nav.
+- They stay in the menu as labels. The drop-downs still open. Engage is unchanged (it has a real page).
+- **File:** `parts/header.html` (empty URL), `inc/navigation.php` (render the parent as a `<span>` inside the `<li>` instead of an `<a>`).
+
+### Worship Past Sermons: Load more
+- Sunday Services (page 64) still shows three newest sermons first. A **Load more** pill under the grid loads the next three via AIOVG’s Ajax (no extra page). Each click adds another row until the gallery is done.
+- **Local DB:** shortcode now includes `show_more="1" more_label="Load more"`. Backup: `backups/pages/page-64-worship-before-load-more.html`.
+- **File:** pill is small light gray / black text; hover, focus, and click go black / white (`.page-id-64 .aiovg-link-more` in `custom.css`). The pill is hidden while the next row is fetching so it does not cover AIOVG’s loading spinner.
+
 ### Docker PATH tidy (this Mac only)
 - Removed the extra `~/.docker/bin` lines from `~/.zprofile` (Docker Desktop's auto-added block) and `~/.zshrc`. One line remains in `.zprofile`, ahead of Homebrew. Completions in `.zshrc` are unchanged.
 - Checked in a clean login shell: `command -v docker` is `/Users/kitsunearisu/.docker/bin/docker` once, and `docker compose ps` still shows `db` and `wordpress`.

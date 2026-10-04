@@ -12,6 +12,32 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-04
 
+### Calendar PDF dropdown
+- The **Choose a PDF** select sat 7px too low beside “Yearly Planner PDFs”. `margin-top: -7px` on `form[name="guideform"]` in `custom.css`.
+
+### Header: About and Worship are labels, not links
+- There is no About page and no Worship page. Those words were `#` custom links so they would look like the rest of the nav.
+- They stay in the menu as labels. The drop-downs still open. Engage is unchanged (it has a real page).
+- **File:** `parts/header.html` (empty URL), `inc/navigation.php` (render the parent as a `<span>` inside the `<li>` instead of an `<a>`).
+
+### Worship Past Sermons: Load more
+- Sunday Services (page 64) still shows three newest sermons first. A **Load more** pill under the grid loads the next three via AIOVG’s Ajax (no extra page). Each click adds another row until the gallery is done.
+- **Local DB:** shortcode now includes `show_more="1" more_label="Load more"`. Backup: `backups/pages/page-64-worship-before-load-more.html`.
+- **File:** pill is small light gray / black text; hover, focus, and click go black / white (`.page-id-64 .aiovg-link-more` in `custom.css`). The pill is hidden while the next row is fetching so it does not cover AIOVG’s loading spinner.
+
+### Homepage meeting-location sentence
+- Under **Meeting Location**, the time was sitting in the middle of the address (“located at 10 AM, 3900 Shady Springs…”). It now reads: “We are meeting at 10 am, at the St. Charles YMCA located at 3900 Shady Springs Ln, St Peters, MO 63376”.
+- **Local DB:** page 15. Backup: `backups/homepage/homepage-15-before-meeting-location-wording.html`.
+- Removed the green **August 9 / Vote on new meeting space** lines above the Pledge and PayPal Fees buttons (that date has passed). Backup: `backups/homepage/homepage-15-before-august9-vote.html`.
+- **Checklist section 4:** ask the church whether to look into auto-importing new YouTube sermons, or keep adding each one in Video Gallery by hand.
+
+### Site icon (favicon)
+- Replaced the default WordPress “W” with the Emerson logo. Source file: `wp-content/themes/emerson-uuchapel/assets/images/emerson-site-icon.png` (512×512 PNG).
+- **Local DB:** uploaded as Media attachment 999 and set as **Site Icon** (`site_icon`). WordPress now serves the tab icon from `uploads/2026/10/`.
+- The theme PNG was enlarged so the chalice fills more of the 512×512 square (2026-10-04, second pass). Media 999 and the generated sizes were replaced from that file.
+- Safari **tab** icon: `safari-pinned-tab.svg` now matches Apple’s spec (`viewBox="0 0 16 16"`, one layer) for **pinned** tabs. Regular tabs use `/favicon.svg` (Safari 26+) plus 16/32 PNG and `/favicon.ico`. Check **Safari → Settings → Tabs → Show website icons in tabs**.
+- **On the live site:** the theme file travels with the theme upload; the attachment and option travel with the WPvivid database.
+
 ### Docker PATH tidy (this Mac only)
 - Removed the extra `~/.docker/bin` lines from `~/.zprofile` (Docker Desktop's auto-added block) and `~/.zshrc`. One line remains in `.zprofile`, ahead of Homebrew. Completions in `.zshrc` are unchanged.
 - Checked in a clean login shell: `command -v docker` is `/Users/kitsunearisu/.docker/bin/docker` once, and `docker compose ps` still shows `db` and `wordpress`.

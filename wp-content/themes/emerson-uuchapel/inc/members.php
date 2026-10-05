@@ -20,17 +20,21 @@ function emerson_account_name( ?WP_User $user = null, ?object $person = null ): 
 		$found = get_userdata( (int) $person->user_id );
 		$user  = $found ?: null;
 	}
+	$tidy = static function ( string $part ): string {
+		return trim( (string) preg_replace( '/\s*\(admin\)\s*/i', ' ', $part ) );
+	};
 	if ( $user instanceof WP_User ) {
-		$from_account = trim( trim( (string) $user->first_name ) . ' ' . trim( (string) $user->last_name ) );
+		$from_account = trim( $tidy( (string) $user->first_name ) . ' ' . $tidy( (string) $user->last_name ) );
 		if ( '' !== $from_account ) {
 			return $from_account;
 		}
-		if ( '' !== trim( (string) $user->display_name ) ) {
-			return trim( (string) $user->display_name );
+		$display = $tidy( (string) $user->display_name );
+		if ( '' !== $display && ! str_contains( $display, '@' ) ) {
+			return $display;
 		}
 	}
 	if ( $person ) {
-		return trim( (string) ( $person->first_name ?? '' ) . ' ' . (string) ( $person->last_name ?? '' ) );
+		return trim( $tidy( (string) ( $person->first_name ?? '' ) ) . ' ' . $tidy( (string) ( $person->last_name ?? '' ) ) );
 	}
 	return '';
 }
@@ -259,6 +263,19 @@ add_filter(
 	},
 	10,
 	3
+);
+
+// Church Admin's register form starts with "Register/Login". Members already has "New to Emerson? Register" above it.
+add_filter(
+	'do_shortcode_tag',
+	static function ( $output, $tag ) {
+		if ( 'church_admin_register' !== $tag || ! is_string( $output ) ) {
+			return $output;
+		}
+		return (string) preg_replace( '#<h2>\s*Register/Login\s*</h2>#', '', $output, 1 );
+	},
+	12,
+	2
 );
 
 // Members who log in through wp-login.php land on the members' hub instead of their wp-admin profile.

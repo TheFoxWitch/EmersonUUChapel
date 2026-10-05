@@ -238,6 +238,31 @@ add_filter(
 			$output = preg_replace( '#<h3>Set non availability for (.*?)</h3>#', '<h3>Tick the dates $1 can serve</h3>', $output );
 		}
 
+		$directory = $wpdb->get_results( 'SELECT people_id, first_name, last_name, user_id FROM ' . $wpdb->prefix . 'church_admin_people' );
+		$labels    = array();
+		foreach ( $directory as $row ) {
+			$label = emerson_account_name( null, $row );
+			if ( '' !== $label ) {
+				$labels[ (int) $row->people_id ] = $label;
+			}
+		}
+		$output = preg_replace_callback(
+			'#(<select name="people_id"[^>]*>)(.*?)(</select>)#s',
+			static function ( array $select ) use ( $labels ): string {
+				$inner = preg_replace_callback(
+					'#<option value="(\d+)"([^>]*)>(.*?)</option>#',
+					static function ( array $opt ) use ( $labels ): string {
+						$id    = (int) $opt[1];
+						$label = $labels[ $id ] ?? html_entity_decode( $opt[3], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+						return '<option value="' . $id . '"' . $opt[2] . '>' . esc_html( $label ) . '</option>';
+					},
+					$select[2]
+				);
+				return $select[1] . $inner . $select[3];
+			},
+			$output
+		);
+
 		$output = preg_replace_callback(
 			'#<input type="checkbox" name="dates\[\]"\s*(?:checked="checked"\s*)?value="(\d{4}-\d{2}-\d{2})" /> <label>#',
 			static function ( array $m ) use ( $can_serve ): string {

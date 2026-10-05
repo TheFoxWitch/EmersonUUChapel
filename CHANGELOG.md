@@ -10,10 +10,35 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-05
+
+### Private spreadsheets (Finance role)
+- Spreadsheets are **not** in Media. They go in `private-files/` on this Mac, mounted inside Docker at `/var/emerson-private` (outside the web root). A public URL cannot fetch them.
+- The Members hub lists them only for **administrators** and the WordPress **Finance** role. Other logged-in members get no HTML for that section.
+- Downloads go through a logged-in PHP handler. PDFs open in the browser. **Excel (.xlsx)** and CSV open as a table on a gated page, with a file download. An Apple **Numbers** package downloads as a zip.
+- **Local DB:** `[emerson_private_files]` on page 32. Backup: `backups/members/members-32-before-private-files.html`.
+- **File:** `inc/private-files.php`, `docker-compose.yml`, `.gitignore`. Test file `Magazines.numbers` is local only, not in git.
+- **Grant access:** Users → that person → Role **Finance**.
+
+### Who Are We: Covenant of Right Relations file
+- The word **here** under Covenant of Right Relations now opens the church’s copy: `Covenant-of-Right-Relations.pdf` (Media). The `.docx` was replaced so the browser can display it.
+- **Local DB:** page 190. Backup of the previous Word link: `backups/pages/page-190-who-are-we-before-covenant-pdf.html`. First (Squarespace) backup: `backups/pages/page-190-who-are-we-before-covenant-link.html`.
+- **On the live site:** upload the same PDF in Media, then point that **here** link at it.
+
 ## 2026-10-04
+
+### Serving dates use the account first and last name
+- The heading “Tick the dates … can serve” was using the Church Admin first name, which on some linked accounts is the email-style username. It now uses the WordPress account’s first and last name (then display name, then the directory row).
+- **Signed in as** on the Members hub uses the same name.
+- **File:** `inc/members.php`, `inc/serving-dates.php`.
+
+### Serving dates summary lists Available dates
+- Above “Tick the dates … can serve”, the line still says how many of the listed dates they can do. It now follows with **Available:** and those dates, not **Not available:** and the rest.
+- **File:** `inc/serving-dates.php`.
 
 ### Calendar PDF dropdown
 - The **Choose a PDF** select sat 7px too low beside “Yearly Planner PDFs”. `margin-top: -7px` on `form[name="guideform"]` in `custom.css`.
+- The list / Planning Calendar chooser table (`ca-calendar-list-chooser`) now has `margin-bottom: 2em` so it sits off the month grid.
 
 ### Header: About and Worship are labels, not links
 - There is no About page and no Worship page. Those words were `#` custom links so they would look like the rest of the nav.
@@ -53,7 +78,7 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 - **Church Leadership (192):** officers and ministry leads updated from the board's list (Nancy Fish is no longer president). Personal emails stay off the page until leadership confirms they want them public (checklist, section 4). Backup: `backups/pages/page-192-leadership-before-board-update.html`.
 - **"View the Constitution and Bylaws"** is now a centred Emerson-blue pill button (`bylaws-button`, same style as Newcomer / Newsletter). The PDF address is unchanged. Backup: `backups/pages/page-192-leadership-before-bylaws-button.html`.
   - The buttons block has `margin-top: 70px` and `margin-bottom: -41px`, giving **70 px above and 70 px below** (same as Serve / Engage / Sunday Services). Backup: `backups/pages/page-192-leadership-before-button-spacing.html`.
-- **Covenant PDF:** still missing. The broken "here" is on **Who Are We (190)**, in **Covenant of Right Relations**, and points at `/s/Covenant-of-Right-Relations.pdf` (an old Squarespace file path). It is not in the Media Library. When the PDF is in hand: upload it, then replace that link.
+- **Covenant of Right Relations:** linked 2026-10-05. The **here** on **Who Are We (190)** now points at Media `Covenant-of-Right-Relations.pdf`.
 - **Pledge form question** added to the checklist: the homepage button still says 2024-25 and uses last year's Google Form.
 - **Checklist section 5:** switching themes later is not a one-click swap. Launch on `emerson-uuchapel` first; custom CSS, header/footer patterns and `inc/*.php` have to be ported (or kept) if a new theme is chosen.
 
@@ -311,7 +336,7 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
   - **Giving (621)** changed to a **draft**. It showed visitors a Church Admin "Please setup payment gateway" message with a broken setup link, and nothing links to it since the footer change.
 - **Waiting on the church** (in the checklist):
   - Who Are We "vision" (`/our-vision` doesn't exist)
-  - Who Are We Covenant "here" (the PDF isn't on the site)
+  - Who Are We Covenant "here" (linked 2026-10-05 to the PDF)
   - three Outreach Partners that closed: Caminamos Juntos, Story Stitchers, UU Trauma Response Ministry
   - five sites that block automated checks
   - the 3 Welcome! images, which are still loaded from the dead dev site

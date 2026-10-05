@@ -12,6 +12,29 @@ declare( strict_types=1 );
 
 const EMERSON_MEMBERS_PAGE = '/members/';
 
+/**
+ * A readable name for the signed-in account or a directory person: WordPress first + last, then display name, then the directory row.
+ */
+function emerson_account_name( ?WP_User $user = null, ?object $person = null ): string {
+	if ( ! $user && $person && ! empty( $person->user_id ) ) {
+		$found = get_userdata( (int) $person->user_id );
+		$user  = $found ?: null;
+	}
+	if ( $user instanceof WP_User ) {
+		$from_account = trim( trim( (string) $user->first_name ) . ' ' . trim( (string) $user->last_name ) );
+		if ( '' !== $from_account ) {
+			return $from_account;
+		}
+		if ( '' !== trim( (string) $user->display_name ) ) {
+			return trim( (string) $user->display_name );
+		}
+	}
+	if ( $person ) {
+		return trim( (string) ( $person->first_name ?? '' ) . ' ' . (string) ( $person->last_name ?? '' ) );
+	}
+	return '';
+}
+
 add_shortcode(
 	'emerson_visitors_only',
 	static function ( $atts, ?string $content = null ): string {
@@ -53,6 +76,7 @@ add_shortcode(
 			return '';
 		}
 		$user  = wp_get_current_user();
+		$label = emerson_account_name( $user );
 		$links = array(
 			sprintf( '<a href="%s">Edit my profile or password</a>', esc_url( home_url( '/edit-profile/' ) ) ),
 		);
@@ -66,7 +90,7 @@ add_shortcode(
 
 		return sprintf(
 			'<p class="emerson-member-links">Signed in as <strong>%1$s</strong> · %2$s</p>',
-			esc_html( $user->display_name ),
+			esc_html( $label !== '' ? $label : $user->display_name ),
 			implode( ' · ', $links )
 		);
 	}

@@ -176,6 +176,11 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	margin-top: -7px;
 }
 
+/* List / Planning Calendar chooser sits tight on the month grid */
+table.ca-calendar-list-chooser {
+	margin-bottom: 2em;
+}
+
 /* Church Admin calendar Previous / Next buttons (members' hub and Calendar page): about twice the browser default */
 input.calendar-date-switcher,
 button.ca-calendar-nav {
@@ -679,8 +684,8 @@ blockquote {
 
 .emerson-footer__social svg {
 	display: block;
-	width: 1.5rem;
-	height: 1.5rem;
+	width: 2.5rem;
+	height: 2.5rem;
 }
 
 .emerson-footer__bottom {
@@ -995,6 +1000,64 @@ blockquote {
    tying the plugin's ".aiovg-more.aiovg-spinner * { display:none }"). */
 .page-id-64 .aiovg-more.aiovg-spinner .aiovg-link-more {
 	display: none;
+}
+
+/* Private spreadsheets list (Members hub, Finance role and administrators only) */
+.emerson-private-files ul {
+	margin: 0.5rem 0 0;
+	padding-left: 1.25rem;
+}
+
+.emerson-private-files__kind,
+.emerson-private-files__download {
+	margin-left: 0.35rem;
+	color: #666;
+	font-size: 0.85em;
+}
+
+.emerson-private-sheet-page {
+	max-width: 72rem;
+	margin: 0 auto;
+	padding: 2rem 1.25rem 3rem;
+	background: #fff;
+	color: #1e1e1e;
+	font-family: "Source Serif Pro", "Iowan Old Style", Palatino, Georgia, serif;
+}
+
+.emerson-private-sheet-page a {
+	color: #1e1e1e;
+}
+
+.emerson-private-sheet-nav {
+	margin-bottom: 1.5rem;
+}
+
+.emerson-private-sheet-kind {
+	color: #666;
+	margin: 0 0 1rem;
+}
+
+.emerson-private-sheet-wrap {
+	overflow-x: auto;
+}
+
+.emerson-private-sheet {
+	border-collapse: collapse;
+	width: max-content;
+	min-width: 100%;
+}
+
+.emerson-private-sheet th,
+.emerson-private-sheet td {
+	border: 1px solid #ddd;
+	padding: 0.4rem 0.7rem;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.emerson-private-sheet th {
+	background: #f4f4f4;
+	font-weight: 600;
 }
 
 

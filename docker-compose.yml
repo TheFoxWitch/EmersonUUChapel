@@ -27,6 +27,7 @@ services:
     volumes:
       - wp_core:/var/www/html
       - ./wp-content:/var/www/html/wp-content
+      - ./private-files:/var/emerson-private
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
 
   wpcli:
@@ -38,6 +39,7 @@ services:
     volumes:
       - wp_core:/var/www/html
       - ./wp-content:/var/www/html/wp-content
+      - ./private-files:/var/emerson-private
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: ${MYSQL_USER:-wordpress}

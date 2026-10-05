@@ -219,7 +219,7 @@ add_filter(
 				current_time( 'Y-m-d' )
 			)
 		);
-		$name = esc_html( trim( $person->first_name . ' ' . $person->last_name ) );
+		$name = esc_html( emerson_account_name( null, $person ) );
 		$own  = (int) $person->user_id === get_current_user_id();
 
 		$output = str_replace(
@@ -232,7 +232,11 @@ add_filter(
 			array( '<h2>Serving dates</h2>', '<h2>Your serving dates are saved</h2>', '<h3>Tick the dates you can serve</h3>' ),
 			$output
 		);
-		$output = preg_replace( '#<h3>Set non availability for (.*?)</h3>#', '<h3>Tick the dates $1 can serve</h3>', $output );
+		if ( '' !== $name ) {
+			$output = preg_replace( '#<h3>Set non availability for (.*?)</h3>#', '<h3>Tick the dates ' . $name . ' can serve</h3>', $output );
+		} else {
+			$output = preg_replace( '#<h3>Set non availability for (.*?)</h3>#', '<h3>Tick the dates $1 can serve</h3>', $output );
+		}
 
 		$output = preg_replace_callback(
 			'#<input type="checkbox" name="dates\[\]"\s*(?:checked="checked"\s*)?value="(\d{4}-\d{2}-\d{2})" /> <label>#',
@@ -254,15 +258,13 @@ add_filter(
 			. '</p>';
 		$output = preg_replace( '#(<div class="church-admin-form-group"><input type="checkbox" name="can_serve\[\]")#', $bulk . '$1', $output, 1 );
 
-		$shown = emerson_serving_form_dates();
-		$can   = count( array_intersect( $shown, $can_serve ) );
+		$shown     = emerson_serving_form_dates();
+		$available = array_values( array_intersect( $shown, $can_serve ) );
+		$can       = count( $available );
 		if ( $can ) {
-			$cannot  = array_diff( $shown, $can_serve );
 			$who     = $own ? 'You' : $name;
 			$summary = sprintf( '%1$s can serve <strong>%2$d of the %3$d dates</strong> listed.', $who, $can, count( $shown ) );
-			if ( $cannot ) {
-				$summary .= ' Not available: <strong>' . esc_html( implode( ', ', array_map( static fn( $d ) => mysql2date( get_option( 'date_format' ), $d ), $cannot ) ) ) . '</strong>.';
-			}
+			$summary .= ' Available: <strong>' . esc_html( implode( ', ', array_map( static fn( $d ) => mysql2date( get_option( 'date_format' ), $d ), $available ) ) ) . '</strong>.';
 		} else {
 			$summary = $own
 				? 'You haven&#8217;t ticked any dates yet. Until you do, you won&#8217;t be put on the serving schedule.'

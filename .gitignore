@@ -15,6 +15,10 @@ wp-content/upgrade-temp-backup/
 # Media Library (may include member directory photos)
 wp-content/uploads/
 
+# Private spreadsheets (xlsx, csv, pdf, Numbers). Only the README is in git.
+private-files/*
+!private-files/README.md
+
 # Generated caches and temp files
 wp-content/cache/
 wp-content/upgrade/

@@ -12,6 +12,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-05
 
+### Members register form: drop the extra Register/Login heading
+- Church Admin’s `[church_admin_register]` starts with **Register/Login** above “Please start with your Email address”. The Members page already has **New to Emerson? Register**, and that form is not a login.
+- **File:** `inc/members.php`.
+
+### Serving dates person dropdown uses the account name
+- The admin **Choose person** list was showing Church Admin’s first name, which on some linked logins is the email-style username. It now uses the same WordPress first and last name as the rest of the hub (and drops an “(admin)” suffix in that name).
+- **File:** `inc/members.php`, `inc/serving-dates.php`.
+
 ### Private spreadsheets (Finance role)
 - Spreadsheets are **not** in Media. They go in `private-files/` on this Mac, mounted inside Docker at `/var/emerson-private` (outside the web root). A public URL cannot fetch them.
 - The Members hub lists them only for **administrators** and the WordPress **Finance** role. Other logged-in members get no HTML for that section.

@@ -16,4 +16,45 @@
 		},
 		true
 	);
+
+	function emersonLookingForOther(form) {
+		var field = form.querySelector('.emerson-looking-for');
+		var detail = form.querySelector('.emerson-looking-for-other');
+		if (!field || !detail) {
+			return;
+		}
+
+		var boxes = field.querySelectorAll('input[type="checkbox"]');
+		var other = null;
+		for (var i = 0; i < boxes.length; i++) {
+			var box = boxes[i];
+			var wrap = box.closest('li') || box.parentElement;
+			var label = wrap ? wrap.textContent : box.value;
+			if (/^\s*other\s*$/i.test(label) || /^other$/i.test(box.value)) {
+				other = box;
+				break;
+			}
+		}
+		if (!other) {
+			return;
+		}
+
+		var area = detail.querySelector('textarea');
+
+		function sync() {
+			if (other.checked) {
+				detail.classList.add('is-open');
+				return;
+			}
+			detail.classList.remove('is-open');
+			if (area) {
+				area.value = '';
+			}
+		}
+
+		other.addEventListener('change', sync);
+		sync();
+	}
+
+	document.querySelectorAll('form.wpforms-form').forEach(emersonLookingForOther);
 })();

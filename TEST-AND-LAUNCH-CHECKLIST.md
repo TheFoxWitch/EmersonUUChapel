@@ -13,7 +13,8 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - "Newcomer information" email arrives within a minute or so (original recipient: `office@`). It's sent as a background job.
   - Replying to it goes to the address typed in the form
   - The phone field accepts `(636) 555-0123`, `636-555-0123` and `6365550123`
-  - Answering **Yes** to the newsletter question also sends the "Please confirm your subscription" email. After the click, "New newsletter subscriber" says "Signed up from: Newcomer Information form". Answering **No** sends only the office email.
+  - Answering **Yes** to the newsletter question also sends the "Please confirm your subscription" email. After the click, "New newsletter subscriber" says "Signed up from: Newcomer Information form". Answering **No** sends only the office email. The name and email used for that sign-up are Name 1 and Email from the top of the form.
+  - **What are you looking for** (added 2026-10-08): Inspirational Messages, Creativity, Ritual/practice, Other. Other opens a text box. Re-check that those answers appear in the office email.
 - [x] **Newsletter pop-up** (homepage, logged out)
   - Opens after 5 seconds, fades in; ×, "No thanks", Esc and clicking outside all fade it out
   - Sign-up shows "Almost done!" within about a second (not about 10), then fades out after about 4 seconds
@@ -73,10 +74,11 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [ ] Optional: hide the Website and Biographical Info fields on Edit Profile (**Profile Builder → Form Fields**)
 - [ ] Someone monitors `office@emersonuuchapel.org` (newsletter and Newcomer form) and `com@emersonuuchapel.org` (Church Admin and the site admin)
 - [ ] Optional: delete unused forms. That's 6 Calculated Fields demo forms that email `com@` and copy the visitor, the "Emerson 2023-24 Pledge Drive" WPForm and the "Simple Contact Form" WPForm.
-- [x] **Social media icons in the footer** (added 2026-10-03, under the logo and the "A liberal, welcoming…" line). Official accounts from the church's Google listing:
+- [x] **Social media icons in the footer** (added 2026-10-03, under the logo and the "A liberal, welcoming…" line). Official accounts from the church's Google listing, plus the congregation GroupMe (added 2026-10-08):
   - Facebook `https://www.facebook.com/emersonuuchapel`
-  - Instagram `https://www.instagram.com/emersonuuchapel` (not `emersonuucommunity`, which is Emerson UU Church in Canoga Park, CA)
+  - Instagram `https://www.instagram.com/emersonuucommunity` (confirmed 2026-10-08; the Google listing had `emersonuuchapel`)
   - YouTube `https://www.youtube.com/@emersonunitarianuniversali1222`
+  - GroupMe `https://groupme.com/join_group/32110283/HqzkKf` (general talk; also listed on Ways to Connect)
   Twitter/X was removed on 2026-10-03; they no longer use it.
 - [ ] Anything changed on the live site since 2026-09-24 has been copied into the local site (the restore replaces it). Follow `DEPLOY-WPVIVID.md` step A1: compare Harlan's fresh backup with the local site, then copy the changes in. The note below is the serving-dates version of that compare.
 
@@ -183,7 +185,7 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
 - [x] **Twitter/X.** They no longer use it (2026-10-03). Removed from the footer, Ways to Connect, and two leftover empty links on Religious Education and Our Congregation.
 - [ ] **Church Leadership: personal emails and extra contact details.** The page lists names and roles only. Two board members' personal emails were sent for a possible contact list; they are **not** on the page, and must not go into GitHub. Ask leadership whether they want personal emails (or other private contact details) on this public page. If yes: add them on the page only, not in the repo. If no: leave the names as they are.
 - [ ] **2026 pledge form.** The homepage button still says **2024-25 Pledge Form** and goes to `https://forms.gle/PeAst4DMzSA9FKjG6`. Ask for this year's Google Form (or confirmation the old one is still current), then update the button label and that link. The old Welcome! page (412) still has an even older "Join The 2022-2023 Pledge Drive" link (`forms.gle/GfZt7bZsiYhPiFWX9`); update or remove that too if the page stays.
-- [ ] **Mint green (`#00d084`).** It has low contrast as text on white. Keep it, or choose a darker green for text?
+- [ ] **Mint green (`#00d084`).** It has low contrast as text on white. Keep it, or choose a darker green for text? The homepage **You Are Welcome!** heading is no longer mint (rainbow gradient, 2026-10-08). Mint is still the pledge / contribute button background.
 - [ ] **Privacy Policy.** Leadership approves the wording, including the newsletter, local-storage and login-protection sections. Church Admin needs PHP's `calendar` extension. Locally it's added by the project `Dockerfile`; most hosts have it. If the live site gives a server error there, ask the host to enable it.
 
 ## 5. Later: a more modern look (not a launch item)

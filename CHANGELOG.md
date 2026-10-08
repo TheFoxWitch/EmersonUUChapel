@@ -10,6 +10,51 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-08
+
+### Newcomer form: what are you looking for
+- Added **What are you looking for in a spiritual/secular community?** after the Religious Education question: Inspirational Messages, Creativity, Ritual/practice, and Other. Ticking Other opens a text box.
+- WPForms Lite has no conditional fields, so the theme shows and hides that box (`custom.js` / `custom.css`). It is included in the office email with the rest of the form.
+- **Local DB:** WPForms 351. Backup: `backups/forms/wpforms-351-before-looking-for.json`.
+- **File:** `assets/js/custom.js`, `assets/css/custom.css`.
+
+### Instagram is emersonuucommunity
+- Confirmed with the church: Instagram is `https://www.instagram.com/emersonuucommunity`. The footer icon and Ways to Connect now use that URL (they had `emersonuuchapel` from the Google listing).
+- **File:** `patterns/footer.php`. Pattern cache cleared.
+- **Local DB:** page 218. Backup: `backups/newsletter/ways-to-connect-218-before-instagram-handle.html`.
+
+### Religious Education: Rainbow Hands under the heading
+- The mural sits directly under the **Religious Education** title, then the three paragraphs.
+- **Local DB:** page 203. Backup: `backups/pages/page-203-religious-education-before-mural-move.html`.
+
+### Religious Education: shorter page, Rainbow Hands photo
+- Removed the **Infants and Toddlers** and **Children** sections. The UUA curriculum sentence and link now sit after Lauren’s bold line in the first paragraph.
+- The singing-bowl photo is replaced by the Rainbow Hands mural already in Media (`cropped-hand-mural.jpg`, attachment 349). Same file as `images/cropped-hand-mural.jpg`.
+- **Local DB:** page 203. Backup: `backups/pages/page-203-religious-education-before-sections-and-mural.html`.
+
+### Header and footer use the upscaled Emerson logo
+- Nav and footer now use the clearer hands-and-drop mark. Source: `images/EmersonUUchapelLogoUpscale.png`. The copy in the theme had a checkerboard background knocked out to transparency and the extra margin cropped.
+- **File:** `patterns/header-logo.php`, `patterns/footer.php`, `assets/images/EmersonUUchapelLogoUpscale.png`. Pattern cache cleared. Display size is unchanged (120 px header, 110 px footer).
+- Tab / touch icons use the drop-and-hands mark (the wordmark is too small for a favicon). The previous circular set is kept in `assets/images/circle-logo/` (including the old nav PNG) so it can be copied back if the church prefers it.
+- **File:** `inc/site-icon.php`, `assets/images/emerson-site-icon.png`, `apple-touch-icon.png`, `emerson-favicon-16.png`, `emerson-favicon-32.png`, `favicon.ico`, `favicon.svg`, `safari-pinned-tab.svg`.
+
+### Homepage: You Are Welcome flags, symbols, rainbow
+- The mint “You Are Welcome!” heading now has the trans and pride flags on either side, a second line of faith and peace symbols, and a left-to-right rainbow gradient on the words (yellow darkened a little so it stays readable on white).
+- **File:** `assets/css/custom.css` (`.emerson-welcome`).
+- **Local DB:** homepage page 15. Backup: `backups/homepage/homepage-15-before-welcome-pride.html`.
+- Screen readers still hear **You Are Welcome!**; the emoji are decorative.
+
+### GroupMe chat in the footer and Ways to Connect
+- The congregation’s general GroupMe is now with the other social links: footer icon plus a named link in the Social media paragraph on Ways to Connect.
+- **File:** `patterns/footer.php` (official GroupMe mark as an inline SVG, same size and Emerson blue as Facebook, Instagram and YouTube). Pattern cache cleared after the edit.
+- **Local DB:** page 218. Backup: `backups/newsletter/ways-to-connect-218-before-groupme.html`.
+- **Join link:** `https://groupme.com/join_group/32110283/HqzkKf`.
+
+### Religious Education: Lauren’s curriculum line
+- Dropped “of kids” so the teacher sentence ends **serving Emerson, and its community.**
+- **Local DB:** page 203. Backup: `backups/pages/page-203-religious-education-before-lauren-wording.html`.
+- **On the live site:** the same wording change on Religious Education.
+
 ## 2026-10-05
 
 ### Members register form: drop the extra Register/Login heading

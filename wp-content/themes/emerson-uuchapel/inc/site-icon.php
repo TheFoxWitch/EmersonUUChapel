@@ -113,15 +113,17 @@ add_action( 'wp_head', 'emerson_site_icon_head_links', 1 );
 add_action( 'admin_head', 'emerson_site_icon_head_links', 1 );
 
 function emerson_site_icon_head_links(): void {
-	$ico   = home_url( '/favicon.ico' );
-	$svg   = home_url( '/favicon.svg' );
-	$png16 = get_theme_file_uri( 'assets/images/emerson-favicon-16.png' );
-	$png32 = get_theme_file_uri( 'assets/images/emerson-favicon-32.png' );
-	$touch = home_url( '/apple-touch-icon.png' );
-	$mask  = home_url( '/safari-pinned-tab.svg' );
+	$ver   = emerson_favicon_version();
+	$ico   = add_query_arg( 'v', $ver, home_url( '/favicon.ico' ) );
+	$svg   = add_query_arg( 'v', $ver, home_url( '/favicon.svg' ) );
+	$png16 = add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-favicon-16.png' ) );
+	$png32 = add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-favicon-32.png' ) );
+	$touch = add_query_arg( 'v', $ver, home_url( '/apple-touch-icon.png' ) );
+	$mask  = add_query_arg( 'v', $ver, home_url( '/safari-pinned-tab.svg' ) );
 
 	// Regular tabs: ICO + SVG (Safari 26+) + 16/32 PNG. Pinned tabs: mask-icon.
 	// Apple requires mask-icon viewBox="0 0 16 16" and a single layer.
+	// Previous circular set is in assets/images/circle-logo/.
 	printf( '<link rel="icon" href="%s" sizes="any" />' . "\n", esc_url( $ico ) );
 	printf( '<link rel="icon" href="%s" type="image/svg+xml" />' . "\n", esc_url( $svg ) );
 	printf( '<link rel="icon" type="image/png" sizes="16x16" href="%s" />' . "\n", esc_url( $png16 ) );

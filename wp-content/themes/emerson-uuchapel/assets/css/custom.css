@@ -77,6 +77,74 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 }
 /** End Home page text **/
 
+/* Home page: You Are Welcome — flags, faith symbols, rainbow words */
+.home .emerson-welcome {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.2em;
+	line-height: 1.2;
+}
+
+.emerson-welcome__title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.3em 0.4em;
+}
+
+.emerson-welcome__emoji,
+.emerson-welcome__symbols {
+	font-style: normal;
+	font-weight: 400;
+}
+
+.emerson-welcome__emoji {
+	font-size: 0.85em;
+	line-height: 1;
+}
+
+.emerson-welcome__symbols {
+	display: block;
+	max-width: 100%;
+	font-size: 0.55em;
+	letter-spacing: 0.12em;
+	line-height: 1.4;
+	text-align: center;
+}
+
+.emerson-welcome__rainbow {
+	color: #6d28d9;
+	background-image: linear-gradient(
+		90deg,
+		#c41e3a,
+		#e85d04,
+		#ca8a04,
+		#15803d,
+		#1d4ed8,
+		#7c3aed
+	);
+	-webkit-background-clip: text;
+	background-clip: text;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+	.emerson-welcome__rainbow {
+		color: transparent;
+		-webkit-text-fill-color: transparent;
+	}
+}
+
+@media (forced-colors: active) {
+	.emerson-welcome__rainbow {
+		background-image: none;
+		color: CanvasText;
+		-webkit-text-fill-color: CanvasText;
+	}
+}
+/** End welcome heading **/
+
 /* What is Unitarian Universalism? (page 196): copyright line under the video */
 .page-id-196 .wp-block-embed + p {
 	text-align: center;
@@ -1059,5 +1127,34 @@ blockquote {
 	background: #f4f4f4;
 	font-weight: 600;
 }
+
+/* Newcomer form: Other “what are you looking for” box */
+.wpforms-field.emerson-looking-for-other {
+	display: none;
+	margin-top: -0.5rem;
+}
+
+.wpforms-field.emerson-looking-for-other.is-open {
+	display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.wpforms-field.emerson-looking-for-other.is-open {
+		animation: emerson-looking-for-in 0.2s ease-out;
+	}
+}
+
+@keyframes emerson-looking-for-in {
+	from {
+		opacity: 0;
+		transform: translateY(-0.35rem);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+/** End newcomer Other box **/
 
 

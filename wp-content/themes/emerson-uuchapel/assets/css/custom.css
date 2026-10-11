@@ -12,13 +12,18 @@
 	--emerson-h1-size: clamp(1.875rem, 1.35rem + 2.2vw, 2.75rem);
 }
 
-/* Links in page content: logo blue instead of the theme's green */
-.wp-block-post-content a:where(:not(.wp-element-button)) {
+/* Links site-wide: Emerson blue (logo / social icons). TT3 paints
+   .wp-block-post-content links Secondary (#345C00); that rule is more
+   specific than the global link colour, so it has to be overridden too. */
+body a:where(:not(.wp-element-button)),
+:root body :where(.wp-block-post-content a:where(:not(.wp-element-button))) {
 	color: var(--emerson-blue);
 }
 
-.wp-block-post-content a:where(:not(.wp-element-button)):hover,
-.wp-block-post-content a:where(:not(.wp-element-button)):active {
+body a:where(:not(.wp-element-button)):hover,
+body a:where(:not(.wp-element-button)):active,
+:root body :where(.wp-block-post-content a:where(:not(.wp-element-button))):hover,
+:root body :where(.wp-block-post-content a:where(:not(.wp-element-button))):active {
 	color: var(--emerson-blue-dark);
 }
 /** End Brand colours **/
@@ -30,7 +35,7 @@
 }
 
 .emerson-header-logo img {
-	width: 120px;
+	width: 240px;
 	height: auto;
 }
 /** End Logo **/
@@ -706,7 +711,7 @@ blockquote {
 }
 
 .emerson-footer__logo img {
-	width: 110px;
+	width: 220px;
 	height: auto;
 }
 

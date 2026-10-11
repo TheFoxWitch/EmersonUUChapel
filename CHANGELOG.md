@@ -10,7 +10,21 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-10
+
+### Header and footer use the original circular logo
+- The upscaled hands-and-drop mark is back to a file-only spare. Nav and footer now use the original circular logo with a transparent background (`images/EmersonUUChapelLogo_original.png`). The church has not approved a logo change.
+- **File:** `patterns/header-logo.php`, `patterns/footer.php`, `assets/images/EmersonUUChapelLogo_original.png`. Pattern cache cleared. Display size is 240 px header, 220 px footer (twice the earlier size so the wordmark is readable). The upscale file stays in `assets/images/` in case they approve it later. Favicons are unchanged.
+
+### Links use Emerson Blue
+- Site links (and the default button fill) were set in the editor to **Vivid cyan blue**, the bright palette swatch. The editor will not accept a colour that is not on the palette, so Emerson Blue (`#3f4fa0`, the logo / social-icon blue) is now a palette colour.
+- Twenty Twenty-Three also paints page-content links **Secondary** (`#345C00`). That block rule is what kept body links green after the palette change; the child theme now sets those to Emerson Blue as well.
+- Links and hover use Emerson Blue / Emerson Blue Dark. Theme CSS covers header, footer and page content so they stay that colour. Nav items stay black.
+- **File:** `theme.json`, `assets/css/custom.css`.
+- **Local DB:** global styles 914. Backup: `backups/styles/global-styles-914-before-emerson-blue.json`.
+
 ## 2026-10-08
+
 
 ### Newcomer form: what are you looking for
 - Added **What are you looking for in a spiritual/secular community?** after the Religious Education question: Inspirational Messages, Creativity, Ritual/practice, and Other. Ticking Other opens a text box.

@@ -44,7 +44,7 @@ $privacy_url = get_privacy_policy_url();
 
 		<section class="emerson-footer__col">
 			<a class="emerson-footer__logo" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home">
-				<img src="<?php echo esc_url( get_theme_file_uri( 'assets/images/EmersonUUchapelLogoUpscale.png' ) ); ?>" alt="Emerson Unitarian Universalist Chapel — Home" width="699" height="624" loading="lazy" />
+				<img src="<?php echo esc_url( get_theme_file_uri( 'assets/images/EmersonUUChapelLogo_original.png' ) ); ?>" alt="Emerson Unitarian Universalist Chapel — Home" width="401" height="360" loading="lazy" />
 			</a>
 			<p>A liberal, welcoming religious community in St. Charles County, transforming ourselves, our community, and our world since 1984.</p>
 			<ul class="emerson-footer__social">

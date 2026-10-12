@@ -10,6 +10,30 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-12
+
+### Pastor photos on the first five pages
+- Resized JPEGs from the Media Library are on **Who Are We** (fire circle), **Sunday Services** (three worship shots), **Our Congregation** (indoor gathering, picnic, game day), and **Religious Education** (child drawing plus two handwritten letters). Leftover community shots stay in Media for later. The letters were first put on Testimonials and then moved to Religious Education.
+- Tall photos are capped in CSS so portraits do not stretch the page. Landscape and portrait pairs are stacked instead of forced into uneven columns.
+- **File:** `assets/css/custom.css`.
+- The Religious Education drawing was later swapped to the re-uploaded edited file.
+- **Local DB:** pages 190, 64, 209, 425, 203, 68 (`community4` under Pride, `community9` under Womyn’s Web), and homepage 15 (`community7` under the welcome-all line). Backups: `backups/pages/page-*-before-pastor-photos.html`, `backups/homepage/homepage-15-before-community7.html`.
+
+### Sunday Location rotates, and cancelled/moved Sundays notify servers
+- The homepage **Sunday Service Location** heading stays in the editor. The line under it keeps the church wording: **This week, meet us at 10 am, at the ________ located at ________**, filled from the next Sunday on the Church Admin calendar, and it moves on after that service.
+- **Sunday Location** in the WordPress admin is a list of the next 12 Sundays. Each can be Regular, Cancelled, or Moved (new time/place and an optional note).
+- The Service Schedule and the serving-dates ticks show the same cancelled/moved mark.
+- Saving Cancelled or Moved emails anyone assigned that day or who ticked they can serve, and copies the office. Local mail stays in redirect/catch.
+- **File:** `inc/sunday-location.php`, `inc/service-schedule.php`, `inc/serving-dates.php`, `assets/css/custom.css`.
+- **Local DB:** homepage page 15. Backup: `backups/homepage/homepage-15-before-sunday-location.html`.
+- How to change a Sunday in WordPress is in [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md) under **Sunday Location — how to update**.
+
+## 2026-10-11
+
+### Welcome symbols match
+- WordPress draws most of the faith symbols under **You Are Welcome!** as Twemoji images. Om was not on that list, so it stayed a native emoji and looked different. It now uses the same Twemoji picture as the others.
+- **File:** `inc/welcome.php`, `assets/css/custom.css`.
+
 ## 2026-10-10
 
 ### Header and footer use the original circular logo

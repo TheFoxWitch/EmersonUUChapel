@@ -126,20 +126,35 @@ add_shortcode(
 				continue;
 			}
 			$has     = isset( $services[ $day ] );
-			$serving = $has && ( isset( $available[ $day ] ) || isset( $jobs[ $day ] ) );
-			$class   = trim( ( $has ? 'has-service' : '' ) . ( $serving ? ' is-serving' : '' ) );
+			$ymd     = sprintf( '%s%02d', substr( $first, 0, 8 ), $day );
+			$ex      = $has && function_exists( 'emerson_sunday_exception' ) ? emerson_sunday_exception( $ymd ) : null;
+			$status  = is_array( $ex ) ? ( $ex['status'] ?? '' ) : '';
+			$serving = $has && 'cancelled' !== $status && ( isset( $available[ $day ] ) || isset( $jobs[ $day ] ) );
+			$class   = trim( ( $has ? 'has-service' : '' ) . ( $serving ? ' is-serving' : '' ) . ( 'cancelled' === $status ? ' is-cancelled' : '' ) . ( 'moved' === $status ? ' is-moved' : '' ) );
 			$out    .= '<td' . ( $class ? ' class="' . esc_attr( $class ) . '"' : '' ) . '><span class="emerson-schedule__day">'
 				. '<span class="emerson-schedule__weekday">' . esc_html( date_i18n( 'l, ', strtotime( sprintf( '%s%02d 12:00:00', substr( $first, 0, 8 ), $day ) ) ) ) . '</span>'
 				. $day . '</span>';
-			foreach ( $services[ $day ] ?? array() as $service ) {
-				$out .= '<span class="emerson-schedule__service"><strong>' . $time( $service->start_time ) . '</strong> ' . esc_html( $service->title )
-					. '<br>' . $place_el . '</span>';
+			if ( 'cancelled' === $status ) {
+				$out .= '<span class="emerson-schedule__cancelled">Service cancelled</span>';
+				if ( ! empty( $ex['note'] ) ) {
+					$out .= '<span class="emerson-schedule__service">' . esc_html( (string) $ex['note'] ) . '</span>';
+				}
+			} else {
+				foreach ( $services[ $day ] ?? array() as $service ) {
+					$show_time  = ( 'moved' === $status && ! empty( $ex['time'] ) ) ? $ex['time'] : $service->start_time;
+					$show_place = ( 'moved' === $status && ! empty( $ex['place'] ) )
+						? '<a href="' . $place . '">' . esc_html( (string) $ex['place'] ) . '</a>'
+						: $place_el;
+					$out .= '<span class="emerson-schedule__service"><strong>' . $time( $show_time ) . '</strong> ' . esc_html( $service->title )
+						. ( 'moved' === $status ? ' <em>(moved)</em>' : '' )
+						. '<br>' . $show_place . '</span>';
+				}
 			}
 			if ( isset( $jobs[ $day ] ) ) {
 				foreach ( $jobs[ $day ] as $job ) {
 					$out .= '<span class="emerson-schedule__serving">You&#8217;re serving: ' . esc_html( $job ) . '</span>';
 				}
-			} elseif ( $has && isset( $available[ $day ] ) ) {
+			} elseif ( $has && 'cancelled' !== $status && isset( $available[ $day ] ) ) {
 				$out .= '<span class="emerson-schedule__available">You can serve</span>';
 			}
 			$out .= '</td>';

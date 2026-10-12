@@ -73,6 +73,10 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 
 .wp-block-post-content .wp-block-image:not(.alignleft, .alignright) img {
 	margin-inline: auto;
+	max-height: 36rem;
+	width: auto;
+	max-width: 100%;
+	height: auto;
 }
 /** End centred images **/
 
@@ -81,6 +85,26 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	text-align: center;
 }
 /** End Home page text **/
+
+/* Homepage: next Sunday, including cancelled / moved */
+.emerson-sunday-location {
+	text-align: center;
+	color: #6d1f0d;
+	margin: 0 0 1rem;
+}
+
+.emerson-sunday-location p {
+	margin: 0.25em 0;
+}
+
+.emerson-sunday-location__cancelled {
+	color: #8a1f1f;
+}
+
+.emerson-sunday-location__moved {
+	color: #6d1f0d;
+}
+/** End Sunday Location **/
 
 /* Home page: You Are Welcome — flags, faith symbols, rainbow words */
 .home .emerson-welcome {
@@ -117,6 +141,13 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	letter-spacing: 0.12em;
 	line-height: 1.4;
 	text-align: center;
+}
+
+.emerson-welcome__symbols img.emoji {
+	width: 1em;
+	height: 1em;
+	margin: 0;
+	vertical-align: -0.1em;
 }
 
 .emerson-welcome__rainbow {
@@ -492,6 +523,16 @@ input.ca-search-submit:focus-visible {
 
 .emerson-schedule__grid td.is-serving {
 	box-shadow: inset 3px 0 0 var(--emerson-blue);
+}
+
+.emerson-schedule__grid td.is-cancelled {
+	background: #f3f3f3;
+}
+
+.emerson-schedule__cancelled {
+	display: block;
+	color: #8a1f1f;
+	font-weight: 600;
 }
 
 .emerson-schedule__day {

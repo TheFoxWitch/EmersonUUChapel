@@ -25,6 +25,10 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - The person appears in Church Admin as **Mailing List** and is hidden from the directory
   - Clicking the link a second time says it has expired or was already used
 - [x] **Ways to Connect form** (`/ways-to-connect/`): same results as the pop-up
+- [ ] **Sunday Location** (homepage + **Sunday Location** in the WordPress admin). How to update it is in the section after this one.
+  - Homepage says **This week, meet us at 10 am, at the St. Charles YMCA located at …**, then moves on after that service
+  - Marking a Sunday **Cancelled** or **Moved** updates the homepage and the Service Schedule
+  - Anyone assigned that day, or who ticked they can serve, gets an email (redirected locally), and the office gets a copy
 - [x] **Church Admin household registration** (Members pages, logged out)
   - The registrant gets a confirm-your-email message
   - After confirming, the "new household" email with the approval steps arrives (original recipient: `com@`)
@@ -63,7 +67,56 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - **If** `docker` **isn't found afterwards,** put the deleted `.zprofile` line back.
   - **Not needed:** `brew uninstall docker`. Docker Desktop wasn't installed with Homebrew, which is why Homebrew said the cask "is not installed". Leave it alone.
 
+## Sunday Location — how to update
 
+The homepage heading **Sunday Service Location** can still be edited on the page itself. The sentence under it is filled in automatically. Do **not** type the time or address back into that page; it will be overwritten the next Sunday.
+
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
+
+**Where:** WordPress admin (the left-hand menu) → **Sunday Location**. It is a calendar icon, below the usual Pages / Posts items.
+
+The screen lists the next 12 Sundays. Each row has **Status**, **Time**, **At the** (the building name), **Located at** (the street address), **Note**, and **Signed up** (who would be emailed).
+
+Leave a Sunday as **Regular** unless something is different that week. Regular Sundays use **10 am** at the **St. Charles YMCA**, **3900 Shady Springs Ln, St Peters, MO 63376**. After that Sunday's service, the homepage moves to the next one on its own.
+
+### The usual place this week (nothing special)
+
+Do nothing. The homepage already says:
+
+> This week, meet us at 10 am, at the St. Charles YMCA located at 3900 Shady Springs Ln, St Peters, MO 63376
+
+### The service moved (different time and/or building)
+
+1. Open **Sunday Location**.
+2. Find that Sunday.
+3. Set **Status** to **Moved**.
+4. Change **Time**, **At the**, and **Located at** as needed (for example 2:00 pm, Fifth Street chapel, 122 North Fifth Street, St Charles, MO 63301).
+5. Optional: add a **Note** (“One-week location change”).
+6. Click **Save Sundays**.
+
+The homepage then uses the same sentence with those new blanks. The Service Schedule and the “dates I can serve” ticks show **(moved)**. Anyone assigned that day, or who ticked they can serve, is emailed, and the office gets a copy.
+
+### The service is cancelled
+
+1. Open **Sunday Location**.
+2. Find that Sunday.
+3. Set **Status** to **Cancelled**.
+4. Optional: add a **Note** (“No service — building closed”).
+5. Click **Save Sundays**.
+
+The homepage says that Sunday is cancelled, then uses the “This week, meet us…” sentence for the *next* Sunday that is not cancelled. The Service Schedule and serving-date ticks show **(service cancelled)**. Anyone signed up to serve that day is emailed that they do not need to come, and the office gets a copy.
+
+Check the **Signed up** column before you save, so you know who will get mail.
+
+### Put it back to a normal Sunday
+
+Set **Status** back to **Regular** and click **Save Sundays**. The homepage and schedule return to 10 am at the YMCA. That does **not** send another email.
+
+Saving **Cancelled** or **Moved** a second time, with the same time and place, does not email people again. Changing the time or place on a Moved Sunday does.
+
+### If the church’s usual meeting place changes for good
+
+That is not a one-Sunday Moved. Ask the intern: the default YMCA line lives in `inc/sunday-location.php`, and Visit Us (page 58) still has to match (section 4).
 
 ## 2. Before making the WPvivid backup
 

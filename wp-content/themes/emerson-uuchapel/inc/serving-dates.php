@@ -276,6 +276,24 @@ add_filter(
 			},
 			$output
 		);
+		if ( function_exists( 'emerson_sunday_exception' ) ) {
+			foreach ( emerson_serving_form_dates() as $serve_date ) {
+				$ex = emerson_sunday_exception( $serve_date );
+				if ( ! is_array( $ex ) ) {
+					continue;
+				}
+				$mark = 'cancelled' === ( $ex['status'] ?? '' ) ? 'service cancelled' : ( 'moved' === ( $ex['status'] ?? '' ) ? 'moved' : '' );
+				if ( '' === $mark ) {
+					continue;
+				}
+				$output = preg_replace(
+					'#(id="can-serve-' . preg_quote( $serve_date, '#' ) . '"[^>]*>.*?</label>)#s',
+					'$1 <em>(' . $mark . ')</em>',
+					$output,
+					1
+				);
+			}
+		}
 
 		$bulk = '<p class="emerson-serve-bulk">'
 			. '<button type="button" onclick="this.form.querySelectorAll(\'input[name=&quot;can_serve[]&quot;]\').forEach(function(b){b.checked=true;})">Mark all</button> '

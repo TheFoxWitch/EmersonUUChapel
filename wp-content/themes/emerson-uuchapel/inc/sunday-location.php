@@ -179,8 +179,8 @@ function emerson_sunday_place_html( string $place ): string {
 
 function emerson_sunday_meet_html( array $shown ): string {
 	return 'This week, meet us at ' . esc_html( emerson_sunday_format_time( $shown['time'] ) )
-		. ', at the ' . esc_html( $shown['venue'] ) . ' located at '
-		. emerson_sunday_place_html( $shown['address'] );
+		. ', at the ' . esc_html( $shown['venue'] ) . ' located at'
+		. '<span class="emerson-sunday-location__address">' . emerson_sunday_place_html( $shown['address'] ) . '</span>';
 }
 
 function emerson_sunday_location_html(): string {

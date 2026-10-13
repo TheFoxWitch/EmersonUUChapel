@@ -97,6 +97,10 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	margin: 0.25em 0;
 }
 
+.emerson-sunday-location__address {
+	display: block;
+}
+
 .emerson-sunday-location__cancelled {
 	color: #8a1f1f;
 }

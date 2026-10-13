@@ -10,6 +10,16 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-13
+
+### Homepage welcome photo is community4
+- The unicorn Pride-parade shot (`community7`) under the welcome-all line is replaced with `community4` (three people carrying the Metro St. Louis UU banner). Engage Pride then takes `community7` so the two pages do not share the same photo.
+- **Local DB:** homepage page 15 and Engage page 68. Backups: `backups/homepage/homepage-15-before-swap-community4.html`, `backups/pages/page-68-before-swap-community7.html`.
+
+### Sunday Location address stays on its own line
+- The homepage sentence always breaks after **located at**, so the Visit Us address link is a full line on every screen instead of wrapping through the middle of the street name.
+- **File:** `inc/sunday-location.php`, `assets/css/custom.css`.
+
 ## 2026-10-12
 
 ### Pastor photos on the first five pages

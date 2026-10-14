@@ -301,6 +301,17 @@ function emerson_schedule_sunday( string $ymd ): ?array {
 	return is_array( $row ) ? $row : null;
 }
 
+function emerson_schedule_planning_link_html(): string {
+	if ( ! emerson_schedule_can_view_roster() ) {
+		return '';
+	}
+	$url = emerson_schedule_sheet_url();
+	if ( $url === '' ) {
+		return '';
+	}
+	return '<p class="emerson-planning-calendar"><a href="' . esc_url( $url ) . '">Planning Calendar</a></p>';
+}
+
 function emerson_schedule_theme_html( string $ym ): string {
 	$theme = emerson_schedule_theme( $ym );
 	$class = 'emerson-month-theme' . ( $theme === '' ? ' is-empty' : '' );
@@ -341,9 +352,10 @@ add_action(
 			foreach ( emerson_calendar_other_events( $from, $until ) as $ymd => $items ) {
 				foreach ( $items as $item ) {
 					$others[ $ymd ][] = array(
-						'title' => $item['title'],
-						'time'  => $item['time'],
-						'label' => function_exists( 'emerson_calendar_event_label' ) ? emerson_calendar_event_label( $item ) : $item['title'],
+						'title'    => $item['title'],
+						'time'     => $item['time'],
+						'location' => $item['location'] ?? '',
+						'label'    => function_exists( 'emerson_calendar_event_label' ) ? emerson_calendar_event_label( $item ) : $item['title'],
 					);
 				}
 			}
@@ -384,7 +396,10 @@ add_filter(
 		}
 		$type = $attr['type'] ?? '';
 		if ( 'calendar' === $type ) {
-			return $output;
+			if ( function_exists( 'emerson_calendar_expand_sidebar_excerpts' ) ) {
+				$output = emerson_calendar_expand_sidebar_excerpts( $output );
+			}
+			return $output . emerson_schedule_planning_link_html();
 		}
 		if ( 'calendar-list' === $type ) {
 			return emerson_schedule_decorate_list( $output );
@@ -650,7 +665,7 @@ function emerson_schedule_admin_page(): void {
 	if ( ! emerson_schedule_can_manage() ) {
 		wp_die( esc_html__( 'You do not have permission to edit the Sunday Schedule spreadsheet URL.' ) );
 	}
-	$notice = emerson_schedule_admin_save() ?? emerson_schedule_admin_refresh() ?? emerson_schedule_admin_save_viewers();
+	$notice = emerson_schedule_admin_save() ?? emerson_schedule_admin_refresh() ?? emerson_schedule_admin_save_viewers() ?? emerson_schedule_admin_seed_groups();
 	$data   = emerson_schedule_sheet_data();
 	$meta   = get_option( EMERSON_SCHEDULE_SHEET_META, array() );
 	$meta   = is_array( $meta ) ? $meta : array();
@@ -693,7 +708,32 @@ function emerson_schedule_admin_page(): void {
 	}
 
 	emerson_schedule_admin_viewers_form();
+	emerson_schedule_admin_groups_form();
 	echo '</div>';
+}
+
+function emerson_schedule_admin_seed_groups(): ?string {
+	if ( ! emerson_schedule_can_manage() || empty( $_POST['emerson_schedule_seed_groups'] ) ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_schedule_save' );
+	if ( ! function_exists( 'emerson_calendar_seed_listed_events' ) ) {
+		return 'Could not add the group dates.';
+	}
+	$added = emerson_calendar_seed_listed_events();
+	if ( $added === 0 ) {
+		return 'Womyn’s Web, Men’s Night, and Board Meeting already have upcoming dates on the calendar.';
+	}
+	return 'Added ' . $added . ' group date' . ( 1 === $added ? '' : 's' ) . ' to Church Admin. Edit a date there to set this month’s host.';
+}
+
+function emerson_schedule_admin_groups_form(): void {
+	echo '<h2>Womyn’s Web, Men’s Night, and Board Meeting</h2>';
+	echo '<p>These are Church Admin calendar events, so a click on the month grid offers an iCal download like Sunday Service. Womyn’s Web and Men’s Night default to <strong>Rotating location — check This Week at Emerson</strong>. To name this month’s host, edit that date in <strong>Church Admin → Calendar</strong>.</p>';
+	echo '<form method="post">';
+	wp_nonce_field( 'emerson_schedule_save' );
+	echo '<p class="submit"><button type="submit" name="emerson_schedule_seed_groups" value="1" class="button">Add missing group dates</button></p>';
+	echo '</form>';
 }
 
 function emerson_schedule_admin_save_viewers(): ?string {

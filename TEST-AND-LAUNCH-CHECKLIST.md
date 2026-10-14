@@ -29,10 +29,10 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - Homepage says **This week, meet us at 10 am, at the St. Charles YMCA located at …**, then moves on after that service
   - Marking a Sunday **Cancelled** or **Moved** updates the homepage and the Service Schedule
   - Anyone assigned that day, or who ticked they can serve, gets an email (redirected locally), and the office gets a copy
-- [ ] **Sunday Schedule spreadsheet** (`/calendar/` and `/schedule/`). How to change the URL is in **Sunday Schedule spreadsheet — how to update the URL**.
+- [ ] **Sunday Schedule spreadsheet** (`/calendar/`, the homepage, and `/schedule/`). How to change the URL is in **Sunday Schedule spreadsheet — how to update the URL**. The homepage shows the same month grid under Purpose, Mission, and Vision.
   - Under the month name (where **This month’s PDF** used to be), October shows **This month’s theme: Courage**; November shows **Healing** after Next. **This calendar PDF** at the top of the page still downloads
   - Sunday boxes show holiday, title, and speaker from the sheet (for example October 4: The Main Thing / Rex Loy). Serving-role names stay off the public calendar
-  - October also shows **Womyn's Web** on the 5th, **Men's Night** on the 2nd, and **Board Meeting** on the 19th (Engage meeting times). Logged-in serving ticks, including Mondays, show **You can serve**
+  - October also shows **Womyn's Web** on the 5th, **Men's Night** on the 2nd, and **Board Meeting** on the 19th (Engage meeting times). Clicking those days shows time, location, Engage, and **iCal download**, same as Sunday Service. Logged-in serving ticks, including Mondays, show **You can serve**
   - Logged in as a designated person (or an Administrator/Editor), clicking a Sunday on `/calendar/` or `/schedule/` shows liturgist, greeter, and the rest of that day’s sheet row. Logged out, that extra block is absent
   - **Sunday Schedule** in the WordPress admin can Refresh from the spreadsheet and change who can open the full row
 - [x] **Church Admin household registration** (Members pages, logged out)
@@ -147,7 +147,7 @@ A new file (or a different tab) has a different address. The old URL will keep s
 5. Click **Save URL**.
 6. Confirm **Last fetch** shows a time, a row count, and no error. October should list **Courage** if that is still the October theme.
 
-The sheet must be shared so **anyone with the link can view**. Editor access is not required for the site to read it. Do not put the edit URL on a public page if they want the file itself to stay private.
+The sheet must be shared so **anyone with the link can view**. Editor access is not required for the site to read it. **Planning Calendar** on `/calendar/` is only shown to Administrators, Editors, and the designated Sunday Schedule list. Visitors do not get the spreadsheet URL.
 
 Serving-role columns (liturgist, greeter, and so on) stay off the public calendar on purpose. The month PDF is **This calendar PDF** at the top of the Calendar page, not under the month name.
 
@@ -236,6 +236,13 @@ So: Harlan's backup is a **diff of church activity since 24 Sept**. Your serving
 
 Ask these before the WPvivid backup where possible; section 2 checks they're answered. The intern is contacting the church.
 
+- [ ] **Womyn’s Web, Men’s Night, and Board Meeting: still regular?** The Calendar now lists them from the Engage page times (first Monday 7 pm, first Friday 6–8 pm, third Monday 6:30 pm) and they are real Church Admin events, so a click offers an iCal download like Sunday Service.
+  - **Ask:** are those still the meeting days? Men’s Night on Engage says first *or* second Friday — which Friday should the calendar use?
+  - **Ask:** where does each group meet, and does the host rotate? Womyn’s Web and Men’s Night currently say **Rotating location — check This Week at Emerson**. Board Meeting says the chapel. To name this month’s host, edit that date in **Church Admin → Calendar** (location field). If they have a standing address or a better way to publish the rotation, update Engage and those calendar dates.
+  - Circle Suppers stay off the grid on purpose (each host picks the date).
+- [ ] **`office@emersonuuchapel.org`: who reads it, and should it forward?** The site sends newsletter sign-ups, the Newcomer form, and cancelled/moved Sunday copies there. The footer and Visit Us also list it. It is **not** a WordPress login (no user uses that address). Mail is sent *to* it through NetSol; WordPress cannot create the mailbox or set forwarding.
+  - **Ask:** who opens that inbox today? If nobody does, either someone starts, or Network Solutions sets a **forward** from `office@` to the person who should get those messages (Harlan can do that in the NetSol email panel). The site does not need a code change for a host-level forward.
+  - **Do not confuse with** `com@emersonuuchapel.org` (WordPress admin user #1, Church Admin “com User”, new-household notices, lockout alerts) or `webmaster@emersonuuchapel.org` (WP Mail SMTP From address — outgoing only).
 - [ ] **Launch date and freeze.** Agree a launch date. For a day or two before it, nobody edits Church Admin, posts or pages on the live site; urgent changes are emailed to the intern instead. The restore replaces the live database, so anything changed during the freeze would be lost.
 - [ ] **A fresh WPvivid backup from Harlan** (Database + Files) at the start of the freeze. It's used to find what changed on the live site since 2026-09-24 (`DEPLOY-WPVIVID.md` step A1), and it's a rollback point.
 

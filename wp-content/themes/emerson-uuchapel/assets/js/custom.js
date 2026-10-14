@@ -183,13 +183,154 @@
 			var serving = data.serving || {};
 			var jobs = (serving.jobs && serving.jobs[ymd]) || [];
 			var available = serving.available && serving.available[ymd];
-			if (!jobs.length && !available) {
+			if (jobs.length) {
+				var assigned = document.createElement('span');
+				assigned.className = 'emerson-ca-serving';
+				assigned.textContent = "You're serving: " + jobs.join(', ');
+				return assigned;
+			}
+			if (data.canViewRoster || !available) {
 				return null;
 			}
 			var mark = document.createElement('span');
-			mark.className = jobs.length ? 'emerson-ca-serving' : 'emerson-ca-available';
-			mark.textContent = jobs.length ? "You're serving: " + jobs.join(', ') : 'You can serve';
+			mark.className = 'emerson-ca-available';
+			mark.textContent = 'You can serve';
 			return mark;
+		}
+
+		var requestsPanel = null;
+		var openRequestsButton = null;
+
+		function closeRequests() {
+			if (requestsPanel) {
+				requestsPanel.remove();
+				requestsPanel = null;
+			}
+			if (openRequestsButton) {
+				openRequestsButton.setAttribute('aria-expanded', 'false');
+				openRequestsButton = null;
+			}
+		}
+
+		function placeRequests() {
+			if (!requestsPanel || !openRequestsButton || !openRequestsButton.isConnected) {
+				closeRequests();
+				return;
+			}
+			var rect = openRequestsButton.getBoundingClientRect();
+			var margin = 8;
+			var width = Math.min(280, window.innerWidth - margin * 2);
+			requestsPanel.style.width = width + 'px';
+			requestsPanel.hidden = false;
+			var panelHeight = requestsPanel.offsetHeight;
+			var top = rect.bottom + 6;
+			if (top + panelHeight > window.innerHeight - margin) {
+				top = rect.top - panelHeight - 6;
+			}
+			if (top < margin) {
+				top = margin;
+			}
+			if (top + panelHeight > window.innerHeight - margin) {
+				top = Math.max(margin, window.innerHeight - panelHeight - margin);
+			}
+			var left = rect.left;
+			if (left + width > window.innerWidth - margin) {
+				left = window.innerWidth - width - margin;
+			}
+			if (left < margin) {
+				left = margin;
+			}
+			requestsPanel.style.top = Math.round(top) + 'px';
+			requestsPanel.style.left = Math.round(left) + 'px';
+		}
+
+		function openRequests(button, names, ymd) {
+			closeRequests();
+			var panel = document.createElement('div');
+			panel.className = 'emerson-ca-requests__panel';
+			panel.id = 'emerson-service-requests';
+			panel.setAttribute('role', 'dialog');
+			panel.setAttribute('aria-label', 'Service requests for ' + formatDay(ymd));
+			panel.tabIndex = -1;
+			var body = document.createElement('div');
+			body.className = 'emerson-ca-requests__body';
+			var heading = document.createElement('p');
+			heading.className = 'emerson-ca-requests__heading';
+			heading.textContent = formatDay(ymd);
+			body.appendChild(heading);
+			var note = document.createElement('p');
+			note.className = 'emerson-ca-requests__note';
+			note.textContent = 'Marked available to serve';
+			body.appendChild(note);
+			var list = document.createElement('ul');
+			names.forEach(function (name) {
+				var item = document.createElement('li');
+				item.textContent = name;
+				list.appendChild(item);
+			});
+			body.appendChild(list);
+			panel.appendChild(body);
+			var close = document.createElement('button');
+			close.type = 'button';
+			close.className = 'emerson-ca-requests__close';
+			close.textContent = 'Close';
+			close.addEventListener('click', function (event) {
+				event.preventDefault();
+				event.stopPropagation();
+				closeRequests();
+				if (button.isConnected) {
+					button.focus();
+				}
+			});
+			panel.appendChild(close);
+			panel.addEventListener('pointerdown', function (event) {
+				event.stopPropagation();
+			});
+			document.body.appendChild(panel);
+			requestsPanel = panel;
+			openRequestsButton = button;
+			button.setAttribute('aria-expanded', 'true');
+			button.setAttribute('aria-controls', panel.id);
+			placeRequests();
+			close.focus();
+		}
+
+		function requestsControl(ymd) {
+			if (!data.canViewRoster) {
+				return null;
+			}
+			var names = (data.serviceRequests && data.serviceRequests[ymd]) || [];
+			if (!names.length) {
+				return null;
+			}
+			var wrap = document.createElement('span');
+			wrap.className = 'emerson-ca-requests';
+			var button = document.createElement('button');
+			button.type = 'button';
+			button.className = 'emerson-ca-requests__button';
+			button.setAttribute('aria-expanded', 'false');
+			button.setAttribute('aria-haspopup', 'dialog');
+			var label = document.createElement('span');
+			label.textContent = 'Service Requests';
+			var count = document.createElement('span');
+			count.className = 'emerson-ca-requests__count';
+			count.textContent = String(names.length);
+			button.appendChild(label);
+			button.appendChild(count);
+			button.addEventListener('click', function (event) {
+				event.preventDefault();
+				event.stopPropagation();
+				if (openRequestsButton === button) {
+					closeRequests();
+					return;
+				}
+				openRequests(button, names, ymd);
+			});
+			button.addEventListener('pointerdown', function (event) {
+				event.stopPropagation();
+			});
+			wrap.appendChild(button);
+			return wrap;
 		}
 
 		function otherEvents(ymd) {
@@ -214,14 +355,15 @@
 
 		function decorateDays() {
 			document.querySelectorAll('.ca-day[data-date]').forEach(function (day) {
-				day.querySelectorAll('.emerson-ca-service, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-available').forEach(function (node) {
+				day.querySelectorAll('.emerson-ca-service, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-available, .emerson-ca-requests').forEach(function (node) {
 					node.remove();
 				});
 				var ymd = day.getAttribute('data-date');
 				var row = data.sundays[ymd] || {};
 				var extras = otherEvents(ymd);
 				var mark = servingMark(ymd);
-				if (!row.title && !row.holiday && !row.speaker && !extras.length && !mark) {
+				var requests = requestsControl(ymd);
+				if (!row.title && !row.holiday && !row.speaker && !extras.length && !mark && !requests) {
 					return;
 				}
 				var count = day.querySelector('.ca-events');
@@ -244,6 +386,9 @@
 				});
 				if (mark) {
 					day.appendChild(mark);
+				}
+				if (requests) {
+					day.appendChild(requests);
 				}
 			});
 		}
@@ -323,7 +468,7 @@
 			document.body.appendChild(probe);
 			document.querySelectorAll('.ca-day[data-date]').forEach(function (day) {
 				var blocks = day.querySelectorAll(
-					'.emerson-ca-service, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-available'
+					'.emerson-ca-service, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-available, .emerson-ca-requests'
 				);
 				if (!blocks.length) {
 					return;
@@ -554,12 +699,37 @@
 		}
 
 		function decorate() {
+			closeRequests();
 			updateTheme();
 			decorateDays();
 			decorateSidebar();
 			applyCompactWeek();
 			fitDayCopy();
 		}
+
+		document.addEventListener('click', function (event) {
+			if (!requestsPanel) {
+				return;
+			}
+			if (requestsPanel.contains(event.target) || (openRequestsButton && openRequestsButton.contains(event.target))) {
+				return;
+			}
+			closeRequests();
+		});
+		document.addEventListener('keydown', function (event) {
+			if (event.key === 'Escape') {
+				closeRequests();
+			}
+		});
+		window.addEventListener(
+			'scroll',
+			function () {
+				if (requestsPanel) {
+					placeRequests();
+				}
+			},
+			true
+		);
 
 		document.addEventListener(
 			'click',
@@ -588,6 +758,9 @@
 			fitTimer = setTimeout(function () {
 				applyCompactWeek();
 				fitDayCopy();
+				if (requestsPanel) {
+					placeRequests();
+				}
 			}, 80);
 		});
 

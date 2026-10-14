@@ -1,8 +1,10 @@
 <?php
 /**
- * Emerson tab icon. Safari asks for /apple-touch-icon.png and /favicon.ico at
- * the site root (it does not use <link rel="icon"> the way Chrome does).
- * Those paths used to 404 as WordPress HTML, so Safari kept the blue “W”.
+ * Emerson tab icon, built from images/emersonLogoUpscale.png
+ * (the round green badge). Safari asks for /apple-touch-icon.png
+ * and /favicon.ico at the site root (it does not use <link rel="icon"> the way
+ * Chrome does). Those paths used to 404 as WordPress HTML, so Safari kept the
+ * blue “W”. A Private Window uses that same stored icon.
  */
 
 declare( strict_types=1 );
@@ -54,11 +56,44 @@ function emerson_copy_root_icons(): void {
 			continue;
 		}
 		$dest = ABSPATH . ltrim( $url_path, '/' );
-		if ( ! is_readable( $dest ) || md5_file( $icon['path'] ) !== md5_file( $dest ) ) {
+		if ( ! is_file( $dest ) || md5_file( $icon['path'] ) !== md5_file( $dest ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy
 			@copy( $icon['path'], $dest );
 		}
 	}
+}
+
+function emerson_icon_cache_rules(): void {
+	$htaccess = ABSPATH . '.htaccess';
+	if ( ! is_writable( $htaccess ) ) {
+		return;
+	}
+
+	// W3 Total Cache sets image/x-icon, image/png, and image/svg+xml to one year.
+	// These filenames sit on disk, so Apache (not PHP) serves them. Override just these.
+	$rules = array(
+		'<IfModule mod_expires.c>',
+		"\t" . '<FilesMatch "^(favicon\.(ico|svg)|apple-touch-icon.*\.png|safari-pinned-tab\.svg)$">',
+		"\t\t" . 'ExpiresActive On',
+		"\t\t" . 'ExpiresByType image/x-icon "access plus 0 seconds"',
+		"\t\t" . 'ExpiresByType image/vnd.microsoft.icon "access plus 0 seconds"',
+		"\t\t" . 'ExpiresByType image/png "access plus 0 seconds"',
+		"\t\t" . 'ExpiresByType image/svg+xml "access plus 0 seconds"',
+		"\t\t" . 'ExpiresDefault "access plus 0 seconds"',
+		"\t" . '</FilesMatch>',
+		'</IfModule>',
+		'<IfModule mod_headers.c>',
+		"\t" . '<FilesMatch "^(favicon\.(ico|svg)|apple-touch-icon.*\.png|safari-pinned-tab\.svg)$">',
+		"\t\t" . 'Header unset Expires',
+		"\t\t" . 'Header always set Cache-Control "public, max-age=0, must-revalidate"',
+		"\t" . '</FilesMatch>',
+		'</IfModule>',
+	);
+
+	if ( ! function_exists( 'insert_with_markers' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/misc.php';
+	}
+	insert_with_markers( $htaccess, 'Emerson icons', $rules );
 }
 
 function emerson_serve_root_icon(): void {
@@ -86,6 +121,7 @@ add_action(
 		remove_action( 'admin_head', 'wp_site_icon' );
 		remove_action( 'do_faviconico', 'do_favicon' );
 		emerson_copy_root_icons();
+		emerson_icon_cache_rules();
 		emerson_serve_root_icon();
 	},
 	0
@@ -118,16 +154,18 @@ function emerson_site_icon_head_links(): void {
 	$svg   = add_query_arg( 'v', $ver, home_url( '/favicon.svg' ) );
 	$png16 = add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-favicon-16.png' ) );
 	$png32 = add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-favicon-32.png' ) );
+	$png512 = add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-site-icon.png' ) );
 	$touch = add_query_arg( 'v', $ver, home_url( '/apple-touch-icon.png' ) );
 	$mask  = add_query_arg( 'v', $ver, home_url( '/safari-pinned-tab.svg' ) );
 
-	// Regular tabs: ICO + SVG (Safari 26+) + 16/32 PNG. Pinned tabs: mask-icon.
+	// Regular tabs: ICO + SVG + 16/32/512 PNG. Pinned tabs: mask-icon.
 	// Apple requires mask-icon viewBox="0 0 16 16" and a single layer.
 	// Previous circular set is in assets/images/circle-logo/.
 	printf( '<link rel="icon" href="%s" sizes="any" />' . "\n", esc_url( $ico ) );
 	printf( '<link rel="icon" href="%s" type="image/svg+xml" />' . "\n", esc_url( $svg ) );
 	printf( '<link rel="icon" type="image/png" sizes="16x16" href="%s" />' . "\n", esc_url( $png16 ) );
 	printf( '<link rel="icon" type="image/png" sizes="32x32" href="%s" />' . "\n", esc_url( $png32 ) );
+	printf( '<link rel="icon" type="image/png" sizes="512x512" href="%s" />' . "\n", esc_url( $png512 ) );
 	printf( '<link rel="apple-touch-icon" href="%s" />' . "\n", esc_url( $touch ) );
 	printf( '<link rel="mask-icon" href="%s" color="#1B7A4B" />' . "\n", esc_url( $mask ) );
 }

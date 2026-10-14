@@ -1,0 +1,19 @@
+---
+description: Scan every git suite for personal data before committing
+alwaysApply: true
+---
+
+# Sensitive data stays out of git
+
+A git suite always scans before it stages or commits. This is the default, not a separate request.
+
+Search `git diff`, `git diff --cached`, and any untracked file that would be added. Do not commit a change that contains:
+
+- A personal email address. The chapel's published addresses, such as `office@emersonuuchapel.org`, are fine.
+- A personal phone number. The published chapel number `(636) 757-3633` is fine.
+- A password, token, API key, or SMTP secret.
+- A member's login name.
+
+If something matches, stop. Name the file and the kind of data. Leave that hunk uncommitted. Do not rewrite git history unless asked.
+
+This matches the 2026-10-02 note in `CHANGELOG.md`: member emails, login names, passwords, and keys never go into this public repository.

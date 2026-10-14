@@ -10,22 +10,20 @@ export PATH="$HOME/.docker/bin:$PATH"
 
 ## Browsers (local site)
 
-### Safari still shows the WordPress “W” in the tab
-Chrome and Firefox show the chalice. The files are correct (`/favicon.ico` and `/apple-touch-icon.png` both return the Emerson icon).
+### Safari still shows an old tab icon (or the WordPress “W”)
+The files are the round green badge, built from `images/emersonLogoUpscale.png`. `/favicon.ico`, `/favicon.svg`, and `/apple-touch-icon.png` all return that badge. Chrome and Firefox use the `<link rel="icon">` tags and update on a refresh.
 
-Safari’s **tab** icon is not the same as Chrome’s. Safari uses `<link rel="mask-icon">` with a one-colour SVG (`assets/images/safari-pinned-tab.svg`). The regular `.ico` / PNG only covers the address field and other browsers ([Stack Overflow](https://stackoverflow.com/questions/68885882/favicon-not-displaying-on-safari)).
-
-Safari 27 on this Mac also loaded the homepage and **did not request any favicon URL**. It can keep the WordPress “W” it stored when `/favicon.ico` used to redirect to `w-logo-blue.png`. A Private Window uses that same store.
+Safari often ignores those tags and keeps the icon it already stored for `localhost`. A Private Window uses that same store, so it will not show the new logo either. Closing the window is not enough. Safari has to fully quit.
 
 **To make Safari fetch the new icon:**
 
-1. **Safari → Settings → Tabs** and turn on **Show website icons in tabs**. If this is off, no site (including this one) shows a tab icon. This is the usual reason wiping the cache does nothing.
+1. **Safari → Settings → Tabs** and turn on **Show website icons in tabs**. If this is off, no site (including this one) shows a tab icon.
 2. Quit Safari completely (Cmd+Q).
-3. In Finder, **Go → Go to Folder** (Cmd+Shift+G) and open `~/Library/Safari/Favicon Cache`. If that folder exists, move it to the Trash. Also check `~/Library/Safari/Touch Icons Cache`.
-4. Reopen Safari and go to `http://localhost:8080/favicon.svg` (you should see the chalice), then `http://localhost:8080/`.
-5. `mask-icon` is only for a **pinned** tab (drag the tab to the left of the tab bar). Regular tabs use `rel="icon"`.
+3. In Finder, **Go → Go to Folder** (Cmd+Shift+G) and open `~/Library/Safari/Favicon Cache`. If that folder exists, move it to the Trash. Do the same for `~/Library/Safari/Touch Icons Cache`. On newer macOS those folders may instead be under `~/Library/Containers/com.apple.Safari/Data/Library/Caches`.
+4. Reopen Safari and go to `http://localhost:8080/favicon.ico` (you should see the round green badge), then `http://localhost:8080/`.
+5. `mask-icon` (`safari-pinned-tab.svg`) is only for a **pinned** tab. Regular tabs use the favicon files.
 
-If the cache folder is missing or macOS blocks it, the live HTTPS site is a new origin and should pick up the icon after launch. Local Safari may keep the “W” until Apple’s store expires. This is a Safari bug, not a missing file.
+The live site is `https://emersonuuchapel.org`, a different address from `localhost`, so Safari treats it as a new site and should pick up the logo after launch.
 
 ### Firefox will not load localhost
 Firefox is almost certainly opening `https://localhost:8080` (HTTPS-Only Mode). This site is plain `http://` in Docker; there is no certificate, so Firefox stops.

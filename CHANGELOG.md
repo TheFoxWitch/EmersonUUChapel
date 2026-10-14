@@ -12,6 +12,10 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-14
 
+### Tablet and phone calendars show one week
+- Below 1000px the month grid becomes a week list: two days across on tablet, one day stacked on phones. Previous week / Next week move through the month. The week bar is centred and has the same space above it as below the buttons.
+- **File:** `assets/css/custom.css`, `assets/js/custom.js`.
+
 ### Calendar cell text shrinks to fit the column
 - On narrow widths, long words (Universalist, chapel, speaker names) were spilling into the next day. Cell copy now wraps and the type size drops until it stays inside that day.
 - **File:** `assets/css/custom.css`, `assets/js/custom.js`.

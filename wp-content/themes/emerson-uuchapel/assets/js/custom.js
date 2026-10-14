@@ -370,19 +370,225 @@
 			probe.remove();
 		}
 
+		var compactQuery = window.matchMedia('(max-width: 1000px)');
+		var weekStartYmd = '';
+		var pendingWeekStart = '';
+		var lastHeadingMonth = '';
+
+		function padDatePart(value) {
+			return String(value).padStart(2, '0');
+		}
+
+		function formatYmd(date) {
+			return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate());
+		}
+
+		function parseYmd(ymd) {
+			var parts = String(ymd).split('-');
+			return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+		}
+
+		function addDays(ymd, count) {
+			var date = parseYmd(ymd);
+			date.setDate(date.getDate() + count);
+			return formatYmd(date);
+		}
+
+		function sundayOf(ymd) {
+			var date = parseYmd(ymd);
+			if (isNaN(date.getTime())) {
+				return '';
+			}
+			date.setDate(date.getDate() - date.getDay());
+			return formatYmd(date);
+		}
+
+		function datedDays() {
+			return Array.prototype.filter.call(document.querySelectorAll('.ca-day[data-date]'), function (day) {
+				var ymd = day.getAttribute('data-date') || '';
+				return /^\d{4}-\d{2}-\d{2}$/.test(ymd) && !day.classList.contains('ca-inactive');
+			});
+		}
+
+		function hasDatedDay(ymd) {
+			return !!document.querySelector('.ca-day[data-date="' + ymd + '"]:not(.ca-inactive)');
+		}
+
+		function weekRangeLabel(start) {
+			var first = parseYmd(start);
+			var last = parseYmd(addDays(start, 6));
+			var opts = { month: 'short', day: 'numeric' };
+			return first.toLocaleDateString(undefined, opts) + ' – ' + last.toLocaleDateString(undefined, opts);
+		}
+
+		function clickMonthNav(direction) {
+			var buttons = document.querySelectorAll('#ca-date button.ca-calendar-nav.btn-info');
+			var button = direction < 0 ? buttons[0] : buttons[1];
+			if (button) {
+				button.click();
+			}
+		}
+
+		function ensureWeekNav(render) {
+			var nav = render.querySelector('.emerson-ca-week-nav');
+			if (!nav) {
+				nav = document.createElement('div');
+				nav.className = 'emerson-ca-week-nav';
+				nav.innerHTML =
+					'<button type="button" class="emerson-ca-week-nav__prev">Previous week</button>' +
+					'<p class="emerson-ca-week-nav__label"></p>' +
+					'<button type="button" class="emerson-ca-week-nav__next">Next week</button>';
+				render.insertBefore(nav, render.firstChild);
+				nav.querySelector('.emerson-ca-week-nav__prev').addEventListener('click', function () {
+					shiftCompactWeek(-1);
+				});
+				nav.querySelector('.emerson-ca-week-nav__next').addEventListener('click', function () {
+					shiftCompactWeek(1);
+				});
+			}
+			nav.hidden = false;
+			nav.querySelector('.emerson-ca-week-nav__label').textContent = weekStartYmd ? weekRangeLabel(weekStartYmd) : '';
+		}
+
+		function shiftCompactWeek(delta) {
+			var start = weekStartYmd || sundayOf(formatYmd(new Date()));
+			var next = addDays(start, delta * 7);
+			var found = false;
+			for (var i = 0; i < 7; i++) {
+				if (hasDatedDay(addDays(next, i))) {
+					found = true;
+					break;
+				}
+			}
+			if (found) {
+				weekStartYmd = next;
+				applyCompactWeek();
+				fitDayCopy();
+				return;
+			}
+			pendingWeekStart = next;
+			clickMonthNav(delta);
+		}
+
+		function applyCompactWeek() {
+			var root = document.querySelector('.church-admin-calendar, .ca-calendar');
+			if (!root) {
+				return;
+			}
+			var compact = compactQuery.matches;
+			root.classList.toggle('emerson-ca-compact', compact);
+			var days = datedDays();
+			days.forEach(function (day) {
+				day.classList.remove('is-compact-day');
+				var label = day.querySelector('.emerson-ca-weekday');
+				if (!compact && label) {
+					label.remove();
+				}
+			});
+			var render = document.querySelector('.ca-calendar-render');
+			var nav = render ? render.querySelector('.emerson-ca-week-nav') : null;
+			if (!compact) {
+				if (nav) {
+					nav.hidden = true;
+				}
+				weekStartYmd = '';
+				return;
+			}
+			if (!days.length) {
+				return;
+			}
+			var headingMonth = monthFromHeading();
+			if (pendingWeekStart) {
+				weekStartYmd = pendingWeekStart;
+				pendingWeekStart = '';
+			} else if (headingMonth && lastHeadingMonth && headingMonth !== lastHeadingMonth) {
+				weekStartYmd = '';
+			}
+			lastHeadingMonth = headingMonth;
+			var todayYmd = formatYmd(new Date());
+			var current = document.querySelector('.ca-day.ca-current[data-date]:not(.ca-inactive)');
+			if (!weekStartYmd) {
+				if (hasDatedDay(todayYmd)) {
+					weekStartYmd = sundayOf(todayYmd);
+				} else if (current) {
+					weekStartYmd = sundayOf(current.getAttribute('data-date'));
+				} else {
+					weekStartYmd = sundayOf(days[0].getAttribute('data-date'));
+				}
+			}
+			var week = [];
+			for (var i = 0; i < 7; i++) {
+				week.push(addDays(weekStartYmd, i));
+			}
+			days.forEach(function (day) {
+				var ymd = day.getAttribute('data-date');
+				if (week.indexOf(ymd) === -1) {
+					return;
+				}
+				day.classList.add('is-compact-day');
+				Array.prototype.forEach.call(day.childNodes, function (node) {
+					if (node.nodeType === 3 && /^\s*\d{1,2}\s*$/.test(node.textContent || '')) {
+						var wrap = document.createElement('span');
+						wrap.className = 'emerson-ca-daynum';
+						wrap.textContent = node.textContent.trim();
+						day.replaceChild(wrap, node);
+					} else if (node.nodeType === 1 && node.classList.contains('ca-today')) {
+						node.classList.add('emerson-ca-daynum');
+					}
+				});
+				var label = day.querySelector('.emerson-ca-weekday');
+				if (!label) {
+					label = document.createElement('span');
+					label.className = 'emerson-ca-weekday';
+					day.insertBefore(label, day.firstChild);
+				}
+				label.textContent = parseYmd(ymd).toLocaleDateString(undefined, {
+					weekday: 'long',
+					month: 'short',
+					day: 'numeric'
+				});
+			});
+			if (render) {
+				ensureWeekNav(render);
+			}
+		}
+
 		function decorate() {
 			updateTheme();
 			decorateDays();
 			decorateSidebar();
+			applyCompactWeek();
 			fitDayCopy();
 		}
+
+		document.addEventListener(
+			'click',
+			function (event) {
+				var button = event.target.closest('button.ca-calendar-nav');
+				if (!button || button.closest('.emerson-ca-week-nav')) {
+					return;
+				}
+				if (button.classList.contains('btn-warning') || /today/i.test(button.textContent || '')) {
+					weekStartYmd = sundayOf(formatYmd(new Date()));
+					pendingWeekStart = weekStartYmd;
+					return;
+				}
+				if (!pendingWeekStart) {
+					weekStartYmd = '';
+				}
+			},
+			true
+		);
 
 		var fitTimer = null;
 		window.addEventListener('resize', function () {
 			if (fitTimer) {
 				clearTimeout(fitTimer);
 			}
-			fitTimer = setTimeout(fitDayCopy, 80);
+			fitTimer = setTimeout(function () {
+				applyCompactWeek();
+				fitDayCopy();
+			}, 80);
 		});
 
 		decorate();

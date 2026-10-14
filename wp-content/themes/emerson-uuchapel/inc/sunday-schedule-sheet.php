@@ -379,9 +379,10 @@ add_action(
 				'themes'        => $data['themes'],
 				'sundays'       => $sundays,
 				'events'        => $others,
-				'canViewRoster' => $can,
-				'labels'        => $can ? emerson_schedule_roster_labels() : array(),
-				'serving'       => emerson_schedule_my_serving(),
+				'canViewRoster'   => $can,
+				'labels'          => $can ? emerson_schedule_roster_labels() : array(),
+				'serving'         => emerson_schedule_my_serving(),
+				'serviceRequests' => emerson_schedule_service_requests( $from, $until ),
 			)
 		);
 	},
@@ -608,6 +609,45 @@ function emerson_schedule_my_serving(): array {
 	return $out;
 }
 
+/**
+ * People who ticked that they can serve, by date. Names only, and only for
+ * administrators, editors, and the designated board list.
+ *
+ * @return array<string, list<string>>
+ */
+function emerson_schedule_service_requests( string $from, string $until ): array {
+	if ( ! emerson_schedule_can_view_roster() || ! function_exists( 'emerson_serving_table' ) ) {
+		return array();
+	}
+	global $wpdb;
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			'SELECT a.serve_date, p.first_name, p.last_name
+			FROM ' . emerson_serving_table() . ' a
+			JOIN ' . $wpdb->prefix . 'church_admin_people p ON p.people_id = a.people_id
+			WHERE a.can_serve = 1 AND a.serve_date >= %s AND a.serve_date <= %s
+			ORDER BY a.serve_date, p.last_name, p.first_name',
+			$from,
+			$until
+		)
+	);
+	$out = array();
+	if ( ! is_array( $rows ) ) {
+		return $out;
+	}
+	foreach ( $rows as $row ) {
+		$name = trim( (string) $row->first_name . ' ' . (string) $row->last_name );
+		if ( $name === '' || str_contains( $name, '@' ) ) {
+			continue;
+		}
+		$ymd = substr( (string) $row->serve_date, 0, 10 );
+		if ( ! in_array( $name, $out[ $ymd ] ?? array(), true ) ) {
+			$out[ $ymd ][] = $name;
+		}
+	}
+	return $out;
+}
+
 function emerson_schedule_can_view_roster( ?int $user_id = null ): bool {
 	$user_id = $user_id ?? get_current_user_id();
 	if ( $user_id <= 0 ) {
@@ -773,6 +813,7 @@ function emerson_schedule_admin_viewers_form(): void {
 
 	echo '<h2>Who can click a day for the full sheet row</h2>';
 	echo '<p>Anyone who can edit pages (Administrator or Editor) already can. The people below also can, once they log in. Visitors still see only theme, holiday, title, and speaker.</p>';
+	echo '<p>The same people see <strong>Service Requests</strong> on the calendar. A click or tap lists who marked that they can serve that day. Those names are not on the public calendar.</p>';
 	echo '<form method="post">';
 	wp_nonce_field( 'emerson_schedule_save' );
 	echo '<fieldset><ul style="columns:2;max-width:40rem">';

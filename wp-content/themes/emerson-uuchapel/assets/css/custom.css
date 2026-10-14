@@ -1496,6 +1496,128 @@ blockquote {
 	color: var(--emerson-blue);
 }
 
+.emerson-ca-requests {
+	display: block;
+	width: 100%;
+	margin-top: 0.35em;
+}
+
+.emerson-ca-requests__button {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.35em;
+	width: 100%;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0.35em 0.4em;
+	font: inherit;
+	font-size: 0.75em;
+	font-weight: 600;
+	line-height: 1.25;
+	text-align: left;
+	color: var(--emerson-blue);
+	background: #fff;
+	border: 1px solid var(--emerson-blue);
+	border-radius: 4px;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+.emerson-ca-requests__button span:first-child {
+	min-width: 0;
+}
+
+.emerson-ca-requests__count {
+	flex: 0 0 auto;
+	min-width: 1.4em;
+	padding: 0 0.35em;
+	border-radius: 999px;
+	background: var(--emerson-blue);
+	color: #fff;
+	font-size: 0.85em;
+	line-height: 1.5;
+	text-align: center;
+}
+
+.emerson-ca-requests__button[aria-expanded='true'] {
+	background: #eef0f8;
+}
+
+.emerson-ca-requests__panel {
+	position: fixed;
+	z-index: 100000;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	max-height: min(50vh, 18rem);
+	overflow: hidden;
+	margin: 0;
+	padding: 0.75rem 0.85rem 0.65rem;
+	background: #fff;
+	color: #1a1a1a;
+	border: 1px solid #d5d8e8;
+	border-radius: 8px;
+	box-shadow: 0 8px 24px rgba(20, 24, 50, 0.18);
+	font-size: 1rem;
+	line-height: 1.35;
+}
+
+.emerson-ca-requests__body {
+	min-height: 0;
+	overflow: auto;
+}
+
+.emerson-ca-requests__heading,
+.emerson-ca-requests__note {
+	margin: 0;
+}
+
+.emerson-ca-requests__heading {
+	font-weight: 700;
+}
+
+.emerson-ca-requests__note {
+	margin-top: 0.15rem;
+	color: #444;
+	font-size: 0.85rem;
+}
+
+.emerson-ca-requests__panel ul {
+	margin: 0.45rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.emerson-ca-requests__panel li {
+	padding: 0.45rem 0;
+	border-top: 1px solid #e6e8f2;
+}
+
+.emerson-ca-requests__close {
+	display: block;
+	width: 100%;
+	min-height: 44px;
+	margin-top: 0.35rem;
+	padding: 0.55rem 0.75rem;
+	font: inherit;
+	font-weight: 600;
+	color: var(--emerson-blue);
+	background: #fff;
+	border: 1px solid var(--emerson-blue);
+	border-radius: 4px;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+@media (max-width: 1000px) {
+	.emerson-ca-requests__button {
+		min-height: 44px;
+		padding: 0.55rem 0.75rem;
+		font-size: 1rem;
+	}
+}
+
 .emerson-schedule .emerson-month-theme {
 	margin-top: 0;
 }

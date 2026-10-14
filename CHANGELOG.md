@@ -12,6 +12,21 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-14
 
+### Git suite always scans for personal data
+- The 2026-10-02 note said every git suite would scan before committing. That scan is now a required step of the git suite, and a project rule so it is not optional.
+- The scan of existing commits found one personal phone number still in two Church Leadership backups. It is removed from those files. Older commits still contain it until history is rewritten.
+- **File:** `.cursor/rules/no-sensitive-data-in-git.mdc`, `backups/pages/page-192-leadership-before-button-spacing.html`, `backups/pages/page-192-leadership-before-bylaws-button.html`.
+
+### Service Requests on the calendar
+- Administrators, Editors, and the designated board list see **Service Requests** on a day when someone has marked they can serve. A click or tap opens the names. Visitors and other members still only see their own **You can serve**.
+- **File:** `inc/sunday-schedule-sheet.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+
+### Tab icon uses the round upscaled badge
+- Every browser favicon is rebuilt from `images/emersonLogoUpscale.png` (the round green badge): 16, 32, and 512 PNG, a multi-size `favicon.ico`, `favicon.svg`, the 180px Apple touch icon, and the Safari pinned-tab silhouette. The header and footer still use the wordmark file.
+- Safari keeps the previous icon in a Private Window too. It updates only after Safari is fully quit and its favicon store is cleared. Steps are in Troubleshooting.
+- The server’s browser-cache rules were keeping `/favicon.ico` and the Apple touch icon for a year. Those favicon files now expire immediately, so a browser that requests them gets the new logo.
+- **File:** `inc/site-icon.php`, `assets/images/emerson-site-icon.png`, `apple-touch-icon.png`, `emerson-favicon-16.png`, `emerson-favicon-32.png`, `favicon.ico`, `favicon.svg`, `safari-pinned-tab.svg`.
+
 ### Tablet and phone calendars show one week
 - Below 1000px the month grid becomes a week list: two days across on tablet, one day stacked on phones. Previous week / Next week move through the month. The week bar is centred and has the same space above it as below the buttons.
 - **File:** `assets/css/custom.css`, `assets/js/custom.js`.

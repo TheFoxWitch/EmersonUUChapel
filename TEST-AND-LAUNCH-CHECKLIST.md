@@ -6,7 +6,9 @@ Tick items off as you go. Deployment steps in detail: `[DEPLOY-WPVIVID.md](DEPLO
 
 In redirect mode every email really goes out, but only to your test mailbox. The subject shows who it would have gone to, for example `[LOCAL TEST → office@emersonuuchapel.org] Newcomer information`.
 
-Use a private window (Cmd+Shift+P) for anything that should be tested logged out.
+Use a private window (Cmd+Shift+P) for anything that should be tested logged out. That does not refresh Safari’s tab icon; see **Tab icon** below.
+
+- [ ] **Tab icon** is the round green badge from `images/emersonLogoUpscale.png`. Chrome and Firefox update on refresh. Safari keeps the old icon, including in a Private Window: quit with Cmd+Q, trash `~/Library/Safari/Favicon Cache` and `~/Library/Safari/Touch Icons Cache`, and turn on **Settings → Tabs → Show website icons in tabs**. Then open `http://localhost:8080/favicon.ico` (the round badge) before the homepage. Details are in Troubleshooting.
 
 - [x] **Newcomer Information form** (`/contact-newcomer-information/`)
   - "Thanks for contacting us!" appears within about a second
@@ -34,6 +36,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - Sunday boxes show holiday, title, and speaker from the sheet (for example October 4: The Main Thing / Rex Loy). Serving-role names stay off the public calendar
   - October also shows **Womyn's Web** on the 5th, **Men's Night** on the 2nd, and **Board Meeting** on the 19th (Engage meeting times). Clicking those days shows time, location, Engage, and **iCal download**, same as Sunday Service. Logged-in serving ticks, including Mondays, show **You can serve**
   - Logged in as a designated person (or an Administrator/Editor), clicking a Sunday on `/calendar/` or `/schedule/` shows liturgist, greeter, and the rest of that day’s sheet row. Logged out, that extra block is absent
+  - The same logins see **Service Requests** on days someone marked they can serve (October 18 lists more than one person, including Test Testing). A click or tap opens the names; Close, Escape, or a tap outside dismisses it. On a phone the control is a full-width button and the list scrolls inside the panel. Logged out, that control is absent
   - **Sunday Schedule** in the WordPress admin can Refresh from the spreadsheet and change who can open the full row
 - [x] **Church Admin household registration** (Members pages, logged out)
   - The registrant gets a confirm-your-email message

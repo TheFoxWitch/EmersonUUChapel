@@ -29,7 +29,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - Homepage says **This week, meet us at 10 am, at the St. Charles YMCA located at …**, then moves on after that service
   - Marking a Sunday **Cancelled** or **Moved** updates the homepage and the Service Schedule
   - Anyone assigned that day, or who ticked they can serve, gets an email (redirected locally), and the office gets a copy
-- [ ] **Sunday Schedule spreadsheet** (`/calendar/`, the homepage, and `/schedule/`). How to change the URL is in **Sunday Schedule spreadsheet — how to update the URL**. The homepage shows the same month grid under Purpose, Mission, and Vision.
+- [ ] **Sunday Schedule spreadsheet** (`/calendar/`, the homepage, and `/schedule/`). How to change the URL is in **Sunday Schedule spreadsheet — how to update the URL**. The homepage shows the same month grid under Purpose, Mission, and Vision. On tablet and phone the grid shows one week (two days across, or one stacked) with Previous week / Next week.
   - Under the month name (where **This month’s PDF** used to be), October shows **This month’s theme: Courage**; November shows **Healing** after Next. **This calendar PDF** at the top of the page still downloads
   - Sunday boxes show holiday, title, and speaker from the sheet (for example October 4: The Main Thing / Rex Loy). Serving-role names stay off the public calendar
   - October also shows **Womyn's Web** on the 5th, **Men's Night** on the 2nd, and **Board Meeting** on the 19th (Engage meeting times). Clicking those days shows time, location, Engage, and **iCal download**, same as Sunday Service. Logged-in serving ticks, including Mondays, show **You can serve**

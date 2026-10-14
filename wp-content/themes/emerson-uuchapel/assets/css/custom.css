@@ -1322,6 +1322,109 @@ blockquote {
 	word-break: normal;
 }
 
+@media (max-width: 1000px) {
+	.emerson-ca-compact .ca-calendar-render {
+		padding: 0.75rem 0.35rem 0;
+	}
+
+	.emerson-ca-compact .ca-calendar-top-bar {
+		display: none;
+	}
+
+	.emerson-ca-compact .ca-week {
+		display: none;
+		height: auto;
+		min-height: 0;
+	}
+
+	.emerson-ca-compact .ca-week:has(.is-compact-day) {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.65rem;
+	}
+
+	.emerson-ca-compact .ca-day {
+		display: none;
+		flex: none;
+		width: auto;
+		min-width: 0;
+		min-height: 0;
+		overflow: visible;
+		padding: 0.85rem 1rem;
+		background: #fff;
+		box-shadow: none;
+		border: 1px solid #d5d8e8;
+		border-radius: 6px;
+	}
+
+	.emerson-ca-compact .ca-day.is-compact-day {
+		display: block;
+	}
+
+	.emerson-ca-compact .emerson-ca-daynum,
+	.emerson-ca-compact .ca-events {
+		display: none;
+	}
+
+	.emerson-ca-compact .ca-day.ca-inactive {
+		display: none;
+	}
+
+	.emerson-ca-compact .emerson-ca-service,
+	.emerson-ca-compact .emerson-ca-event {
+		font-size: 0.95em;
+	}
+
+	.emerson-ca-weekday {
+		display: block;
+		margin: 0 0 0.4rem;
+		font-size: 1rem;
+		font-weight: 700;
+		line-height: 1.25;
+		color: #2e3a78;
+	}
+
+	.emerson-ca-week-nav {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 0 0.75rem;
+	}
+
+	.emerson-ca-week-nav__prev {
+		justify-self: start;
+	}
+
+	.emerson-ca-week-nav__next {
+		justify-self: end;
+	}
+
+	.emerson-ca-week-nav__label {
+		margin: 0;
+		text-align: center;
+		font-weight: 600;
+		color: #2e3a78;
+	}
+
+	.emerson-ca-week-nav button {
+		min-height: 44px;
+		padding: 0.35em 0.8em;
+		border: 0;
+		border-radius: 3px;
+		background: #3f4fa0;
+		color: #fff;
+		font: inherit;
+		cursor: pointer;
+	}
+}
+
+@media (max-width: 600px) {
+	.emerson-ca-compact .ca-week:has(.is-compact-day) {
+		grid-template-columns: 1fr;
+	}
+}
+
 .emerson-ca-service,
 .emerson-ca-list,
 .emerson-ca-service > span,

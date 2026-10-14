@@ -490,7 +490,9 @@ input.ca-search-submit:focus-visible {
 }
 
 .emerson-schedule__grid {
-	width: 100%;
+	width: calc(100% + 49px);
+	margin-left: -25px;
+	margin-right: -24px;
 	border-collapse: collapse;
 	table-layout: fixed;
 }
@@ -523,6 +525,39 @@ input.ca-search-submit:focus-visible {
 
 .emerson-schedule__grid td.has-service {
 	background: #eef0fa;
+}
+
+.emerson-schedule__grid td.is-roster {
+	cursor: pointer;
+}
+
+.emerson-schedule-day {
+	margin: 1rem 0 0;
+	padding: 1rem 1.1rem;
+	border: 1px solid #2e3a78;
+	background: #f7f8fc;
+}
+
+.emerson-schedule-day h3 {
+	margin: 0 0 0.4rem;
+}
+
+.emerson-schedule-day__close {
+	margin-top: 0.75rem;
+}
+
+.emerson-ca-roster {
+	margin: 0.65em 0 0;
+}
+
+.emerson-ca-roster dt {
+	margin-top: 0.35em;
+	font-weight: 600;
+	color: #2e3a78;
+}
+
+.emerson-ca-roster dd {
+	margin: 0;
 }
 
 .emerson-schedule__grid td.is-serving {
@@ -1206,5 +1241,108 @@ blockquote {
 	}
 }
 /** End newcomer Other box **/
+
+/* Sunday Morning Schedule sheet: monthly theme + Sunday details */
+.emerson-month-theme {
+	text-align: center;
+	margin: 0.35rem 0 1rem;
+	font-size: 1.1em;
+	color: #2e3a78;
+}
+
+#ca-date .emerson-month-theme {
+	margin: 0.25rem 0 0;
+}
+
+.emerson-month-theme.is-empty {
+	display: none;
+}
+
+.emerson-month-theme strong {
+	font-weight: 700;
+}
+
+.church-admin-calendar .ca-week {
+	height: auto;
+	min-height: 14.5rem;
+	align-items: stretch;
+}
+
+.church-admin-calendar .ca-day {
+	overflow: visible;
+	min-height: 14.5rem;
+}
+
+.emerson-ca-service,
+.emerson-ca-list,
+.emerson-ca-service > span,
+.emerson-ca-list > span,
+.emerson-schedule__holiday,
+.emerson-schedule__speaker {
+	display: block;
+	line-height: 1.3;
+}
+
+.emerson-ca-service,
+.emerson-ca-event {
+	margin-top: 0.2em;
+	font-size: 0.68em;
+	font-weight: 600;
+	color: #2e3a78;
+}
+
+.emerson-ca-event {
+	display: block;
+	line-height: 1.3;
+}
+
+.emerson-ca-service__holiday,
+.emerson-ca-service__speaker,
+.emerson-ca-list__holiday,
+.emerson-ca-list__speaker,
+.emerson-schedule__holiday,
+.emerson-schedule__speaker {
+	font-weight: 400;
+	color: #444;
+}
+
+.emerson-ca-list {
+	margin-top: 0.25em;
+	font-size: 0.92em;
+}
+
+.emerson-ca-serving,
+.emerson-ca-available {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	margin-top: 0.35em;
+	padding: 0.2em 0.35em;
+	font-size: 0.75em;
+	font-weight: 600;
+	line-height: 1.25;
+	white-space: normal;
+}
+
+.emerson-ca-serving {
+	background: var(--emerson-blue);
+	color: #fff;
+}
+
+.emerson-ca-available {
+	border: 1px solid var(--emerson-blue);
+	color: var(--emerson-blue);
+}
+
+.emerson-schedule .emerson-month-theme {
+	margin-top: 0;
+}
+
+.emerson-schedule__holiday,
+.emerson-schedule__speaker {
+	margin-top: 0.15em;
+	font-size: 0.92em;
+}
+/** End Sunday Morning Schedule sheet **/
 
 

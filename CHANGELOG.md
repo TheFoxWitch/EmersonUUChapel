@@ -12,6 +12,28 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-13
 
+### Calendar shows Engage groups and weekday serving
+- The month grid and both PDFs now list **Womyn's Web** (first Monday, 7 pm), **Men's Night** (first Friday, 6 pm), and **Board Meeting** (third Monday, 6:30 pm), matching the Engage page. Circle Suppers stay off the grid because each host picks the date. Any other Church Admin event that is not Sunday Service still appears too.
+- Days you ticked as available, including Mondays, print **You can serve** on This calendar PDF and the year planner, not only Sundays.
+- **File:** `inc/calendar-listed-events.php`, `inc/calendar-pdfs.php`, `inc/sunday-schedule-sheet.php`, `functions.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+
+### Year Planner PDF is a real year of calendars
+- **Yearly Planner PDFs** on the Calendar page now builds twelve monthly pages for the year you pick, from Church Admin events plus the Sunday Morning Schedule sheet. Visitors get title, holiday, and speaker. Someone who is serving that day sees their role. The elevated list sees the full sheet row (liturgist, greeter, and the rest).
+- The dropdown uses its own selected year, so 2027 and 2028 open that year’s PDF instead of doing nothing.
+- **File:** `inc/calendar-pdfs.php`, `assets/js/custom.js`.
+
+### Designated people can open the full Sunday sheet row
+- Visitors still see only theme, holiday, title, and speaker. A logged-in designated person can click a Sunday on the Calendar or Service Schedule and see liturgist, greeter, and the other serving columns from that day’s spreadsheet row.
+- Administrators and Editors already can. The church list (PJ Pyrchla, Nathan Williams, Jenny Kerr, Sharon Swanson, Karyl Howard, Lauren Williams, Lana Michels, Marie Sebert, Harlan Bloom) is matched to WordPress logins in the database. Who is ticked can be changed on **Sunday Schedule**.
+- **File:** `inc/sunday-schedule-sheet.php`, `inc/service-schedule.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+- **Local DB:** option `emerson_schedule_viewers` (user ids only).
+
+### Calendar reads the Sunday Morning Schedule spreadsheet
+- The public Calendar and Service Schedule show **This month’s theme** from the church’s Sunday Morning Schedule Google Sheet, and Sunday boxes pick up holiday, title, and speaker from the same rows. Serving-role names stay off the public calendar. **This month’s PDF** is unchanged.
+- Same-file sheet edits show after a 30-minute cache, or immediately from **Sunday Schedule** in the WordPress admin. A new spreadsheet or tab needs that URL pasted there.
+- **File:** `inc/sunday-schedule-sheet.php`, `inc/service-schedule.php`, `functions.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+- How to change the URL is in [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md) under **Sunday Schedule spreadsheet — how to update the URL**.
+
 ### Homepage welcome photo is community4
 - The unicorn Pride-parade shot (`community7`) under the welcome-all line is replaced with `community4` (three people carrying the Metro St. Louis UU banner). Engage Pride then takes `community7` so the two pages do not share the same photo.
 - **Local DB:** homepage page 15 and Engage page 68. Backups: `backups/homepage/homepage-15-before-swap-community4.html`, `backups/pages/page-68-before-swap-community7.html`.

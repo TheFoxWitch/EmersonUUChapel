@@ -67,85 +67,281 @@ function emerson_pdf_day_names(): array {
 	return array_map( static fn( $d ) => $wp_locale->get_weekday_abbrev( $wp_locale->get_weekday( $d ) ), range( 0, 6 ) );
 }
 
-/** January–December of $year, 3 across and 4 down; days with a year-planner event take their category colour. */
-function emerson_year_planner_pdf( int $year ): void {
+function emerson_pdf_current_people_id(): int {
+	if ( ! is_user_logged_in() ) {
+		return 0;
+	}
 	global $wpdb;
-	$pdf  = emerson_pdf_new( 'L', 'A4' );
-	$days = emerson_pdf_day_names();
-
-	$pdf->SetXY( 10, 5 );
-	$pdf->SetFont( 'DejaVu', 'B', 18 );
-	$pdf->Cell( 0, 8, sprintf( '%s %d', get_option( 'blogname' ), $year ), 0, 0, 'C' );
-
-	$colours = array();
-	$rows    = $wpdb->get_results(
+	return (int) $wpdb->get_var(
 		$wpdb->prepare(
-			"SELECT b.start_date, a.bgcolor FROM {$wpdb->prefix}church_admin_calendar_category a
-			JOIN {$wpdb->prefix}church_admin_calendar_date b ON a.cat_id = b.cat_id
-			WHERE b.year_planner = '1' AND b.start_date BETWEEN %s AND %s ORDER BY b.start_date, b.start_time",
-			"{$year}-01-01",
-			"{$year}-12-31"
+			"SELECT people_id FROM {$wpdb->prefix}church_admin_people WHERE user_id = %d",
+			get_current_user_id()
+		)
+	);
+}
+
+/**
+ * @return list<string>
+ */
+function emerson_pdf_viewer_names(): array {
+	if ( ! is_user_logged_in() ) {
+		return array();
+	}
+	$user  = wp_get_current_user();
+	$names = array();
+	if ( function_exists( 'emerson_schedule_user_label' ) ) {
+		$names[] = emerson_schedule_user_label( $user );
+	}
+	if ( function_exists( 'emerson_account_name' ) ) {
+		$names[] = emerson_account_name( $user );
+	}
+	$names[] = trim( $user->first_name . ' ' . $user->last_name );
+	return array_values(
+		array_unique(
+			array_filter(
+				array_map( static fn( $name ) => strtolower( trim( (string) $name ) ), $names ),
+				static fn( $name ) => $name !== '' && ! str_contains( $name, '@' )
+			)
+		)
+	);
+}
+
+/**
+ * @return array<int, list<string>>
+ */
+function emerson_pdf_my_rota( string $first, string $last ): array {
+	global $wpdb;
+	$person = emerson_pdf_current_people_id();
+	if ( ! $person || ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'church_admin_new_rota' ) ) ) {
+		return array();
+	}
+	$jobs = array();
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT DATE(r.rota_date) AS day, s.rota_task FROM {$wpdb->prefix}church_admin_new_rota r
+			JOIN {$wpdb->prefix}church_admin_rota_settings s ON s.rota_id = r.rota_task_id
+			WHERE r.people_id = %d AND DATE(r.rota_date) BETWEEN %s AND %s ORDER BY r.rota_date",
+			$person,
+			$first,
+			$last
 		)
 	);
 	foreach ( $rows as $row ) {
-		$colours[ $row->start_date ] = $colours[ $row->start_date ] ?? emerson_pdf_rgb( $row->bgcolor );
-	}
-
-	for ( $month = 1; $month <= 12; $month++ ) {
-		$x        = 10 + ( ( $month - 1 ) % 3 ) * 80;
-		$y        = 15 + intdiv( $month - 1, 3 ) * 44;
-		$first    = sprintf( '%d-%02d-01', $year, $month );
-		$startday = (int) wp_date( 'w', strtotime( $first . ' 12:00:00' ) );
-		$length   = (int) gmdate( 't', strtotime( $first ) );
-
-		$pdf->SetXY( $x, $y );
-		$pdf->SetFont( 'DejaVu', 'B', 10 );
-		$pdf->Cell( 70, 7, date_i18n( 'F', strtotime( $first . ' 12:00:00' ) ) . ' ' . $year, 0, 0, 'C' );
-		$pdf->SetXY( $x, $y + 7 );
-		$pdf->SetFont( 'DejaVu', '', 8 );
-		foreach ( $days as $name ) {
-			$pdf->Cell( 10, 5, $name, 1, 0, 'C' );
-		}
-		for ( $cell = 0; $cell < 42; $cell++ ) {
-			if ( 0 === $cell % 7 ) {
-				$pdf->SetXY( $x, $y + 12 + intdiv( $cell, 7 ) * 5 );
-			}
-			$day = $cell - $startday + 1;
-			if ( $day < 1 || $day > $length ) {
-				$pdf->SetFillColor( 192, 192, 192 );
-				$pdf->Cell( 10, 5, '', 1, 0, 'C', true );
-				continue;
-			}
-			$rgb = $colours[ sprintf( '%d-%02d-%02d', $year, $month, $day ) ] ?? array( 255, 255, 255 );
-			$pdf->SetFillColor( $rgb[0], $rgb[1], $rgb[2] );
-			$pdf->Cell( 10, 5, (string) $day, 1, 0, 'L', true );
+		$task = trim( (string) $row->rota_task );
+		if ( $task !== '' ) {
+			$jobs[ (int) substr( (string) $row->day, 8, 2 ) ][] = $task;
 		}
 	}
-
-	$y = 23;
-	$pdf->SetFont( 'DejaVu', '', 7 );
-	foreach ( $wpdb->get_results( "SELECT category, bgcolor FROM {$wpdb->prefix}church_admin_calendar_category" ) as $category ) {
-		$rgb = emerson_pdf_rgb( $category->bgcolor ) ?? array( 255, 255, 255 );
-		$pdf->SetXY( 248, $y );
-		$pdf->SetFillColor( $rgb[0], $rgb[1], $rgb[2] );
-		$pdf->Cell( 6, 5, ' ', 0, 0, 'L', true );
-		$pdf->Cell( 41, 5, $category->category, 0, 0, 'L' );
-		$pdf->Rect( 248, $y, 47, 5 );
-		$y += 6;
-	}
-	$pdf->Output( 'I', "Emerson-year-planner-{$year}.pdf" );
-	exit;
+	return $jobs;
 }
 
-/** One month on one page, every event in its own day's box (up to three, then "More events…"). */
-function emerson_monthly_calendar_pdf( int $year, int $month ): void {
+function emerson_pdf_name_in_cell( array $names, string $cell ): bool {
+	$cell = strtolower( $cell );
+	foreach ( $names as $name ) {
+		if ( $name !== '' && str_contains( $cell, $name ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * @param array{holiday?:string,title?:string,speaker?:string,roster?:array<string,string>}|null $sheet
+ * @param list<string>                                                                          $mine
+ * @return list<string>
+ */
+function emerson_pdf_my_available( string $first, string $last ): array {
 	global $wpdb;
-	$pdf    = emerson_pdf_new( 'L', get_option( 'church_admin_pdf_size' ) ?: 'Letter' );
+	$person = emerson_pdf_current_people_id();
+	if ( ! $person || ! function_exists( 'emerson_serving_table' ) ) {
+		return array();
+	}
+	$dates = $wpdb->get_col(
+		$wpdb->prepare(
+			'SELECT serve_date FROM ' . emerson_serving_table() . ' WHERE people_id = %d AND can_serve = 1 AND serve_date BETWEEN %s AND %s',
+			$person,
+			$first,
+			$last
+		)
+	);
+	$out = array();
+	foreach ( $dates as $date ) {
+		$out[ (int) substr( (string) $date, 8, 2 ) ] = true;
+	}
+	return $out;
+}
+
+function emerson_pdf_day_lines( string $time, string $fallback_title, ?array $sheet, array $mine, bool $elevated, bool $available = false ): array {
+	$sheet    = is_array( $sheet ) ? $sheet : array();
+	$title    = ( $sheet['title'] ?? '' ) !== '' ? $sheet['title'] : $fallback_title;
+	$holiday  = $sheet['holiday'] ?? '';
+	$speaker  = $sheet['speaker'] ?? '';
+	$roster   = is_array( $sheet['roster'] ?? null ) ? $sheet['roster'] : array();
+	$labels   = function_exists( 'emerson_schedule_roster_labels' ) ? emerson_schedule_roster_labels() : array();
+	$lines    = array();
+	$headline = trim( $time . ' ' . $title );
+	if ( $headline !== '' ) {
+		$lines[] = $headline;
+	}
+	if ( $holiday !== '' ) {
+		$lines[] = $holiday;
+	}
+	if ( $speaker !== '' ) {
+		$lines[] = 'Speaker: ' . $speaker;
+	}
+	if ( $elevated ) {
+		foreach ( $labels as $key => $label ) {
+			if ( ( $roster[ $key ] ?? '' ) !== '' ) {
+				$lines[] = $label . ': ' . $roster[ $key ];
+			}
+		}
+	}
+	if ( $mine ) {
+		$lines[] = 'You\'re serving: ' . implode( ', ', $mine );
+	} elseif ( $available ) {
+		$lines[] = 'You can serve';
+	}
+	return $lines;
+}
+
+function emerson_pdf_sheet_jobs( ?array $sheet, array $names, array $mine ): array {
+	if ( ! is_array( $sheet ) || ! $names || empty( $sheet['roster'] ) ) {
+		return $mine;
+	}
+	$labels = function_exists( 'emerson_schedule_roster_labels' ) ? emerson_schedule_roster_labels() : array();
+	foreach ( $sheet['roster'] as $key => $who ) {
+		if ( emerson_pdf_name_in_cell( $names, $who ) ) {
+			$label = $labels[ $key ] ?? $key;
+			if ( ! in_array( $label, $mine, true ) ) {
+				$mine[] = $label;
+			}
+		}
+	}
+	return $mine;
+}
+
+function emerson_pdf_push_line( array &$lines, string $line ): void {
+	$line = trim( $line );
+	if ( $line !== '' && ! in_array( $line, $lines, true ) ) {
+		$lines[] = $line;
+	}
+}
+
+/**
+ * Church Admin events, the Sunday Morning Schedule sheet, Engage groups, and serving marks.
+ *
+ * Everyone gets title, holiday, and speaker. A member who is serving that day
+ * sees their role. Elevated viewers (the Sunday Schedule list) get the full row.
+ * Weekday availability still prints when there is no Sunday service that day.
+ *
+ * @return array<int, list<string>>
+ */
+function emerson_pdf_month_events( int $year, int $month ): array {
+	global $wpdb;
+	$first     = sprintf( '%d-%02d-01', $year, $month );
+	$length    = (int) gmdate( 't', strtotime( $first . ' 12:00:00' ) );
+	$last      = sprintf( '%d-%02d-%02d', $year, $month, $length );
+	$elevated  = function_exists( 'emerson_schedule_can_view_roster' ) && emerson_schedule_can_view_roster();
+	$names     = emerson_pdf_viewer_names();
+	$rota      = emerson_pdf_my_rota( $first, $last );
+	$available = emerson_pdf_my_available( $first, $last );
+	$events    = array();
+	$sheeted   = array();
+	$rows      = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT a.start_date, a.start_time, a.title FROM {$wpdb->prefix}church_admin_calendar_date a
+			JOIN {$wpdb->prefix}church_admin_calendar_category b ON a.cat_id = b.cat_id
+			WHERE a.start_date BETWEEN %s AND %s ORDER BY a.start_date, a.start_time",
+			$first,
+			$last
+		)
+	);
+	foreach ( $rows as $row ) {
+		$ymd   = substr( (string) $row->start_date, 0, 10 );
+		$day   = (int) substr( $ymd, 8, 2 );
+		$sheet = function_exists( 'emerson_schedule_sunday' ) ? emerson_schedule_sunday( $ymd ) : null;
+		$mine  = emerson_pdf_sheet_jobs( $sheet, $names, $rota[ $day ] ?? array() );
+		$title = trim( (string) $row->title );
+		if ( emerson_calendar_is_sunday_service( $title ) && is_array( $sheet ) ) {
+			$events[ $day ] = array_merge(
+				$events[ $day ] ?? array(),
+				emerson_pdf_day_lines(
+					mysql2date( get_option( 'time_format' ), $row->start_time ),
+					$title,
+					$sheet,
+					$mine,
+					$elevated,
+					false
+				)
+			);
+			$sheeted[ $day ] = true;
+			continue;
+		}
+		if ( ! isset( $events[ $day ] ) ) {
+			$events[ $day ] = array();
+		}
+		emerson_pdf_push_line(
+			$events[ $day ],
+			trim( mysql2date( get_option( 'time_format' ), $row->start_time ) . ' ' . $title )
+		);
+	}
+	if ( function_exists( 'emerson_schedule_sheet_data' ) ) {
+		foreach ( emerson_schedule_sheet_data()['sundays'] as $ymd => $row ) {
+			if ( substr( $ymd, 0, 7 ) !== substr( $first, 0, 7 ) ) {
+				continue;
+			}
+			$day = (int) substr( $ymd, 8, 2 );
+			if ( ! empty( $sheeted[ $day ] ) ) {
+				continue;
+			}
+			$mine            = emerson_pdf_sheet_jobs( $row, $names, $rota[ $day ] ?? array() );
+			$events[ $day ]  = array_merge(
+				$events[ $day ] ?? array(),
+				emerson_pdf_day_lines( '', '', $row, $mine, $elevated, false )
+			);
+			$sheeted[ $day ] = true;
+		}
+	}
+	if ( function_exists( 'emerson_calendar_other_events' ) ) {
+		foreach ( emerson_calendar_other_events( $first, $last ) as $ymd => $items ) {
+			$day = (int) substr( $ymd, 8, 2 );
+			if ( ! isset( $events[ $day ] ) ) {
+				$events[ $day ] = array();
+			}
+			foreach ( $items as $item ) {
+				emerson_pdf_push_line( $events[ $day ], emerson_calendar_event_label( $item ) );
+			}
+		}
+	}
+	foreach ( $available as $day => $yes ) {
+		if ( ! $yes ) {
+			continue;
+		}
+		$day = (int) $day;
+		if ( ! isset( $events[ $day ] ) ) {
+			$events[ $day ] = array();
+		}
+		$marked = false;
+		foreach ( $events[ $day ] as $line ) {
+			if ( str_starts_with( $line, 'You\'re serving' ) || 'You can serve' === $line ) {
+				$marked = true;
+				break;
+			}
+		}
+		if ( ! $marked ) {
+			emerson_pdf_push_line( $events[ $day ], 'You can serve' );
+		}
+	}
+	return $events;
+}
+
+function emerson_pdf_draw_month( FPDF $pdf, int $year, int $month ): void {
 	$first  = sprintf( '%d-%02d-01', $year, $month );
 	$noon   = strtotime( $first . ' 12:00:00' );
 	$length = (int) gmdate( 't', $noon );
 	$start  = (int) gmdate( 'w', $noon );
 	$weeks  = (int) ceil( ( $start + $length ) / 7 );
+	$theme  = function_exists( 'emerson_schedule_theme' ) ? emerson_schedule_theme( sprintf( '%d-%02d', $year, $month ) ) : '';
 
 	$left   = 10;
 	$top    = 22;
@@ -153,9 +349,13 @@ function emerson_monthly_calendar_pdf( int $year, int $month ): void {
 	$header = 10;
 	$height = ( $pdf->GetPageHeight() - $top - $header - 10 ) / $weeks;
 
-	$pdf->SetXY( $left, 8 );
+	$pdf->SetXY( $left, 6 );
 	$pdf->SetFont( 'DejaVu', 'B', 16 );
-	$pdf->Cell( $width * 7, 10, sprintf( 'Calendar %s', date_i18n( 'F Y', $noon ) ), 0, 0, 'C' );
+	$title = sprintf( 'Calendar %s', date_i18n( 'F Y', $noon ) );
+	if ( $theme !== '' ) {
+		$title .= '  ·  Theme: ' . $theme;
+	}
+	$pdf->Cell( $width * 7, 8, $title, 0, 0, 'C' );
 
 	$pdf->SetFont( 'DejaVu', '', 12 );
 	foreach ( emerson_pdf_day_names() as $i => $name ) {
@@ -163,20 +363,7 @@ function emerson_monthly_calendar_pdf( int $year, int $month ): void {
 		$pdf->Cell( $width, $header, $name, 1, 0, 'C' );
 	}
 
-	$events = array();
-	$rows   = $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT a.start_date, a.start_time, a.title FROM {$wpdb->prefix}church_admin_calendar_date a
-			JOIN {$wpdb->prefix}church_admin_calendar_category b ON a.cat_id = b.cat_id
-			WHERE a.start_date BETWEEN %s AND %s ORDER BY a.start_date, a.start_time",
-			$first,
-			sprintf( '%d-%02d-%02d', $year, $month, $length )
-		)
-	);
-	foreach ( $rows as $row ) {
-		$events[ (int) substr( $row->start_date, 8, 2 ) ][] = mysql2date( get_option( 'time_format' ), $row->start_time ) . ' ' . $row->title;
-	}
-
+	$events = emerson_pdf_month_events( $year, $month );
 	for ( $cell = 0; $cell < $weeks * 7; $cell++ ) {
 		$x   = $left + ( $cell % 7 ) * $width;
 		$y   = $top + $header + intdiv( $cell, 7 ) * $height;
@@ -205,6 +392,26 @@ function emerson_monthly_calendar_pdf( int $year, int $month ): void {
 			$pdf->Cell( $width - 2, 4, $line );
 		}
 	}
+}
+
+/** Twelve monthly pages for $year, from Church Admin plus the Sunday Morning Schedule sheet. */
+function emerson_year_planner_pdf( int $year ): void {
+	$size = get_option( 'church_admin_pdf_size' ) ?: 'Letter';
+	$pdf  = emerson_pdf_new( 'L', $size );
+	for ( $month = 1; $month <= 12; $month++ ) {
+		if ( $month > 1 ) {
+			$pdf->AddPage( 'L', $size );
+		}
+		emerson_pdf_draw_month( $pdf, $year, $month );
+	}
+	$pdf->Output( 'I', "Emerson-year-planner-{$year}.pdf" );
+	exit;
+}
+
+/** One month on one page, every event in its own day's box (up to three, then "More events…"). */
+function emerson_monthly_calendar_pdf( int $year, int $month ): void {
+	$pdf = emerson_pdf_new( 'L', get_option( 'church_admin_pdf_size' ) ?: 'Letter' );
+	emerson_pdf_draw_month( $pdf, $year, $month );
 	$pdf->Output( 'I', sprintf( 'Emerson-calendar-%d-%02d.pdf', $year, $month ) );
 	exit;
 }

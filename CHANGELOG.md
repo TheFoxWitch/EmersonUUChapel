@@ -10,7 +10,45 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-14
+
+### Calendar cell text shrinks to fit the column
+- On narrow widths, long words (Universalist, chapel, speaker names) were spilling into the next day. Cell copy now wraps and the type size drops until it stays inside that day.
+- **File:** `assets/css/custom.css`, `assets/js/custom.js`.
+
+### Calendar event details show the full description
+- Church Admin’s sidebar was cutting descriptions at 50 characters (“Third Monday of the…”). The full text now wraps in the event details on the homepage and `/calendar/`.
+- **File:** `inc/calendar-listed-events.php`, `inc/sunday-schedule-sheet.php`, `assets/css/custom.css`.
+
+### Calendar on the homepage
+- The same Church Admin month grid as `/calendar/` now sits under Purpose, Mission, and Vision on the front page, at 75% of the viewport on desktop.
+- **File:** `assets/css/custom.css`.
+- **Local DB:** page 15. Backup: `backups/pages/page-15-before-homepage-calendar.html`.
+
+### Love at the Center under What is Unitarian Universalism?
+- The same Love at the Center graphic already on Who Are We and Seven Principles (attachment 959) now sits centred under the title on **What is Unitarian Universalism?**
+- **Local DB:** page 196. Backup: `backups/pages/page-196-before-love-image.html`.
+
+### Planning Calendar link is for designated people only
+- The spreadsheet edit link under the month grid is gone from the public Calendar page. Administrators, Editors, and the Sunday Schedule designated list still see **Planning Calendar**.
+- **File:** `inc/sunday-schedule-sheet.php`.
+- **Local DB:** page 70. Backup: `backups/pages/page-70-before-hide-planning-calendar.html`.
+
 ## 2026-10-13
+
+### Calendar page drops the duplicate month list
+- The **Calendar Listing** under the month grid (`[church_admin type="calendar-list"]`) is removed. It repeated Sunday Service with its own Previous/Next, reloaded the page, and did not move the main calendar.
+- **Local DB:** page 70. Backup: `backups/pages/page-70-before-remove-calendar-list.html`.
+
+### Calendar PDFs wrap the full cell text
+- Month and year-planner PDFs wrap long titles, holidays, and locations instead of cutting them off with an ellipsis. Busy Sundays use a slightly smaller type so the whole list stays in the box.
+- **File:** `inc/calendar-pdfs.php`.
+
+### Womyn’s Web and Men’s Night are real calendar events
+- Clicking a Monday or Friday on `/calendar/` now uses Church Admin’s own sidebar (time, location, Engage link, iCal download), the same as Sunday Service, instead of “No events today” plus a title overlay.
+- Womyn’s Web and Men’s Night default to **Rotating location — check This Week at Emerson**. Board Meeting uses the chapel. Edit that date in Church Admin to name this month’s host. Missing future dates can be added from **Sunday Schedule → Add missing group dates**.
+- **File:** `inc/calendar-listed-events.php`, `inc/sunday-schedule-sheet.php`, `inc/calendar-pdfs.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+- **Local DB:** Church Admin category **Interest Group**, plus upcoming Womyn’s Web / Men’s Night / Board Meeting dates. Backup: `backups/calendar/calendar-date-before-groups.sql`.
 
 ### Calendar shows Engage groups and weekday serving
 - The month grid and both PDFs now list **Womyn's Web** (first Monday, 7 pm), **Men's Night** (first Friday, 6 pm), and **Board Meeting** (third Monday, 6:30 pm), matching the Engage page. Circle Suppers stay off the grid because each host picks the date. Any other Church Admin event that is not Sunday Service still appears too.

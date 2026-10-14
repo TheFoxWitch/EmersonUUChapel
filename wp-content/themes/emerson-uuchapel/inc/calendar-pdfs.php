@@ -310,6 +310,9 @@ function emerson_pdf_month_events( int $year, int $month ): array {
 			}
 			foreach ( $items as $item ) {
 				emerson_pdf_push_line( $events[ $day ], emerson_calendar_event_label( $item ) );
+				if ( ( $item['location'] ?? '' ) !== '' ) {
+					emerson_pdf_push_line( $events[ $day ], $item['location'] );
+				}
 			}
 		}
 	}
@@ -375,23 +378,106 @@ function emerson_pdf_draw_month( FPDF $pdf, int $year, int $month ): void {
 		}
 		$pdf->Rect( $x, $y, $width, $height );
 		$pdf->SetXY( $x + 1, $y + 1 );
-		$pdf->SetFont( 'DejaVu', 'B', 10 );
-		$pdf->Cell( 8, 5, (string) $day );
+		$pdf->SetFont( 'DejaVu', 'B', 9 );
+		$pdf->Cell( 8, 4.5, (string) $day );
 
-		$pdf->SetFont( 'DejaVu', '', 7 );
-		$lines = $events[ $day ] ?? array();
-		$fit   = max( 1, (int) floor( ( $height - 7 ) / 4 ) );
-		if ( count( $lines ) > $fit ) {
-			$lines = array_merge( array_slice( $lines, 0, $fit - 1 ), array( __( 'More events…', 'church-admin' ) ) );
-		}
-		foreach ( $lines as $i => $line ) {
-			while ( $pdf->GetStringWidth( $line ) > $width - 2 && mb_strlen( $line ) > 1 ) {
-				$line = rtrim( mb_substr( $line, 0, -2 ) ) . '…';
-			}
-			$pdf->SetXY( $x + 1, $y + 7 + $i * 4 );
-			$pdf->Cell( $width - 2, 4, $line );
+		$fit = emerson_pdf_fit_cell( $pdf, $events[ $day ] ?? array(), $width - 2.2, $height - 6.2 );
+		$pdf->SetFont( 'DejaVu', '', $fit['font'] );
+		foreach ( $fit['lines'] as $i => $line ) {
+			$pdf->SetXY( $x + 1.1, $y + 5.6 + $i * $fit['leading'] );
+			$pdf->Cell( $width - 2.2, $fit['leading'], $line );
 		}
 	}
+}
+
+function emerson_pdf_fit_prefix( FPDF $pdf, string $text, float $max_width ): int {
+	$len = mb_strlen( $text );
+	if ( $len <= 1 ) {
+		return $len;
+	}
+	$lo = 1;
+	$hi = $len;
+	while ( $lo < $hi ) {
+		$mid = (int) ceil( ( $lo + $hi ) / 2 );
+		if ( $pdf->GetStringWidth( mb_substr( $text, 0, $mid ) ) <= $max_width ) {
+			$lo = $mid;
+		} else {
+			$hi = $mid - 1;
+		}
+	}
+	return $lo;
+}
+
+/**
+ * @return list<string>
+ */
+function emerson_pdf_wrap_line( FPDF $pdf, string $line, float $max_width ): array {
+	$line = trim( (string) preg_replace( '/\s+/', ' ', str_replace( '/', '/ ', $line ) ) );
+	if ( $line === '' ) {
+		return array();
+	}
+	if ( $pdf->GetStringWidth( $line ) <= $max_width ) {
+		return array( $line );
+	}
+	$words = preg_split( '/\s+/', $line ) ?: array( $line );
+	$rows  = array();
+	$cur   = '';
+	foreach ( $words as $word ) {
+		$try = $cur === '' ? $word : $cur . ' ' . $word;
+		if ( $pdf->GetStringWidth( $try ) <= $max_width ) {
+			$cur = $try;
+			continue;
+		}
+		if ( $cur !== '' ) {
+			$rows[] = $cur;
+		}
+		while ( $word !== '' && $pdf->GetStringWidth( $word ) > $max_width ) {
+			$cut = emerson_pdf_fit_prefix( $pdf, $word, $max_width );
+			if ( $cut < 1 ) {
+				break;
+			}
+			$rows[] = mb_substr( $word, 0, $cut );
+			$word   = ltrim( mb_substr( $word, $cut ) );
+		}
+		$cur = $word;
+	}
+	if ( $cur !== '' ) {
+		$rows[] = $cur;
+	}
+	return $rows;
+}
+
+/**
+ * @param list<string> $lines
+ * @return array{font:float,leading:float,lines:list<string>}
+ */
+function emerson_pdf_fit_cell( FPDF $pdf, array $lines, float $max_width, float $max_height ): array {
+	$best = array(
+		'font'    => 4.5,
+		'leading' => 2.3,
+		'lines'   => array(),
+	);
+	foreach ( array( 7.0, 6.5, 6.0, 5.5, 5.0, 4.5 ) as $size ) {
+		$pdf->SetFont( 'DejaVu', '', $size );
+		$leading = max( 2.2, $size * 0.42 );
+		$wrapped = array();
+		foreach ( $lines as $line ) {
+			foreach ( emerson_pdf_wrap_line( $pdf, (string) $line, $max_width ) as $row ) {
+				$wrapped[] = $row;
+			}
+		}
+		$best = array(
+			'font'    => $size,
+			'leading' => $leading,
+			'lines'   => $wrapped,
+		);
+		if ( count( $wrapped ) * $leading <= $max_height ) {
+			return $best;
+		}
+	}
+	$count = max( 1, count( $best['lines'] ) );
+	$best['leading'] = min( $best['leading'], $max_height / $count );
+	return $best;
 }
 
 /** Twelve monthly pages for $year, from Church Admin plus the Sunday Morning Schedule sheet. */
@@ -408,7 +494,7 @@ function emerson_year_planner_pdf( int $year ): void {
 	exit;
 }
 
-/** One month on one page, every event in its own day's box (up to three, then "More events…"). */
+/** One month on one page, wrapping each day's text so it stays in the box. */
 function emerson_monthly_calendar_pdf( int $year, int $month ): void {
 	$pdf = emerson_pdf_new( 'L', get_option( 'church_admin_pdf_size' ) ?: 'Letter' );
 	emerson_pdf_draw_month( $pdf, $year, $month );

@@ -1262,15 +1262,64 @@ blockquote {
 	font-weight: 700;
 }
 
+@media (min-width: 1001px) {
+	.page-id-70 .church-admin-calendar,
+	.home .church-admin-calendar {
+		width: 75vw;
+		max-width: 75vw;
+		margin-left: calc(50% - 37.5vw);
+	}
+
+	.page-id-70 .ca-calendar-sidebar,
+	.home .ca-calendar-sidebar {
+		flex: 0.22;
+		width: 22%;
+	}
+
+	.page-id-70 .ca-calendar-render,
+	.home .ca-calendar-render {
+		flex: 0.78;
+	}
+}
+
+.church-admin-calendar .ca-calendar-sidebar,
+.church-admin-calendar .ca-sidebar-list,
+.church-admin-calendar .ca-sidebar-list li,
+.church-admin-calendar .ca-sidebar-list p {
+	min-width: 0;
+	max-width: 100%;
+	overflow: visible;
+	white-space: normal;
+	overflow-wrap: break-word;
+	word-wrap: break-word;
+}
+
 .church-admin-calendar .ca-week {
 	height: auto;
 	min-height: 14.5rem;
 	align-items: stretch;
 }
 
+.church-admin-calendar .ca-day,
+.church-admin-calendar .ca-top-bar-days {
+	min-width: 0;
+}
+
 .church-admin-calendar .ca-day {
-	overflow: visible;
+	overflow-x: hidden;
+	overflow-y: visible;
 	min-height: 14.5rem;
+}
+
+.church-admin-calendar .ca-day .emerson-ca-service,
+.church-admin-calendar .ca-day .emerson-ca-event,
+.church-admin-calendar .ca-day .emerson-ca-serving,
+.church-admin-calendar .ca-day .emerson-ca-available,
+.church-admin-calendar .ca-day .emerson-ca-service span,
+.church-admin-calendar .ca-day .emerson-ca-event span {
+	max-width: 100%;
+	overflow-wrap: break-word;
+	word-break: normal;
 }
 
 .emerson-ca-service,
@@ -1294,6 +1343,16 @@ blockquote {
 .emerson-ca-event {
 	display: block;
 	line-height: 1.3;
+}
+
+.emerson-ca-event__title,
+.emerson-ca-event__location {
+	display: block;
+}
+
+.emerson-ca-event__location {
+	font-weight: 400;
+	color: #444;
 }
 
 .emerson-ca-service__holiday,

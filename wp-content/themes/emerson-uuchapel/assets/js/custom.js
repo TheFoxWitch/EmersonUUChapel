@@ -199,7 +199,16 @@
 		function eventMark(item) {
 			var mark = document.createElement('span');
 			mark.className = 'emerson-ca-event';
-			mark.textContent = (item && item.label) || (item && item.title) || '';
+			var title = document.createElement('span');
+			title.className = 'emerson-ca-event__title';
+			title.textContent = (item && item.label) || (item && item.title) || '';
+			mark.appendChild(title);
+			if (item && item.location) {
+				var loc = document.createElement('span');
+				loc.className = 'emerson-ca-event__location';
+				loc.textContent = item.location;
+				mark.appendChild(loc);
+			}
 			return mark;
 		}
 
@@ -296,8 +305,9 @@
 				}
 			}
 			var extraHost = host || list;
+			var listed = list.textContent || '';
 			extras.forEach(function (item) {
-				if (item && item.title) {
+				if (item && item.title && listed.indexOf(item.title) === -1) {
 					extraHost.appendChild(eventMark(item));
 				}
 			});
@@ -306,11 +316,74 @@
 			}
 		}
 
+		function fitDayCopy() {
+			var probe = document.createElement('span');
+			probe.setAttribute('aria-hidden', 'true');
+			probe.style.cssText = 'position:absolute;left:-9999px;top:0;white-space:nowrap;visibility:hidden;';
+			document.body.appendChild(probe);
+			document.querySelectorAll('.ca-day[data-date]').forEach(function (day) {
+				var blocks = day.querySelectorAll(
+					'.emerson-ca-service, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-available'
+				);
+				if (!blocks.length) {
+					return;
+				}
+				blocks.forEach(function (block) {
+					block.style.fontSize = '';
+				});
+				var dayStyle = window.getComputedStyle(day);
+				var width =
+					day.clientWidth -
+					(parseFloat(dayStyle.paddingLeft) || 0) -
+					(parseFloat(dayStyle.paddingRight) || 0) -
+					2;
+				if (width < 12) {
+					return;
+				}
+				function longestWord() {
+					var max = 0;
+					blocks.forEach(function (block) {
+						var cs = window.getComputedStyle(block);
+						probe.style.font = cs.font;
+						probe.style.letterSpacing = cs.letterSpacing;
+						(block.innerText || '')
+							.split(/\s+/)
+							.filter(Boolean)
+							.forEach(function (word) {
+								probe.textContent = word;
+								max = Math.max(max, probe.offsetWidth);
+							});
+					});
+					return max;
+				}
+				if (longestWord() <= width) {
+					return;
+				}
+				var size = parseFloat(window.getComputedStyle(blocks[0]).fontSize) || 11;
+				while (size > 6 && longestWord() > width) {
+					size = Math.max(6, Math.floor((size - 0.3) * 10) / 10);
+					blocks.forEach(function (block) {
+						block.style.fontSize = size + 'px';
+					});
+				}
+			});
+			probe.remove();
+		}
+
 		function decorate() {
 			updateTheme();
 			decorateDays();
 			decorateSidebar();
+			fitDayCopy();
 		}
+
+		var fitTimer = null;
+		window.addEventListener('resize', function () {
+			if (fitTimer) {
+				clearTimeout(fitTimer);
+			}
+			fitTimer = setTimeout(fitDayCopy, 80);
+		});
 
 		decorate();
 

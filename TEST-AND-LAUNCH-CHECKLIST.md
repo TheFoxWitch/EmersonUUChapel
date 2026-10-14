@@ -29,6 +29,12 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - Homepage says **This week, meet us at 10 am, at the St. Charles YMCA located at …**, then moves on after that service
   - Marking a Sunday **Cancelled** or **Moved** updates the homepage and the Service Schedule
   - Anyone assigned that day, or who ticked they can serve, gets an email (redirected locally), and the office gets a copy
+- [ ] **Sunday Schedule spreadsheet** (`/calendar/` and `/schedule/`). How to change the URL is in **Sunday Schedule spreadsheet — how to update the URL**.
+  - Under the month name (where **This month’s PDF** used to be), October shows **This month’s theme: Courage**; November shows **Healing** after Next. **This calendar PDF** at the top of the page still downloads
+  - Sunday boxes show holiday, title, and speaker from the sheet (for example October 4: The Main Thing / Rex Loy). Serving-role names stay off the public calendar
+  - October also shows **Womyn's Web** on the 5th, **Men's Night** on the 2nd, and **Board Meeting** on the 19th (Engage meeting times). Logged-in serving ticks, including Mondays, show **You can serve**
+  - Logged in as a designated person (or an Administrator/Editor), clicking a Sunday on `/calendar/` or `/schedule/` shows liturgist, greeter, and the rest of that day’s sheet row. Logged out, that extra block is absent
+  - **Sunday Schedule** in the WordPress admin can Refresh from the spreadsheet and change who can open the full row
 - [x] **Church Admin household registration** (Members pages, logged out)
   - The registrant gets a confirm-your-email message
   - After confirming, the "new household" email with the approval steps arrives (original recipient: `com@`)
@@ -118,6 +124,45 @@ Saving **Cancelled** or **Moved** a second time, with the same time and place, d
 
 That is not a one-Sunday Moved. Ask the intern: the default YMCA line lives in `inc/sunday-location.php`, and Visit Us (page 58) still has to match (section 4).
 
+## Sunday Schedule spreadsheet — how to update the URL
+
+The public **Calendar** and **Service Schedule** read the monthly theme, holiday, title, and speaker from the church’s Sunday Morning Schedule Google Sheet. The church keeps editing that one spreadsheet. Same-file edits show on the site after about 30 minutes, or right away after **Refresh from spreadsheet**.
+
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
+
+**Where:** WordPress admin (the left-hand menu) → **Sunday Schedule**. It is a spreadsheet icon, just under **Sunday Location**.
+
+### They edited the same spreadsheet (same file, same tab)
+
+Do nothing, or click **Refresh from spreadsheet** if you want the site to catch up now. You do **not** change the URL.
+
+### They started a new spreadsheet, or a different tab
+
+A new file (or a different tab) has a different address. The old URL will keep showing the old file.
+
+1. Open the new spreadsheet in the browser. Stay on the Sunday Morning Schedule tab.
+2. Copy the address from the address bar. It looks like `https://docs.google.com/spreadsheets/d/…/edit?gid=…`. The `gid=` number is the tab.
+3. In WordPress, open **Sunday Schedule**.
+4. Paste that address into **Spreadsheet URL**.
+5. Click **Save URL**.
+6. Confirm **Last fetch** shows a time, a row count, and no error. October should list **Courage** if that is still the October theme.
+
+The sheet must be shared so **anyone with the link can view**. Editor access is not required for the site to read it. Do not put the edit URL on a public page if they want the file itself to stay private.
+
+Serving-role columns (liturgist, greeter, and so on) stay off the public calendar on purpose. The month PDF is **This calendar PDF** at the top of the Calendar page, not under the month name.
+
+### Who can click a day for the full sheet row
+
+Visitors see only theme, holiday, title, and speaker. A designated person who is logged in can click a Sunday on **Calendar** or **Service Schedule** and see the rest of that day’s row (liturgist, tech, greeter, hospitality, board person of the day, RE volunteers, RE class topic).
+
+**Already included:** anyone who can edit pages (Administrator or Editor), plus the church list: PJ Pyrchla, Nathan Williams, Jenny Kerr, Sharon Swanson, Karyl Howard, Lauren Williams, Lana Michels, Marie Sebert, and Harlan Bloom — when that person has a WordPress login linked in Church Admin.
+
+**Where to change the list:** **Sunday Schedule** → **Who can click a day for the full sheet row**. Tick or untick names, then **Save who can see the roster**.
+
+If someone on the church list has **no login**, they cannot see the roster until Church Admin has a user account for them and they are ticked. The Sunday Schedule screen lists those names.
+
+Do not put personal emails or phone numbers in the theme files or GitHub. The list is stored in the WordPress database.
+
 ## 2. Before making the WPvivid backup
 
 - [ ] Email back to save only: `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`
@@ -184,7 +229,7 @@ So: Harlan's backup is a **diff of church activity since 24 Sept**. Your serving
 - [ ] Mailchimp: the office adds new subscribers by hand until someone provides an API key and audience ID
 - [ ] Remove your own test sign-up from Church Admin and Mailchimp afterwards
 - [ ] **Serving dates still work after the restore.** Logged in as a member, "Dates I can serve" shows their ticks. In `wp eval`, `wp_next_scheduled('emerson_serving_daily_sync')` returns a time (the daily job that keeps unanswered dates blocked for auto-fill). The `wp_emerson_serving_answers` table travels with the WPvivid database backup.
-- [ ] **Calendar PDFs** (in Firefox or Safari; Cursor's browser doesn't show PDFs): a Yearly Planner option gives January–December of that year; "This month's PDF" after moving to another month gives that month, with events in their boxes.
+- [ ] **Calendar PDFs** (in Firefox or Safari; Cursor's browser doesn't show PDFs): **Yearly Planner PDFs** for 2026, 2027, or 2028 opens a 12-page calendar for that year. Logged out, October 2026 shows title and speaker (The Main Thing / Rex Loy), not only Sunday Service, plus Womyn's Web / Men's Night / Board Meeting. Logged in as someone serving that day, their role appears. Weekday ticks print **You can serve**. Logged in as an elevated person, the full sheet row appears. Months the sheet has not filled in yet still say Sunday Service. **This calendar PDF** is the current month.
 - [ ] **Calendar → "This calendar PDF"** downloads a PDF.
 
 ## 4. Questions for the church

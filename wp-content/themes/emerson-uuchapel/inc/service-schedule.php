@@ -103,6 +103,12 @@ add_shortcode(
 			. '<a class="emerson-schedule__arrow" href="' . $link( $prev ) . '" aria-label="Previous month">&larr;</a>'
 			. '<span class="emerson-schedule__month">' . esc_html( date_i18n( 'F Y', $noon ) ) . '</span>'
 			. '<a class="emerson-schedule__arrow" href="' . $link( $next ) . '" aria-label="Next month">&rarr;</a></p>';
+		if ( function_exists( 'emerson_schedule_theme_html' ) ) {
+			$out .= emerson_schedule_theme_html( substr( $first, 0, 7 ) );
+		}
+		if ( function_exists( 'emerson_schedule_can_view_roster' ) && emerson_schedule_can_view_roster() ) {
+			$out .= '<p class="emerson-schedule__legend">Click a Sunday for liturgist, greeter, and the rest of that day&#8217;s sheet row.</p>';
+		}
 		if ( $jobs ) {
 			$out .= '<p class="emerson-schedule__legend"><span class="emerson-schedule__serving">You&#8217;re serving</span> marks a Sunday you&#8217;re on the schedule.</p>';
 		} elseif ( $marked_available ) {
@@ -130,8 +136,9 @@ add_shortcode(
 			$ex      = $has && function_exists( 'emerson_sunday_exception' ) ? emerson_sunday_exception( $ymd ) : null;
 			$status  = is_array( $ex ) ? ( $ex['status'] ?? '' ) : '';
 			$serving = $has && 'cancelled' !== $status && ( isset( $available[ $day ] ) || isset( $jobs[ $day ] ) );
-			$class   = trim( ( $has ? 'has-service' : '' ) . ( $serving ? ' is-serving' : '' ) . ( 'cancelled' === $status ? ' is-cancelled' : '' ) . ( 'moved' === $status ? ' is-moved' : '' ) );
-			$out    .= '<td' . ( $class ? ' class="' . esc_attr( $class ) . '"' : '' ) . '><span class="emerson-schedule__day">'
+			$roster  = $has && function_exists( 'emerson_schedule_can_view_roster' ) && emerson_schedule_can_view_roster();
+			$class   = trim( ( $has ? 'has-service' : '' ) . ( $serving ? ' is-serving' : '' ) . ( 'cancelled' === $status ? ' is-cancelled' : '' ) . ( 'moved' === $status ? ' is-moved' : '' ) . ( $roster ? ' is-roster' : '' ) );
+			$out    .= '<td' . ( $class ? ' class="' . esc_attr( $class ) . '"' : '' ) . ( $has ? ' data-date="' . esc_attr( $ymd ) . '"' : '' ) . ( $roster ? ' tabindex="0" role="button" aria-label="Open the full schedule for this Sunday"' : '' ) . '><span class="emerson-schedule__day">'
 				. '<span class="emerson-schedule__weekday">' . esc_html( date_i18n( 'l, ', strtotime( sprintf( '%s%02d 12:00:00', substr( $first, 0, 8 ), $day ) ) ) ) . '</span>'
 				. $day . '</span>';
 			if ( 'cancelled' === $status ) {
@@ -140,14 +147,27 @@ add_shortcode(
 					$out .= '<span class="emerson-schedule__service">' . esc_html( (string) $ex['note'] ) . '</span>';
 				}
 			} else {
+				$sheet = function_exists( 'emerson_schedule_sunday' ) ? emerson_schedule_sunday( $ymd ) : null;
 				foreach ( $services[ $day ] ?? array() as $service ) {
 					$show_time  = ( 'moved' === $status && ! empty( $ex['time'] ) ) ? $ex['time'] : $service->start_time;
 					$show_place = ( 'moved' === $status && ! empty( $ex['place'] ) )
 						? '<a href="' . $place . '">' . esc_html( (string) $ex['place'] ) . '</a>'
 						: $place_el;
-					$out .= '<span class="emerson-schedule__service"><strong>' . $time( $show_time ) . '</strong> ' . esc_html( $service->title )
+					$show_title = ( is_array( $sheet ) && $sheet['title'] !== '' ) ? $sheet['title'] : $service->title;
+					$out       .= '<span class="emerson-schedule__service"><strong>' . $time( $show_time ) . '</strong> ' . esc_html( $show_title )
 						. ( 'moved' === $status ? ' <em>(moved)</em>' : '' )
 						. '<br>' . $show_place . '</span>';
+					if ( is_array( $sheet ) ) {
+						if ( $sheet['holiday'] !== '' ) {
+							$holiday = function_exists( 'emerson_schedule_break_slashes' )
+								? emerson_schedule_break_slashes( $sheet['holiday'] )
+								: esc_html( $sheet['holiday'] );
+							$out    .= '<span class="emerson-schedule__holiday">' . $holiday . '</span>';
+						}
+						if ( $sheet['speaker'] !== '' ) {
+							$out .= '<span class="emerson-schedule__speaker">' . esc_html( $sheet['speaker'] ) . '</span>';
+						}
+					}
 				}
 			}
 			if ( isset( $jobs[ $day ] ) ) {

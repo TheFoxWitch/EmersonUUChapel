@@ -12,6 +12,22 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-14
 
+### Service Schedule calendar matches the 75% width
+- On screens wider than 1000px the Service Schedule month grid is 75% of the viewport, centered, same as the homepage and Calendar page. Below that it stays in the normal column, and phones still stack the days that have a service.
+- **File:** `assets/css/custom.css`.
+
+### Private spreadsheets show every worksheet
+- Excel files from Numbers open on the real tables, not the “exported from Numbers” cover sheet. Each worksheet is a tab. Clock times and dates are shown as times and dates.
+- **File:** `inc/private-files.php`, `assets/css/custom.css`.
+
+### Private spreadsheets: Weekly schedule replaces Sasha-Alice-Blank
+- Administrators and the Finance role now see `Weekly_Scheduale.xlsx` instead of `Sasha-Alice-Blank.xlsx` under **Spreadsheets** on the Members page. The file stays in `private-files/`, outside the public site.
+- **Where:** this Mac’s `private-files/` folder only. It is not in GitHub.
+
+### Members page: your serving dates sit with My serving schedule
+- The “you can serve N of the dates” list now replaces **My schedule** and **Dates I can serve**. It is always the logged-in person. **Choose person** stays under **Serving dates** and only changes whose boxes are ticked.
+- **File:** `inc/serving-dates.php`.
+
 ### Git suite always scans for personal data
 - The 2026-10-02 note said every git suite would scan before committing. That scan is now a required step of the git suite, and a project rule so it is not optional.
 - The scan of existing commits found one personal phone number still in two Church Leadership backups. It is removed from those files. Older commits still contain it until history is rewritten.

@@ -81,13 +81,16 @@ function emerson_private_file_mime( string $name ): string {
 	};
 }
 
-function emerson_private_file_url( string $name, bool $download = false ): string {
+function emerson_private_file_url( string $name, bool $download = false, ?int $sheet = null ): string {
 	$args = array(
 		'action' => 'emerson_private_file',
 		'file'   => $name,
 	);
 	if ( $download ) {
 		$args['download'] = '1';
+	}
+	if ( null !== $sheet ) {
+		$args['sheet'] = (string) $sheet;
 	}
 	return wp_nonce_url( add_query_arg( $args, admin_url( 'admin-post.php' ) ), 'emerson_private_file' );
 }
@@ -254,7 +257,109 @@ function emerson_private_read_csv( string $path ): array {
 }
 
 /**
- * @return list<list<string>>
+ * Excel number-format codes, one per cell style (the s="…" on a cell).
+ *
+ * @return list<string>
+ */
+function emerson_private_xlsx_style_formats( ZipArchive $zip ): array {
+	$builtin = array(
+		14 => 'm/d/yyyy',
+		15 => 'd-mmm-yy',
+		16 => 'd-mmm',
+		17 => 'mmm-yy',
+		18 => 'h:mm AM/PM',
+		19 => 'h:mm:ss AM/PM',
+		20 => 'h:mm',
+		21 => 'h:mm:ss',
+		22 => 'm/d/yyyy h:mm',
+		45 => 'mm:ss',
+		46 => 'h:mm:ss',
+		47 => 'mm:ss.0',
+	);
+	$custom  = array();
+	$styles  = $zip->getFromName( 'xl/styles.xml' );
+	$xml     = is_string( $styles ) ? emerson_private_xml( $styles ) : null;
+	if ( $xml && isset( $xml->numFmts->numFmt ) ) {
+		foreach ( $xml->numFmts->numFmt as $fmt ) {
+			$custom[ (int) $fmt['numFmtId'] ] = (string) $fmt['formatCode'];
+		}
+	}
+	$formats = array();
+	if ( $xml && isset( $xml->cellXfs->xf ) ) {
+		foreach ( $xml->cellXfs->xf as $xf ) {
+			$id        = (int) $xf['numFmtId'];
+			$formats[] = $custom[ $id ] ?? ( $builtin[ $id ] ?? 'General' );
+		}
+	}
+	return $formats;
+}
+
+function emerson_private_format_kind( string $fmt ): string {
+	if ( '' === $fmt || 'general' === strtolower( $fmt ) || '@' === $fmt ) {
+		return 'general';
+	}
+	$bare     = strtolower( (string) preg_replace( '/\[[^\]]*\]|"[^"]*"/', '', $fmt ) );
+	$has_date = str_contains( $bare, 'y' ) || 1 === preg_match( '/d/', $bare );
+	$has_time = str_contains( $bare, 'h' ) || str_contains( $bare, 's' );
+	if ( $has_date && $has_time ) {
+		return 'datetime';
+	}
+	if ( $has_time ) {
+		return 'time';
+	}
+	if ( $has_date ) {
+		return 'date';
+	}
+	return 'general';
+}
+
+function emerson_private_format_number( string $raw, string $fmt ): string {
+	if ( ! is_numeric( $raw ) ) {
+		return $raw;
+	}
+	// Numbers writes a 30-minute block as the fraction 0.020833 with format [m]"m".
+	// That is elapsed minutes plus the letter m, not a decimal or a clock time.
+	if ( preg_match( '/\[m\]/i', $fmt ) && ! preg_match( '/\[h\]/i', $fmt ) ) {
+		$minutes = (int) round( (float) $raw * 1440 );
+		$suffix  = '';
+		if ( preg_match_all( '/"([^"]*)"/', $fmt, $quotes ) ) {
+			$suffix = implode( '', $quotes[1] );
+		}
+		return (string) $minutes . $suffix;
+	}
+	$kind = emerson_private_format_kind( $fmt );
+	if ( 'general' === $kind ) {
+		if ( preg_match( '/^-?\d+\.0+$/', $raw ) ) {
+			return (string) (int) $raw;
+		}
+		return $raw;
+	}
+	$serial  = (float) $raw;
+	$days    = (int) floor( $serial );
+	$seconds = (int) round( ( $serial - $days ) * 86400 );
+	$when    = new DateTimeImmutable( '1899-12-30 00:00:00', new DateTimeZone( 'UTC' ) );
+	if ( 0 !== $days ) {
+		$when = $when->modify( ( $days > 0 ? '+' : '' ) . $days . ' days' );
+	}
+	if ( 0 !== $seconds ) {
+		$when = $when->modify( ( $seconds > 0 ? '+' : '' ) . $seconds . ' seconds' );
+	}
+	if ( ! $when instanceof DateTimeImmutable ) {
+		return $raw;
+	}
+	if ( 'time' === $kind ) {
+		return $when->format( 'g:i A' );
+	}
+	if ( 'date' === $kind ) {
+		return $when->format( 'n/j/Y' );
+	}
+	return $when->format( 'n/j/Y g:i A' );
+}
+
+/**
+ * Every worksheet except Numbers' "Export Summary" cover sheet.
+ *
+ * @return list<array{name:string, rows:list<list<string>>, note:string}>
  */
 function emerson_private_read_xlsx( string $path ): array {
 	if ( ! class_exists( 'ZipArchive' ) ) {
@@ -279,87 +384,143 @@ function emerson_private_read_xlsx( string $path ): array {
 			}
 		}
 	}
-	$sheet = $zip->getFromName( 'xl/worksheets/sheet1.xml' );
-	$zip->close();
-	if ( ! is_string( $sheet ) || $sheet === '' ) {
-		return array();
-	}
-	$xml = emerson_private_xml( $sheet );
-	if ( ! $xml || ! isset( $xml->sheetData ) ) {
-		return array();
-	}
-	$rows    = array();
-	$max_col = 0;
-	foreach ( $xml->sheetData->row as $row ) {
-		$r = (int) ( $row['r'] ?? ( count( $rows ) + 1 ) );
-		if ( $r > 500 ) {
-			break;
+	$formats = emerson_private_xlsx_style_formats( $zip );
+	$book    = $zip->getFromName( 'xl/workbook.xml' );
+	$rels    = $zip->getFromName( 'xl/_rels/workbook.xml.rels' );
+	$targets = array();
+	if ( is_string( $rels ) && preg_match_all( '/Id="([^"]+)"[^>]*Target="([^"]+)"/', $rels, $found, PREG_SET_ORDER ) ) {
+		foreach ( $found as $rel ) {
+			$targets[ $rel[1] ] = 'xl/' . ltrim( $rel[2], '/' );
 		}
-		while ( count( $rows ) < $r ) {
-			$rows[] = array();
-		}
-		$line = array();
-		foreach ( $row->c as $cell ) {
-			$ref = (string) ( $cell['r'] ?? '' );
-			$col = $ref !== '' ? emerson_private_xlsx_col( $ref ) : count( $line );
-			if ( $col > 50 ) {
+	}
+	$sheets = array();
+	if ( is_string( $book ) && preg_match_all( '/<sheet\b([^>]*)\/?>/', $book, $tags ) ) {
+		foreach ( $tags[1] as $attrs ) {
+			$name = '';
+			$rid  = '';
+			if ( preg_match( '/\bname="([^"]*)"/', $attrs, $match ) ) {
+				$name = $match[1];
+			}
+			if ( preg_match( '/\br:id="([^"]+)"/', $attrs, $match ) ) {
+				$rid = $match[1];
+			}
+			$target = $targets[ $rid ] ?? '';
+			if ( '' === $name || '' === $target ) {
 				continue;
 			}
-			$type  = (string) ( $cell['t'] ?? '' );
-			$value = '';
-			if ( 's' === $type ) {
-				$idx   = (int) (string) $cell->v;
-				$value = $shared[ $idx ] ?? '';
-			} elseif ( 'inlineStr' === $type ) {
-				$parts = $cell->xpath( './/t' ) ?: array();
-				foreach ( $parts as $part ) {
-					$value .= (string) $part;
+			$sheets[] = array(
+				'name' => $name,
+				'path' => $target,
+			);
+		}
+	}
+	if ( ! $sheets ) {
+		$sheets[] = array(
+			'name' => 'Sheet 1',
+			'path' => 'xl/worksheets/sheet1.xml',
+		);
+	}
+	$real = array_values(
+		array_filter(
+			$sheets,
+			static fn( array $sheet ): bool => 'export summary' !== strtolower( trim( $sheet['name'] ) )
+		)
+	);
+	if ( $real ) {
+		$sheets = $real;
+	}
+
+	$out = array();
+	foreach ( $sheets as $sheet ) {
+		$raw = $zip->getFromName( $sheet['path'] );
+		$xml = is_string( $raw ) ? emerson_private_xml( $raw ) : null;
+		$rows = array();
+		if ( $xml && isset( $xml->sheetData ) ) {
+			$max_col = 0;
+			foreach ( $xml->sheetData->row as $row ) {
+				$r = (int) ( $row['r'] ?? ( count( $rows ) + 1 ) );
+				if ( $r > 500 ) {
+					break;
 				}
-			} elseif ( isset( $cell->v ) ) {
-				$value = (string) $cell->v;
+				while ( count( $rows ) < $r ) {
+					$rows[] = array();
+				}
+				$line = array();
+				foreach ( $row->c as $cell ) {
+					$ref = (string) ( $cell['r'] ?? '' );
+					$col = $ref !== '' ? emerson_private_xlsx_col( $ref ) : count( $line );
+					if ( $col > 50 ) {
+						continue;
+					}
+					$type  = (string) ( $cell['t'] ?? '' );
+					$value = '';
+					if ( 's' === $type ) {
+						$idx   = (int) (string) $cell->v;
+						$value = $shared[ $idx ] ?? '';
+					} elseif ( 'inlineStr' === $type ) {
+						$parts = $cell->xpath( './/t' ) ?: array();
+						foreach ( $parts as $part ) {
+							$value .= (string) $part;
+						}
+					} elseif ( isset( $cell->v ) ) {
+						$style = (int) ( $cell['s'] ?? -1 );
+						$fmt   = $formats[ $style ] ?? 'General';
+						$value = emerson_private_format_number( (string) $cell->v, $fmt );
+					}
+					$line[ $col ] = $value;
+					$max_col      = max( $max_col, $col );
+				}
+				$rows[ $r - 1 ] = $line;
 			}
-			$line[ $col ] = $value;
-			$max_col      = max( $max_col, $col );
-		}
-		$rows[ $r - 1 ] = $line;
-	}
-	$width = $max_col + 1;
-	$out   = array();
-	foreach ( $rows as $line ) {
-		$padded = array();
-		for ( $i = 0; $i < $width; $i++ ) {
-			$padded[] = (string) ( $line[ $i ] ?? '' );
-		}
-		$out[] = $padded;
-	}
-	while ( $out && count( array_filter( $out[ count( $out ) - 1 ], static fn( $c ) => $c !== '' ) ) === 0 ) {
-		array_pop( $out );
-	}
-	$used = 0;
-	foreach ( $out as $line ) {
-		for ( $i = count( $line ) - 1; $i >= 0; $i-- ) {
-			if ( $line[ $i ] !== '' ) {
-				$used = max( $used, $i + 1 );
-				break;
+			$width = $max_col + 1;
+			$padded_rows = array();
+			foreach ( $rows as $line ) {
+				$padded = array();
+				for ( $i = 0; $i < $width; $i++ ) {
+					$padded[] = (string) ( $line[ $i ] ?? '' );
+				}
+				$padded_rows[] = $padded;
+			}
+			$rows = $padded_rows;
+			while ( $rows && count( array_filter( $rows[ count( $rows ) - 1 ], static fn( $c ) => $c !== '' ) ) === 0 ) {
+				array_pop( $rows );
+			}
+			$used = 0;
+			foreach ( $rows as $line ) {
+				for ( $i = count( $line ) - 1; $i >= 0; $i-- ) {
+					if ( $line[ $i ] !== '' ) {
+						$used = max( $used, $i + 1 );
+						break;
+					}
+				}
+			}
+			if ( $used > 0 && $used < $width ) {
+				$rows = array_map( static fn( $line ) => array_slice( $line, 0, $used ), $rows );
 			}
 		}
+		$note = '';
+		if ( ! $rows && is_string( $raw ) && str_contains( $raw, 'drawing' ) ) {
+			$note = 'This sheet is a drawing from Numbers, not a table. The grids are on the other tabs. Download the Excel file to see the drawing.';
+		}
+		$out[] = array(
+			'name' => $sheet['name'],
+			'rows' => $rows,
+			'note' => $note,
+		);
 	}
-	if ( $used > 0 && $used < $width ) {
-		$out = array_map( static fn( $line ) => array_slice( $line, 0, $used ), $out );
-	}
+	$zip->close();
 	return $out;
 }
 
-function emerson_private_render_spreadsheet( string $path, string $name ): void {
-	$ext  = emerson_private_file_extension( $name );
-	$rows = 'csv' === $ext ? emerson_private_read_csv( $path ) : emerson_private_read_xlsx( $path );
-	if ( ! $rows ) {
-		emerson_private_stream_file( $path, $name, false );
-		exit;
-	}
+/**
+ * @param list<array{name:string, rows:list<list<string>>, note:string}> $sheets
+ */
+function emerson_private_render_sheets( string $name, array $sheets, int $current ): void {
 	$label    = preg_replace( '/\.(xlsx|xls|csv)$/i', '', $name );
 	$download = emerson_private_file_url( $name, true );
 	$back     = home_url( '/members/#spreadsheets' );
+	$current  = max( 0, min( $current, count( $sheets ) - 1 ) );
+	$sheet    = $sheets[ $current ];
 	nocache_headers();
 	header( 'Content-Type: text/html; charset=UTF-8' );
 	header( 'X-Content-Type-Options: nosniff' );
@@ -373,16 +534,57 @@ function emerson_private_render_spreadsheet( string $path, string $name ): void 
 	echo ' · <a href="' . esc_url( $download ) . '">Download Excel</a></p>';
 	echo '<h1>' . esc_html( $label !== '' ? $label : $name ) . '</h1>';
 	echo '<p class="emerson-private-sheet-kind">' . esc_html( emerson_private_file_kind( $name ) ) . '</p>';
-	echo '<div class="emerson-private-sheet-wrap"><table class="emerson-private-sheet">';
-	$first = true;
-	foreach ( $rows as $row ) {
-		$tag = $first ? 'th' : 'td';
-		echo '<tr>';
-		foreach ( $row as $cell ) {
-			echo '<' . $tag . '>' . esc_html( $cell ) . '</' . $tag . '>';
+	if ( count( $sheets ) > 1 ) {
+		echo '<nav class="emerson-private-sheet-tabs" aria-label="Worksheets">';
+		foreach ( $sheets as $index => $tab ) {
+			$class = $index === $current ? ' class="is-current"' : '';
+			echo '<a' . $class . ' href="' . esc_url( emerson_private_file_url( $name, false, $index ) ) . '">' . esc_html( $tab['name'] ) . '</a>';
 		}
-		echo '</tr>';
-		$first = false;
+		echo '</nav>';
 	}
-	echo '</table></div></body></html>';
+	if ( '' !== $sheet['note'] ) {
+		echo '<p class="emerson-private-sheet-note">' . esc_html( $sheet['note'] ) . '</p>';
+	}
+	if ( $sheet['rows'] ) {
+		echo '<div class="emerson-private-sheet-wrap"><table class="emerson-private-sheet">';
+		$first = true;
+		foreach ( $sheet['rows'] as $row ) {
+			$tag = $first ? 'th' : 'td';
+			echo '<tr>';
+			foreach ( $row as $cell ) {
+				echo '<' . $tag . '>' . esc_html( $cell ) . '</' . $tag . '>';
+			}
+			echo '</tr>';
+			$first = false;
+		}
+		echo '</table></div>';
+	}
+	echo '</body></html>';
+}
+
+function emerson_private_render_spreadsheet( string $path, string $name ): void {
+	$ext = emerson_private_file_extension( $name );
+	if ( 'csv' === $ext ) {
+		$sheets = array(
+			array(
+				'name' => $name,
+				'rows' => emerson_private_read_csv( $path ),
+				'note' => '',
+			),
+		);
+	} else {
+		$sheets = emerson_private_read_xlsx( $path );
+	}
+	$sheets = array_values(
+		array_filter(
+			$sheets,
+			static fn( array $sheet ): bool => $sheet['rows'] || '' !== $sheet['note']
+		)
+	);
+	if ( ! $sheets ) {
+		emerson_private_stream_file( $path, $name, false );
+		exit;
+	}
+	$current = isset( $_GET['sheet'] ) ? (int) $_GET['sheet'] : 0;
+	emerson_private_render_sheets( $name, $sheets, $current );
 }

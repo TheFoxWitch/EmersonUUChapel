@@ -1190,6 +1190,34 @@ blockquote {
 	margin: 0 0 1rem;
 }
 
+.emerson-private-sheet-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin: 0 0 1rem;
+}
+
+.emerson-private-sheet-tabs a {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0.4rem 0.75rem;
+	border: 1px solid #d5d8e8;
+	border-radius: 4px;
+	text-decoration: none;
+}
+
+.emerson-private-sheet-tabs a.is-current {
+	background: var(--emerson-blue, #3f4fa0);
+	border-color: var(--emerson-blue, #3f4fa0);
+	color: #fff;
+}
+
+.emerson-private-sheet-note {
+	margin: 0 0 1rem;
+	max-width: 40rem;
+}
+
 .emerson-private-sheet-wrap {
 	overflow-x: auto;
 }
@@ -1205,7 +1233,8 @@ blockquote {
 	border: 1px solid #ddd;
 	padding: 0.4rem 0.7rem;
 	text-align: left;
-	white-space: nowrap;
+	vertical-align: top;
+	white-space: pre-wrap;
 }
 
 .emerson-private-sheet th {
@@ -1264,10 +1293,17 @@ blockquote {
 
 @media (min-width: 1001px) {
 	.page-id-70 .church-admin-calendar,
-	.home .church-admin-calendar {
+	.home .church-admin-calendar,
+	.emerson-schedule {
 		width: 75vw;
 		max-width: 75vw;
 		margin-left: calc(50% - 37.5vw);
+	}
+
+	.emerson-schedule__grid {
+		width: 100%;
+		margin-left: 0;
+		margin-right: 0;
 	}
 
 	.page-id-70 .ca-calendar-sidebar,

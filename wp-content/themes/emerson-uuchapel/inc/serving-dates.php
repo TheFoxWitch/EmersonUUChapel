@@ -149,6 +149,49 @@ function emerson_serving_undo(): int {
 	);
 }
 
+/** The directory row for the person who is logged in, ignoring "Choose person". */
+function emerson_serving_logged_in_person(): ?object {
+	global $wpdb;
+	if ( ! is_user_logged_in() ) {
+		return null;
+	}
+	$person = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT * FROM {$wpdb->prefix}church_admin_people WHERE user_id = %d",
+			get_current_user_id()
+		)
+	);
+	return $person ?: null;
+}
+
+/**
+ * "You can serve N of the M dates listed" for one person.
+ * $own is the logged-in member. An admin editing someone else still gets "You" for their own list.
+ */
+function emerson_serving_summary_html( object $person, bool $own ): string {
+	global $wpdb;
+	$can_serve = $wpdb->get_col(
+		$wpdb->prepare(
+			'SELECT serve_date FROM ' . emerson_serving_table() . ' WHERE people_id = %d AND can_serve = 1 AND serve_date >= %s ORDER BY serve_date',
+			(int) $person->people_id,
+			current_time( 'Y-m-d' )
+		)
+	);
+	$shown     = emerson_serving_form_dates();
+	$available = array_values( array_intersect( $shown, $can_serve ) );
+	$name      = esc_html( emerson_account_name( null, $person ) );
+	if ( $available ) {
+		$who     = $own ? 'You' : $name;
+		$summary = sprintf( '%1$s can serve <strong>%2$d of the %3$d dates</strong> listed.', $who, count( $available ), count( $shown ) );
+		$summary .= ' Available: <strong>' . esc_html( implode( ', ', array_map( static fn( $d ) => mysql2date( get_option( 'date_format' ), $d ), $available ) ) ) . '</strong>.';
+	} else {
+		$summary = $own
+			? 'You haven&#8217;t ticked any dates yet. Until you do, you won&#8217;t be put on the serving schedule.'
+			: "{$name} hasn&#8217;t ticked any dates yet, so they won&#8217;t be put on the serving schedule.";
+	}
+	return '<p class="emerson-unavailable-summary">' . $summary . '</p>';
+}
+
 /** The person Church Admin's form is for: someone an admin picked with "Choose person", otherwise the member. */
 function emerson_serving_person(): ?object {
 	global $wpdb;
@@ -220,7 +263,6 @@ add_filter(
 			)
 		);
 		$name = esc_html( emerson_account_name( null, $person ) );
-		$own  = (int) $person->user_id === get_current_user_id();
 
 		$output = str_replace(
 			'<form action="" method="POST">',
@@ -229,7 +271,7 @@ add_filter(
 		);
 		$output = str_replace(
 			array( '<h2>Non availability</h2>', '<h2>Unavailable dates saved</h2>', '<h3>Please choose dates you are NOT available to serve on service schedules</h3>' ),
-			array( '<h2>Serving dates</h2>', '<h2>Your serving dates are saved</h2>', '<h3>Tick the dates you can serve</h3>' ),
+			array( '<h2 id="dates-unavailable">Serving dates</h2>', '<h2 id="dates-unavailable">Your serving dates are saved</h2>', '<h3>Tick the dates you can serve</h3>' ),
 			$output
 		);
 		if ( '' !== $name ) {
@@ -301,20 +343,39 @@ add_filter(
 			. '</p>';
 		$output = preg_replace( '#(<div class="church-admin-form-group"><input type="checkbox" name="can_serve\[\]")#', $bulk . '$1', $output, 1 );
 
-		$shown     = emerson_serving_form_dates();
-		$available = array_values( array_intersect( $shown, $can_serve ) );
-		$can       = count( $available );
-		if ( $can ) {
-			$who     = $own ? 'You' : $name;
-			$summary = sprintf( '%1$s can serve <strong>%2$d of the %3$d dates</strong> listed.', $who, $can, count( $shown ) );
-			$summary .= ' Available: <strong>' . esc_html( implode( ', ', array_map( static fn( $d ) => mysql2date( get_option( 'date_format' ), $d ), $available ) ) ) . '</strong>.';
-		} else {
-			$summary = $own
-				? 'You haven&#8217;t ticked any dates yet. Until you do, you won&#8217;t be put on the serving schedule.'
-				: "{$name} hasn&#8217;t ticked any dates yet, so they won&#8217;t be put on the serving schedule.";
-		}
-		return preg_replace( '#(<h3>Tick the dates)#', '<p class="emerson-unavailable-summary">' . $summary . '</p>$1', $output, 1 );
+		return $output;
 	},
 	12,
 	2
+);
+
+// The logged-in person's dates replace "My schedule". Choosing another person does not change this list.
+add_filter(
+	'do_shortcode_tag',
+	static function ( $output, $tag ) {
+		if ( 'church_admin' !== $tag || ! is_string( $output ) || ! str_contains( $output, 'church-admin-my-rota' ) ) {
+			return $output;
+		}
+		$person = emerson_serving_logged_in_person();
+		if ( ! $person ) {
+			return $output;
+		}
+		$summary = emerson_serving_summary_html( $person, true );
+		$updated = preg_replace( '#<h2>\s*My schedule\s*</h2>#', $summary, $output, 1, $count );
+		return $count ? $updated : $output;
+	},
+	13,
+	2
+);
+
+// "Dates I can serve" is the same list, so the heading goes. The form below keeps #dates-unavailable.
+add_filter(
+	'the_content',
+	static function ( $content ) {
+		if ( ! is_string( $content ) || ( ! is_page( 32 ) && ! is_page( 'members' ) ) ) {
+			return $content;
+		}
+		return (string) preg_replace( '#<h4[^>]*\bid="dates-unavailable"[^>]*>.*?</h4>#s', '', $content );
+	},
+	9
 );

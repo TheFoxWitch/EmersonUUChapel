@@ -12,9 +12,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-16
 
+### Homepage: Re-commitment Form
+- A **Re-commitment Form** button sits with **2024-25 Pledge Form** and **Approximate Paypal Fees**. It opens a form on the homepage: name, pledge (dollars and cents), monthly / quarterly / annually, the date payments continue, a phone number, an email address, a drawn signature, and the date signed. Both dates start as today and move forward each day. Submit emails `office@emersonuuchapel.org`, with the person's email as the reply address. On this local copy that message follows the usual test redirect.
+- The president's draft said "montthy" and "comminutment". The form says **monthly** and **commitment**.
+- **File:** `inc/recommitment.php`, `assets/js/recommitment.js`, `assets/css/custom.css`. The button is added when the homepage is shown, so the page content in the database is unchanged.
+
 ### Giving: PayPal fee calculator opens on the page
-- **Approximate PayPal Fees** on Make a Contribution (`/make-a-contribution/`) opens the existing calculator in a dialog instead of going to `/approximate-paypal-fees/`. That page is still there if the dialog cannot open. The dialog slides down when it opens and back up when it closes.
-- **Local DB:** page 49. Backup: `backups/pages/page-49-before-paypal-fees-dialog.html`.
+- **Approximate PayPal Fees** on the homepage and on Make a Contribution (`/make-a-contribution/`) opens the existing calculator in a dialog. It slides down when it opens and back up when it closes. The standalone page (`/approximate-paypal-fees/`) is still published, and nothing on the site links to it.
+- **Local DB:** homepage (page 15) and page 49. Backups: `backups/pages/page-15-before-homepage-paypal-fees-dialog.html`, `backups/pages/page-49-before-paypal-fees-dialog.html`, `backups/pages/page-49-before-removing-paypal-fees-link.html`.
 - **File:** `assets/js/custom.js`, `assets/css/custom.css`.
 
 ### Engage: the bottom buttons accept a click on their full height

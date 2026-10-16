@@ -225,10 +225,28 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	border-radius: 25px;
 	transition: all 0.3s ease-in-out;
 }
+button.wp-block-button__link[data-emerson-paypal-fees] {
+	border: 0;
+	font: inherit;
+	cursor: pointer;
+}
 .paypal-fees-button .wp-block-button__link:hover,
 .newcomer-button .wp-block-button__link:hover,
 .newsletter-button .wp-block-button__link:hover,
 .bylaws-button .wp-block-button__link:hover {
+	background: var(--emerson-blue);
+	color: #fff;
+	transform: scale(1.05);
+}
+.recommit-button .wp-block-button__link {
+	border: 2px solid var(--emerson-blue);
+	border-radius: 25px;
+	background: #fff;
+	color: var(--emerson-blue);
+	transition: all 0.3s ease-in-out;
+}
+.recommit-button .wp-block-button__link:hover,
+.recommit-button .wp-block-button__link:focus-visible {
 	background: var(--emerson-blue);
 	color: #fff;
 	transform: scale(1.05);
@@ -294,7 +312,177 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 .emerson-paypal-fees h2 {
 	margin: 0.35rem 0 0.75rem;
 	font-size: 1.35rem;
-}   
+}
+
+.emerson-recommit {
+	width: min(40rem, calc(100vw - 2rem));
+	max-height: min(85vh, 44rem);
+	overflow: auto;
+	padding: 1.25rem 1.35rem 1.5rem;
+	border: 0;
+	border-radius: 16px;
+	box-shadow: 0 12px 36px rgba(20, 24, 50, 0.22);
+	transform: translateY(0);
+	opacity: 1;
+	transition: transform 0.45s ease, opacity 0.45s ease;
+}
+.emerson-recommit.is-opening {
+	transform: translateY(calc(-50vh - 50%));
+	opacity: 0;
+	transition: none;
+}
+.emerson-recommit.is-closing {
+	transform: translateY(calc(-50vh - 50%));
+	opacity: 0;
+}
+.emerson-recommit::backdrop {
+	background: rgba(20, 24, 50, 0.35);
+}
+.emerson-recommit__close {
+	float: right;
+	min-height: 44px;
+	margin: 0 0 0.5rem 0.75rem;
+	padding: 0.35rem 0.9rem;
+	border: 2px solid #1e1e1e;
+	border-radius: 999px;
+	background: #fff;
+	font: inherit;
+	cursor: pointer;
+}
+.emerson-recommit h2 {
+	margin: 0.35rem 0 0.75rem;
+	font-size: 1.35rem;
+}
+.emerson-recommit .screen-reader-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
+}
+.emerson-recommit__sentence,
+.emerson-recommit__sign {
+	line-height: 2.2;
+	margin: 0 0 1rem;
+}
+.emerson-recommit input[type="text"],
+.emerson-recommit input[type="email"],
+.emerson-recommit input[type="tel"],
+.emerson-recommit input[type="date"],
+.emerson-recommit select {
+	font: inherit;
+	min-height: 44px;
+	margin: 0.15rem 0.25rem;
+	padding: 0.2rem 0.35rem;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	color: #1e1e1e;
+}
+.emerson-recommit input[type="text"],
+.emerson-recommit input[type="email"],
+.emerson-recommit input[type="tel"] {
+	border-bottom: 2px solid #1e1e1e;
+}
+.emerson-recommit input[type="date"] {
+	width: 6.65em;
+	padding: 0.2rem 0;
+}
+.emerson-recommit input[type="date"]::-webkit-datetime-edit,
+.emerson-recommit input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+	padding: 0;
+	margin: 0;
+}
+.emerson-recommit input[type="date"]::-webkit-calendar-picker-indicator {
+	width: 1em;
+	height: 1em;
+	margin: 0 0 0 4px;
+	padding: 0;
+	cursor: pointer;
+}
+.emerson-recommit select {
+	field-sizing: content;
+	width: auto;
+	appearance: none;
+	padding: 0.2rem calc(0.65em + 4px) 0.2rem 0;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%231e1e1e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.25L6 6.25 11 1.25'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right center;
+	background-size: 0.65em;
+	cursor: pointer;
+}
+.emerson-recommit__contact {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 1.5rem;
+	margin: 0 0 1rem;
+}
+.emerson-recommit__contact label {
+	display: flex;
+	flex: 1 1 12rem;
+	flex-direction: column;
+	gap: 0.15rem;
+	line-height: 1.3;
+}
+.emerson-recommit__contact input {
+	width: 100%;
+	box-sizing: border-box;
+}
+.emerson-recommit__money {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.15rem;
+	white-space: nowrap;
+}
+.emerson-recommit__pledge {
+	width: 7.5rem;
+}
+.emerson-recommit__pad {
+	display: block;
+	width: 100%;
+	height: 140px;
+	margin: 0.35rem 0;
+	border: 2px solid #1e1e1e;
+	border-radius: 12px;
+	background: #fff;
+	touch-action: none;
+	cursor: crosshair;
+}
+.emerson-recommit__clear,
+.emerson-recommit__submit {
+	min-height: 44px;
+	padding: 0.35rem 1rem;
+	border: 2px solid var(--emerson-blue);
+	border-radius: 999px;
+	background: #fff;
+	color: var(--emerson-blue);
+	font: inherit;
+	cursor: pointer;
+}
+.emerson-recommit__submit {
+	background: var(--emerson-blue);
+	color: #fff;
+	font-weight: 600;
+}
+.emerson-recommit__status {
+	min-height: 1.4em;
+	margin: 0.75rem 0;
+}
+.emerson-recommit__status.is-error {
+	color: #b00020;
+}
+.emerson-recommit__hp {
+	position: absolute;
+	left: -9999px;
+}
+@media (prefers-reduced-motion: reduce) {
+	.emerson-recommit {
+		transition: none;
+	}
+}
 /** End Buttons on the home page **/
 
 /* Members page: Profile Builder login / profile / password forms */

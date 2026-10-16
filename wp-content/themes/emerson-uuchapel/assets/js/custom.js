@@ -17,7 +17,7 @@
 		true
 	);
 
-	// Giving page: open the PayPal fee calculator here instead of leaving for its own page.
+	// Homepage and giving page: open the PayPal fee calculator here. The standalone page stays, with no link to it.
 	document.addEventListener('click', function (event) {
 		var link = event.target.closest ? event.target.closest('[data-emerson-paypal-fees]') : null;
 		var dialog = document.getElementById('emerson-paypal-fees');

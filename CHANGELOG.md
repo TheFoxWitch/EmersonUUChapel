@@ -10,6 +10,36 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-16
+
+### Giving: PayPal fee calculator opens on the page
+- **Approximate PayPal Fees** on Make a Contribution (`/make-a-contribution/`) opens the existing calculator in a dialog instead of going to `/approximate-paypal-fees/`. That page is still there if the dialog cannot open. The dialog slides down when it opens and back up when it closes.
+- **Local DB:** page 49. Backup: `backups/pages/page-49-before-paypal-fees-dialog.html`.
+- **File:** `assets/js/custom.js`, `assets/css/custom.css`.
+
+### Engage: the bottom buttons accept a click on their full height
+- **Make a Contribution** and **Sign up for Newsletter** only responded on the top half. The empty comments block under the page was sitting on the lower half. Clicks now pass through that empty padding.
+- **File:** `assets/css/custom.css`.
+
+### Newsletter invitation
+- Closing the homepage pop-up still hides it for 30 days. Signing up hides it until **Clear the newsletter reminder** on the Cookies page.
+- **File:** `assets/js/newsletter.js`.
+
+### Cookie notice, Cookies page, and Terms of Use
+- A short notice, in the spirit of Etsy’s, says the site uses cookies to stay signed in and to remember the newsletter invitation. **Okay** hides it on that browser. **Manage your preferences** goes to the new Cookies page, which can clear those notes. Terms of Use is new too. The footer links all three.
+- **File:** `inc/cookies.php`, `assets/js/cookies.js`, `assets/css/custom.css`, `patterns/footer.php`.
+- **Local DB:** pages 1075 Cookies and 1076 Terms of Use. Privacy Policy (page 3) now links to Cookies. Backup: `backups/pages/page-3-before-cookies-link.html`.
+
+## 2026-10-15
+
+### Ask the church about the Order of Service page
+- Checklist section 4 now asks whether **Order of Service** (`/order-of-service/`, page 211) should be updated, removed, or changed.
+- **File:** `TEST-AND-LAUNCH-CHECKLIST.md`.
+
+### Womyn’s Web: GroupMe join link
+- The Join line under **Womyn’s Web** on Engage now includes **join the GroupMe** (`https://groupme.com/join_group/57524824/J6dXBTm5`), alongside the newsletter, social media, and calendar. Men’s Night is unchanged.
+- **Local DB:** page 68. Backup: `backups/pages/page-68-before-womyns-web-groupme.html`.
+
 ## 2026-10-14
 
 ### Service Schedule calendar matches the 75% width

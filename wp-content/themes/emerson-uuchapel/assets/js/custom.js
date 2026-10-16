@@ -17,6 +17,74 @@
 		true
 	);
 
+	// Giving page: open the PayPal fee calculator here instead of leaving for its own page.
+	document.addEventListener('click', function (event) {
+		var link = event.target.closest ? event.target.closest('[data-emerson-paypal-fees]') : null;
+		var dialog = document.getElementById('emerson-paypal-fees');
+		if (!link || !dialog || typeof dialog.showModal !== 'function') {
+			return;
+		}
+		event.preventDefault();
+		if (dialog.open || dialog.classList.contains('is-closing')) {
+			return;
+		}
+		var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (!reduceMotion) {
+			dialog.classList.add('is-opening');
+		}
+		dialog.showModal();
+		if (!reduceMotion) {
+			// Apply the off-screen start before removing it, or the slide has nothing to move from.
+			void getComputedStyle(dialog).transform;
+			dialog.classList.remove('is-opening');
+		}
+	});
+	var paypalFees = document.getElementById('emerson-paypal-fees');
+	if (paypalFees) {
+		function closePaypalFees() {
+			if (!paypalFees.open || paypalFees.classList.contains('is-closing')) {
+				return;
+			}
+			var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			if (reduceMotion) {
+				paypalFees.close();
+				return;
+			}
+			paypalFees.classList.add('is-closing');
+			var finished = false;
+			function done(event) {
+				if (event && (event.target !== paypalFees || event.propertyName !== 'transform')) {
+					return;
+				}
+				if (finished) {
+					return;
+				}
+				finished = true;
+				paypalFees.removeEventListener('transitionend', done);
+				paypalFees.classList.remove('is-closing');
+				paypalFees.close();
+			}
+			paypalFees.addEventListener('transitionend', done);
+			window.setTimeout(done, 500);
+		}
+
+		paypalFees.addEventListener('click', function (event) {
+			if (event.target === paypalFees) {
+				closePaypalFees();
+			}
+		});
+		paypalFees.addEventListener('cancel', function (event) {
+			event.preventDefault();
+			closePaypalFees();
+		});
+		var paypalFeesClose = paypalFees.querySelector('.emerson-paypal-fees__close');
+		if (paypalFeesClose) {
+			paypalFeesClose.addEventListener('click', function () {
+				closePaypalFees();
+			});
+		}
+	}
+
 	// Yearly Planner dropdown: Church Admin names every copy "guideform", so document.guideform
 	// can be a list and picking 2027/2028 goes nowhere. Use this select's own value.
 	document.querySelectorAll('form[name="guideform"] select[name="guidelinks"]').forEach(function (select) {

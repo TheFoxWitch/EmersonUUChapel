@@ -168,7 +168,7 @@ The backup was made in March 2025, so WP-Cron jobs such as Zephyr reminders and 
 It's intentionally hidden:
 - **when you're logged in**, so test in a private window;
 - **on pages other than the homepage**;
-- **for 30 days after you close it**, and **for good after you sign up**. The browser remembers this under `localStorage` → `emersonNewsletter`.
+- **for 30 days after you close it**, and **until the Cookies page clears the note after you sign up**. The browser remembers this under `localStorage` → `emersonNewsletter`.
 
 **To reset it:** open DevTools (`Cmd + Option + I`) → Console → `localStorage.removeItem('emersonNewsletter')` → reload.
 

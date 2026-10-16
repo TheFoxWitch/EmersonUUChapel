@@ -74,9 +74,15 @@ $privacy_url = get_privacy_policy_url();
 
 	<div class="emerson-footer__bottom">
 		<p>&copy; <?php echo esc_html( wp_date( 'Y' ) ); ?> Emerson Unitarian Universalist Chapel</p>
-		<?php if ( $privacy_url ) : ?>
-			<p><a href="<?php echo esc_url( $privacy_url ); ?>">Privacy Policy</a></p>
-		<?php endif; ?>
+		<p class="emerson-footer__legal">
+			<?php if ( $privacy_url ) : ?>
+				<a href="<?php echo esc_url( $privacy_url ); ?>">Privacy Policy</a>
+				<span aria-hidden="true"> · </span>
+			<?php endif; ?>
+			<a href="<?php echo esc_url( home_url( '/cookies/' ) ); ?>">Cookies</a>
+			<span aria-hidden="true"> · </span>
+			<a href="<?php echo esc_url( home_url( '/terms-of-use/' ) ); ?>">Terms of Use</a>
+		</p>
 	</div>
 </div>
 <!-- /wp:html -->

@@ -1,7 +1,8 @@
 /**
  * Newsletter sign-up: homepage pop-up timing and in-page form submission.
- * The browser remembers "subscribed" (never show again) or "dismissed" (show again after 30 days)
- * in localStorage under emersonNewsletter. No name or email is stored.
+ * The browser remembers "subscribed" (stay hidden until the Cookies page clears it)
+ * or "dismissed" (show again after 30 days) in localStorage under emersonNewsletter.
+ * No name or email is stored.
  */
 (function () {
 	'use strict';

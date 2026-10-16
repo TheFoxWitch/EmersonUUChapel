@@ -34,6 +34,15 @@ add_action(
 			(string) filemtime( $newsletter_js ),
 			true
 		);
+
+		$cookies_js = get_stylesheet_directory() . '/assets/js/cookies.js';
+		wp_enqueue_script(
+			'emerson-uuchapel-cookies',
+			get_stylesheet_directory_uri() . '/assets/js/cookies.js',
+			array(),
+			(string) filemtime( $cookies_js ),
+			true
+		);
 	}
 );
 
@@ -49,3 +58,4 @@ require_once get_stylesheet_directory() . '/inc/service-schedule.php';
 require_once get_stylesheet_directory() . '/inc/site-icon.php';
 require_once get_stylesheet_directory() . '/inc/navigation.php';
 require_once get_stylesheet_directory() . '/inc/private-files.php';
+require_once get_stylesheet_directory() . '/inc/cookies.php';

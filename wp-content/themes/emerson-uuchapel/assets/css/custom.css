@@ -233,7 +233,68 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	color: #fff;
 	transform: scale(1.05);
 }
-/** End Approximate Paypal Fees **/   
+
+/* Bottom page buttons use a negative margin so the gap under them stays even.
+   That slides the empty comments block up over the lower half of the buttons
+   and steals those clicks. Clicks fall through the padding; a real comment
+   form still receives them. */
+main > section.wp-block-template-part {
+	pointer-events: none;
+}
+main > section.wp-block-template-part :is(a, button, input, textarea, select, label) {
+	pointer-events: auto;
+}
+/** End Approximate Paypal Fees **/
+
+.emerson-paypal-fees {
+	width: min(36rem, calc(100vw - 2rem));
+	max-height: min(85vh, 40rem);
+	padding: 1.25rem 1.35rem 1.5rem;
+	border: 0;
+	border-radius: 16px;
+	box-shadow: 0 12px 36px rgba(20, 24, 50, 0.22);
+	transform: translateY(0);
+	opacity: 1;
+	transition: transform 0.45s ease, opacity 0.45s ease;
+}
+
+.emerson-paypal-fees.is-opening {
+	transform: translateY(calc(-50vh - 50%));
+	opacity: 0;
+	transition: none;
+}
+
+.emerson-paypal-fees.is-closing {
+	transform: translateY(calc(-50vh - 50%));
+	opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.emerson-paypal-fees {
+		transition: none;
+	}
+}
+
+.emerson-paypal-fees::backdrop {
+	background: rgba(20, 24, 50, 0.35);
+}
+
+.emerson-paypal-fees__close {
+	float: right;
+	min-height: 44px;
+	margin: 0 0 0.5rem 0.75rem;
+	padding: 0.35rem 0.9rem;
+	border: 2px solid #1e1e1e;
+	border-radius: 999px;
+	background: #fff;
+	font: inherit;
+	cursor: pointer;
+}
+
+.emerson-paypal-fees h2 {
+	margin: 0.35rem 0 0.75rem;
+	font-size: 1.35rem;
+}   
 /** End Buttons on the home page **/
 
 /* Members page: Profile Builder login / profile / password forms */
@@ -851,7 +912,85 @@ blockquote {
 	border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-.emerson-footer__bottom p {
+.emerson-footer__bottom p,
+.emerson-footer__legal {
+	margin: 0;
+}
+
+.emerson-cookie-notice {
+	position: fixed;
+	z-index: 100001;
+	left: 1rem;
+	right: 1rem;
+	bottom: 1rem;
+	max-width: 26rem;
+	margin-right: auto;
+	margin-left: auto;
+	padding: 1.25rem 1.35rem 1.15rem;
+	background: #fff;
+	color: #1e1e1e;
+	border-radius: 16px;
+	box-shadow: 0 10px 32px rgba(20, 24, 50, 0.18);
+}
+
+.emerson-cookie-notice[hidden] {
+	display: none;
+}
+
+.emerson-cookie-notice h2 {
+	margin: 0 0 0.55rem;
+	font-size: 1.25rem;
+	line-height: 1.3;
+}
+
+.emerson-cookie-notice p {
+	margin: 0 0 1rem;
+	line-height: 1.45;
+}
+
+.emerson-cookie-notice a {
+	color: inherit;
+}
+
+.emerson-cookie-notice__ok {
+	min-height: 44px;
+	padding: 0.35rem 1.35rem;
+	border: 2px solid #1e1e1e;
+	border-radius: 999px;
+	background: #fff;
+	color: #1e1e1e;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.emerson-cookie-notice__ok:hover,
+.emerson-cookie-notice__ok:focus-visible {
+	background: #1e1e1e;
+	color: #fff;
+}
+
+.emerson-cookie-pref {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	margin: 0.75rem 0 0.35rem;
+}
+
+.emerson-cookie-pref button {
+	min-height: 44px;
+	padding: 0.35rem 0.9rem;
+	border: 2px solid var(--emerson-blue, #3f4fa0);
+	border-radius: 999px;
+	background: #fff;
+	color: var(--emerson-blue, #3f4fa0);
+	font: inherit;
+	cursor: pointer;
+}
+
+.emerson-cookie-pref__status {
+	flex-basis: 100%;
+	min-height: 1.4em;
 	margin: 0;
 }
 

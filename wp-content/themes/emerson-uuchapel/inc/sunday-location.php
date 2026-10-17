@@ -130,6 +130,75 @@ function emerson_sunday_split_place( string $place ): array {
 	);
 }
 
+/**
+ * Sunday Service rows from Church Admin, keyed by date.
+ *
+ * @return array<string, array{date:string,time:string,title:string,venue:string,address:string,place:string}>
+ */
+function emerson_sunday_bases_between( string $from, string $until ): array {
+	global $wpdb;
+	if ( ! function_exists( 'church_admin_premium_level_check' ) ) {
+		return array();
+	}
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT a.start_date, a.start_time, a.title, a.location
+			FROM {$wpdb->prefix}church_admin_calendar_date a
+			JOIN {$wpdb->prefix}church_admin_calendar_category b ON a.cat_id = b.cat_id
+			WHERE b.category = 'Sunday Service' AND a.start_date BETWEEN %s AND %s
+			ORDER BY a.start_date, a.start_time",
+			$from,
+			$until
+		)
+	);
+	$out = array();
+	foreach ( $rows as $row ) {
+		$date = substr( (string) $row->start_date, 0, 10 );
+		if ( isset( $out[ $date ] ) ) {
+			continue;
+		}
+		$raw   = trim( (string) $row->location );
+		$parts = emerson_sunday_split_place( $raw !== '' ? $raw : EMERSON_SUNDAY_DEFAULT_PLACE );
+		$out[ $date ] = array(
+			'date'    => $date,
+			'time'    => $row->start_time ?: EMERSON_SUNDAY_DEFAULT_TIME,
+			'title'   => $row->title ?: 'Sunday Service',
+			'venue'   => $parts['venue'],
+			'address' => $parts['address'],
+			'place'   => $parts['place'],
+		);
+	}
+	return $out;
+}
+
+/**
+ * The place line for one Sunday: the Church Admin location when it has one,
+ * otherwise the usual YMCA, unless Sunday Location has moved or cancelled it.
+ */
+function emerson_sunday_place_line( string $date ): string {
+	static $bases = null;
+	if ( $bases === null ) {
+		$today = current_time( 'Y-m-d' );
+		$bases = emerson_sunday_bases_between(
+			gmdate( 'Y-m-01', strtotime( $today . ' -1 month' ) ),
+			gmdate( 'Y-m-t', strtotime( $today . ' +24 months' ) )
+		);
+	}
+	$base  = $bases[ $date ] ?? array(
+		'date'    => $date,
+		'time'    => EMERSON_SUNDAY_DEFAULT_TIME,
+		'title'   => 'Sunday Service',
+		'venue'   => EMERSON_SUNDAY_DEFAULT_VENUE,
+		'address' => EMERSON_SUNDAY_DEFAULT_ADDRESS,
+		'place'   => EMERSON_SUNDAY_DEFAULT_PLACE,
+	);
+	$shown = emerson_sunday_display( $base );
+	if ( ( $shown['status'] ?? '' ) === 'cancelled' ) {
+		return '';
+	}
+	return trim( (string) ( $shown['place'] ?? '' ) );
+}
+
 function emerson_sunday_display( array $base ): array {
 	$date   = $base['date'];
 	$ex     = emerson_sunday_exception( $date );
@@ -399,30 +468,45 @@ function emerson_sunday_admin_save(): ?string {
 		$prev_key = ( $prev['status'] ?? '' ) . '|' . ( $prev['time'] ?? '' ) . '|' . ( $prev['venue'] ?? '' ) . '|' . ( $prev['address'] ?? $prev['place'] ?? '' );
 		$new_key  = $saved['status'] . '|' . $saved['time'] . '|' . $saved['venue'] . '|' . $saved['address'];
 		$already  = ( $prev['notified'] ?? '' ) === $new_key;
+		$saved['notified'] = $already ? $new_key : ( $prev['notified'] ?? '' );
 		if ( $prev_key !== $new_key && ! $already ) {
-			$display = emerson_sunday_display( array_merge( $base, array() ) );
-			$display['time']    = $saved['time'];
-			$display['venue']   = $saved['venue'];
-			$display['address'] = $saved['address'];
-			$display['place']   = $saved['place'];
-			$display['note']    = $saved['note'];
-			$display['status']  = $saved['status'];
-			$count = emerson_sunday_notify( $date, $status, $display );
-			$saved['notified'] = $new_key;
-			$notices[] = sprintf(
-				'%1$s is %2$s. Emailed %3$d %4$s who were signed up to serve (and the office).',
-				emerson_sunday_format_date( $date ),
-				$status,
-				$count,
-				1 === $count ? 'person' : 'people'
-			);
-		} else {
-			$saved['notified'] = $prev['notified'] ?? $new_key;
+			// Claim this exact change before any mail goes out. Mail is slow, and a
+			// second click used to start another send before the first one recorded
+			// that these people had already been told.
+			$claim = 'emerson_sunday_mailed_' . md5( $date . '|' . $new_key );
+			if ( add_option( $claim, time(), '', false ) ) {
+				$saved['notified'] = $new_key;
+				$pending[]         = array(
+					'date'    => $date,
+					'status'  => $status,
+					'display' => array(
+						'time'    => $saved['time'],
+						'venue'   => $saved['venue'],
+						'address' => $saved['address'],
+						'place'   => $saved['place'],
+						'note'    => $saved['note'],
+						'status'  => $saved['status'],
+					),
+				);
+			} else {
+				$saved['notified'] = $new_key;
+			}
 		}
 		$next[ $date ] = $saved;
 	}
 
 	update_option( EMERSON_SUNDAY_OPTION, $next, false );
+
+	foreach ( $pending ?? array() as $item ) {
+		$count     = emerson_sunday_notify( $item['date'], $item['status'], $item['display'] );
+		$notices[] = sprintf(
+			'%1$s is %2$s. Emailed %3$d %4$s who were signed up to serve (and the office).',
+			emerson_sunday_format_date( $item['date'] ),
+			$item['status'],
+			$count,
+			1 === $count ? 'person' : 'people'
+		);
+	}
 	if ( $notices ) {
 		return implode( ' ', $notices );
 	}
@@ -440,7 +524,7 @@ function emerson_sunday_admin_page(): void {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
 	}
 	echo '<p>The homepage says <strong>This week, meet us at [time], at the [place] located at [address]</strong>. Leave a date as <strong>Regular</strong> unless that service is cancelled or moved. Saving Cancelled or Moved emails anyone assigned that day or who ticked they can serve, plus the office.</p>';
-	echo '<form method="post">';
+	echo '<form method="post" onsubmit="if (this.dataset.emersonSaved) { return false; } this.dataset.emersonSaved = \'1\';">';
 	wp_nonce_field( 'emerson_sunday_save' );
 	echo '<table class="widefat striped"><thead><tr>';
 	echo '<th>Sunday</th><th>Status</th><th>Time</th><th>At the</th><th>Located at</th><th>Note</th><th>Signed up</th>';

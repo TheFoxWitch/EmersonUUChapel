@@ -84,7 +84,7 @@ add_shortcode(
 		$links = array(
 			sprintf( '<a href="%s">Edit my profile or password</a>', esc_url( home_url( '/edit-profile/' ) ) ),
 		);
-		if ( current_user_can( 'edit_posts' ) ) {
+		if ( current_user_can( 'edit_pages' ) ) {
 			$links[] = sprintf( '<a href="%s">WordPress dashboard</a>', esc_url( admin_url() ) );
 		}
 		if ( current_user_can( 'manage_options' ) || emerson_has_church_admin_permission( $user->ID ) ) {
@@ -282,7 +282,7 @@ add_filter(
 add_filter(
 	'login_redirect',
 	static function ( $redirect_to, $requested, $user ) {
-		if ( ! $user instanceof WP_User || user_can( $user, 'edit_posts' ) ) {
+		if ( ! $user instanceof WP_User || user_can( $user, 'edit_pages' ) ) {
 			return $redirect_to;
 		}
 		$requested = (string) $requested;

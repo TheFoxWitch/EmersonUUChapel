@@ -334,6 +334,9 @@ function emerson_schedule_detail_html( array $row, string $class = 'emerson-ca-s
 	if ( $row['speaker'] !== '' ) {
 		$parts[] = '<span class="' . esc_attr( $class ) . '__speaker">' . esc_html( $row['speaker'] ) . '</span>';
 	}
+	if ( ( $row['location'] ?? '' ) !== '' ) {
+		$parts[] = '<span class="' . esc_attr( $class ) . '__location">' . esc_html( $row['location'] ) . '</span>';
+	}
 	return $parts ? '<span class="' . esc_attr( $class ) . '">' . implode( '', $parts ) . '</span>' : '';
 }
 
@@ -363,9 +366,10 @@ add_action(
 		$sundays = array();
 		foreach ( $data['sundays'] as $ymd => $row ) {
 			$public = array(
-				'holiday' => $row['holiday'] ?? '',
-				'title'   => $row['title'] ?? '',
-				'speaker' => $row['speaker'] ?? '',
+				'holiday'  => $row['holiday'] ?? '',
+				'title'    => $row['title'] ?? '',
+				'speaker'  => $row['speaker'] ?? '',
+				'location' => function_exists( 'emerson_sunday_place_line' ) ? emerson_sunday_place_line( $ymd ) : '',
 			);
 			if ( $can && ! empty( $row['roster'] ) && is_array( $row['roster'] ) ) {
 				$public['roster'] = $row['roster'];
@@ -426,9 +430,10 @@ function emerson_schedule_decorate_list( string $html ): string {
 			}
 			$detail = emerson_schedule_detail_html(
 				array(
-					'holiday' => $row['holiday'],
-					'title'   => '',
-					'speaker' => $row['speaker'],
+					'holiday'  => $row['holiday'],
+					'title'    => '',
+					'speaker'  => $row['speaker'],
+					'location' => function_exists( 'emerson_sunday_place_line' ) ? emerson_sunday_place_line( $ymd ) : '',
 				),
 				'emerson-ca-list'
 			);

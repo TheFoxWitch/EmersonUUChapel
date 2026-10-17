@@ -123,6 +123,12 @@ Set **Status** back to **Regular** and click **Save Sundays**. The homepage and 
 
 Saving **Cancelled** or **Moved** a second time, with the same time and place, does not email people again. Changing the time or place on a Moved Sunday does.
 
+## Serving sign-ups — where admins see them
+
+**Church Admin Premium → Serving sign-ups** is in the left WordPress menu. Hover **Church Admin Premium** and choose **Serving sign-ups**. It is not inside the Calendar module, and editing a calendar event does not show it. The same link is at the top of the Church Admin home screen, and under **Church Admin** in the top admin bar.
+
+**Who can open it:** Administrators, Editors, and the people designated to view the Sunday schedule.
+
 ### If the church’s usual meeting place changes for good
 
 That is not a one-Sunday Moved. Ask the intern: the default YMCA line lives in `inc/sunday-location.php`, and Visit Us (page 58) still has to match (section 4).
@@ -146,6 +152,14 @@ Click the gallery so the gallery toolbar shows. Choose **Add**, pick a photo fro
 ### Change the order
 
 Drag a photo to a new spot in the grid, then update the page.
+
+## Homepage sermon video — how it stays current
+
+Between the two lines under “Sign up for our Newsletter!” and above “New to Emerson?” the homepage plays the newest sermon. It is the same list as **Past Sermons** and the three videos on **Sunday Services**.
+
+**Who can do this:** whoever adds sermons in **Video Gallery**.
+
+**Where:** WordPress admin → **Video Gallery** → add the new sermon and paste its YouTube link. Set the video’s date to that Sunday (Publish box), the same way the other sermon pages stay in order. The homepage player changes on the next visit. Leave the homepage shortcode as it is.
 
 ## Sunday Schedule spreadsheet — how to update the URL
 

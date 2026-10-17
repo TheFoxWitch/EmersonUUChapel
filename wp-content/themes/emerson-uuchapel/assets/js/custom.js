@@ -236,7 +236,7 @@
 		function detailHtml(row, extraClass) {
 			var wrap = document.createElement('span');
 			wrap.className = extraClass || 'emerson-ca-service';
-			['title', 'holiday', 'speaker'].forEach(function (key) {
+			['title', 'holiday', 'speaker', 'location'].forEach(function (key) {
 				if (!row[key]) {
 					return;
 				}
@@ -441,14 +441,14 @@
 			return (data.events && data.events[ymd]) || [];
 		}
 
-		function eventMark(item) {
+		function eventMark(item, showLocation) {
 			var mark = document.createElement('span');
 			mark.className = 'emerson-ca-event';
 			var title = document.createElement('span');
 			title.className = 'emerson-ca-event__title';
 			title.textContent = (item && item.label) || (item && item.title) || '';
 			mark.appendChild(title);
-			if (item && item.location) {
+			if (showLocation !== false && item && item.location) {
 				var loc = document.createElement('span');
 				loc.className = 'emerson-ca-event__location';
 				loc.textContent = item.location;
@@ -485,7 +485,8 @@
 				}
 				extras.forEach(function (item) {
 					if (item && item.title) {
-						day.appendChild(eventMark(item));
+						var inCell = !/board meeting/i.test(item.title);
+						day.appendChild(eventMark(item, inCell));
 					}
 				});
 				if (mark) {
@@ -544,7 +545,8 @@
 						{
 							title: '',
 							holiday: row.holiday,
-							speaker: row.speaker
+							speaker: row.speaker,
+							location: row.location || ''
 						}
 					)
 				);
@@ -563,6 +565,48 @@
 			if (mark) {
 				extraHost.appendChild(mark);
 			}
+			var places = [];
+			if (row && row.location) {
+				places.push(row.location);
+			}
+			extras.forEach(function (item) {
+				if (item && item.location && places.indexOf(item.location) === -1) {
+					places.push(item.location);
+				}
+			});
+			shrinkPlaces(list, places);
+		}
+
+		function shrinkPlaces(root, places) {
+			if (!root || !places.length) {
+				return;
+			}
+			root.querySelectorAll('.emerson-ca-place').forEach(function (span) {
+				var parent = span.parentNode;
+				while (span.firstChild) {
+					parent.insertBefore(span.firstChild, span);
+				}
+				parent.removeChild(span);
+			});
+			var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+			var hits = [];
+			var node;
+			while ((node = walker.nextNode())) {
+				var text = node.textContent.replace(/\s+/g, ' ').trim();
+				if (places.indexOf(text) === -1) {
+					continue;
+				}
+				if (node.parentElement && node.parentElement.classList.contains('emerson-ca-service__location')) {
+					continue;
+				}
+				hits.push(node);
+			}
+			hits.forEach(function (textNode) {
+				var span = document.createElement('span');
+				span.className = 'emerson-ca-place';
+				textNode.parentNode.insertBefore(span, textNode);
+				span.appendChild(textNode);
+			});
 		}
 
 		function fitDayCopy() {
@@ -902,7 +946,8 @@
 					detailHtml({
 						title: row.title || 'Sunday Service',
 						holiday: row.holiday || '',
-						speaker: row.speaker || ''
+						speaker: row.speaker || '',
+						location: row.location || ''
 					})
 				);
 				var roster = rosterHtml(row);

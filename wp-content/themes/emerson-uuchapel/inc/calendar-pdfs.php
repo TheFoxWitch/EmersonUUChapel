@@ -189,6 +189,9 @@ function emerson_pdf_day_lines( string $time, string $fallback_title, ?array $sh
 	if ( $speaker !== '' ) {
 		$lines[] = 'Speaker: ' . $speaker;
 	}
+	if ( ( $sheet['location'] ?? '' ) !== '' ) {
+		$lines[] = $sheet['location'];
+	}
 	if ( $elevated ) {
 		foreach ( $labels as $key => $label ) {
 			if ( ( $roster[ $key ] ?? '' ) !== '' ) {
@@ -263,6 +266,9 @@ function emerson_pdf_month_events( int $year, int $month ): array {
 		$mine  = emerson_pdf_sheet_jobs( $sheet, $names, $rota[ $day ] ?? array() );
 		$title = trim( (string) $row->title );
 		if ( emerson_calendar_is_sunday_service( $title ) && is_array( $sheet ) ) {
+			if ( function_exists( 'emerson_sunday_place_line' ) ) {
+				$sheet['location'] = emerson_sunday_place_line( $ymd );
+			}
 			$events[ $day ] = array_merge(
 				$events[ $day ] ?? array(),
 				emerson_pdf_day_lines(
@@ -294,7 +300,10 @@ function emerson_pdf_month_events( int $year, int $month ): array {
 			if ( ! empty( $sheeted[ $day ] ) ) {
 				continue;
 			}
-			$mine            = emerson_pdf_sheet_jobs( $row, $names, $rota[ $day ] ?? array() );
+			$mine = emerson_pdf_sheet_jobs( $row, $names, $rota[ $day ] ?? array() );
+			if ( function_exists( 'emerson_sunday_place_line' ) ) {
+				$row['location'] = emerson_sunday_place_line( $ymd );
+			}
 			$events[ $day ]  = array_merge(
 				$events[ $day ] ?? array(),
 				emerson_pdf_day_lines( '', '', $row, $mine, $elevated, false )

@@ -493,6 +493,97 @@ add_filter(
 	2
 );
 
+/**
+ * Church Admin → Serving sign-ups. Offers from the Members page, not rota assignments.
+ */
+function emerson_serving_signups_page(): void {
+	if ( ! function_exists( 'emerson_schedule_can_view_roster' ) || ! emerson_schedule_can_view_roster() ) {
+		wp_die( esc_html__( 'You do not have permission to view serving sign-ups.' ) );
+	}
+	$from  = current_time( 'Y-m-d' );
+	$until = gmdate( 'Y-m-d', strtotime( $from . ' +' . EMERSON_SERVING_MONTHS . ' months' ) );
+	$rows  = function_exists( 'emerson_schedule_service_requests' ) ? emerson_schedule_service_requests( $from, $until ) : array();
+	ksort( $rows );
+
+	echo '<div class="wrap"><h1>Serving sign-ups</h1>';
+	echo '<p>People who ticked a Sunday on the Members page, and any positions they offered. This is not the rota. Assign someone on <strong>Church Admin → Schedule</strong>.</p>';
+	if ( ! $rows ) {
+		echo '<p>No one has signed up for an upcoming Sunday yet.</p></div>';
+		return;
+	}
+	echo '<table class="widefat striped"><thead><tr><th>Sunday</th><th>Signed up</th></tr></thead><tbody>';
+	foreach ( $rows as $ymd => $people ) {
+		echo '<tr><td><strong>' . esc_html( mysql2date( 'l, F j, Y', $ymd ) ) . '</strong></td><td>';
+		$lines = array();
+		foreach ( $people as $person ) {
+			$roles = $person['roles'] ?? array();
+			$lines[] = esc_html( $person['name'] ) . ( $roles ? ': ' . esc_html( implode( ', ', $roles ) ) : ': No position chosen' );
+		}
+		echo implode( '<br>', $lines );
+		echo '</td></tr>';
+	}
+	echo '</tbody></table></div>';
+}
+
+add_action(
+	'admin_menu',
+	static function (): void {
+		add_submenu_page(
+			'premium_church_admin',
+			'Serving sign-ups',
+			'Serving sign-ups',
+			'read',
+			'emerson-serving-signups',
+			'emerson_serving_signups_page'
+		);
+	},
+	20
+);
+
+add_action(
+	'admin_menu',
+	static function (): void {
+		if ( function_exists( 'emerson_schedule_can_view_roster' ) && emerson_schedule_can_view_roster() ) {
+			return;
+		}
+		remove_submenu_page( 'premium_church_admin', 'emerson-serving-signups' );
+	},
+	99
+);
+
+add_action(
+	'admin_bar_menu',
+	static function ( $bar ): void {
+		if ( ! $bar instanceof WP_Admin_Bar || ! function_exists( 'emerson_schedule_can_view_roster' ) || ! emerson_schedule_can_view_roster() ) {
+			return;
+		}
+		$bar->add_node(
+			array(
+				'parent' => 'church_admin',
+				'id'     => 'emerson-serving-signups',
+				'title'  => 'Serving sign-ups',
+				'href'   => admin_url( 'admin.php?page=emerson-serving-signups' ),
+			)
+		);
+	},
+	100
+);
+
+add_action(
+	'admin_notices',
+	static function (): void {
+		if ( ! is_admin() || ! function_exists( 'emerson_schedule_can_view_roster' ) || ! emerson_schedule_can_view_roster() ) {
+			return;
+		}
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( 'premium_church_admin' !== $page || ! empty( $_GET['section'] ) || ! empty( $_GET['task'] ) ) {
+			return;
+		}
+		$url = admin_url( 'admin.php?page=emerson-serving-signups' );
+		echo '<div class="notice notice-info"><p>Who has signed up to serve is not in Calendar or Schedule. Open <a href="' . esc_url( $url ) . '">Serving sign-ups</a>.</p></div>';
+	}
+);
+
 // "Dates I can serve" is the same list, so the heading goes. The form below keeps #dates-unavailable.
 add_filter(
 	'the_content',

@@ -10,6 +10,30 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-17
+
+### Church Admin: serving sign-ups
+- **Church Admin → Serving sign-ups** lists who ticked an upcoming Sunday on the Members page, and the positions they offered. It does not assign them on the rota. Editors, administrators, and the designated schedule viewers can open it.
+- **File:** `inc/serving-dates.php`.
+
+### Calendars: Sunday location under the speaker
+- Clicking a Sunday shows that week’s place under the speaker. The month cells stay title and speaker only. Board meetings also leave the place out of the cell; it stays in the day detail. It is the Church Admin location when one is set, otherwise the usual YMCA, and a Moved Sunday uses the Sunday Location address. The service-schedule detail, calendar list, and calendar PDF use the same place.
+- **File:** `inc/sunday-location.php`, `inc/sunday-schedule-sheet.php`, `inc/service-schedule.php`, `inc/calendar-pdfs.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+
+### Members: the WordPress dashboard link is for editors and administrators
+- A Contributor was still shown **WordPress dashboard** on the Members page. Regular members do not use that screen. The link, and the login that sends someone into wp-admin, now require the ability to edit pages.
+- **File:** `inc/members.php`.
+
+### Religious Education: handprint mural above the title
+- The mural that sat under the Religious Education title is now a banner above it, across the width of the page. It uses the larger original photo so it stays sharp.
+- **File:** `inc/religious-education.php`, `assets/css/custom.css`.
+- **Local DB:** page 203. Backup: `backups/pages/page-203-religious-education-before-banner.html`.
+
+### Homepage: newest sermon between the two lines
+- Under “Sign up for our Newsletter!” and above “New to Emerson?” the empty gap between the two lines now plays the newest sermon. It follows the same Video Gallery list as Past Sermons and Sunday Services, newest date first, so a newly added sermon replaces it.
+- **File:** `inc/latest-sermon.php`, `assets/css/custom.css`.
+- **Local DB:** homepage (page 15). Backup: `backups/pages/page-15-before-latest-sermon.html`.
+
 ## 2026-10-16
 
 ### Homepage community photos

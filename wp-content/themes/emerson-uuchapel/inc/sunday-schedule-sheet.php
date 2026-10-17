@@ -545,15 +545,16 @@ function emerson_schedule_user_label( WP_User $user ): string {
 }
 
 /**
- * Dates this login ticked as available, and jobs assigned to them (rota or their name on the sheet).
+ * Dates this login ticked as available, positions they offered, and jobs assigned to them.
  *
- * @return array{available:array<string,bool>,jobs:array<string,list<string>>}
+ * @return array{available:array<string,bool>,jobs:array<string,list<string>>,offered:array<string,list<string>>}
  */
 function emerson_schedule_my_serving(): array {
 	global $wpdb;
 	$out = array(
 		'available' => array(),
 		'jobs'      => array(),
+		'offered'   => array(),
 	);
 	if ( ! is_user_logged_in() ) {
 		return $out;
@@ -573,6 +574,24 @@ function emerson_schedule_my_serving(): array {
 		);
 		foreach ( $dates as $date ) {
 			$out['available'][ substr( (string) $date, 0, 10 ) ] = true;
+		}
+		if ( function_exists( 'emerson_serving_roles_table' ) && function_exists( 'emerson_serving_role_choices' ) ) {
+			$role_rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT serve_date, role_key FROM ' . emerson_serving_roles_table() . ' WHERE people_id = %d',
+					$person
+				)
+			);
+			$labels = emerson_serving_role_choices();
+			if ( is_array( $role_rows ) ) {
+				foreach ( $role_rows as $role_row ) {
+					$key = (string) $role_row->role_key;
+					if ( ! isset( $labels[ $key ] ) ) {
+						continue;
+					}
+					$out['offered'][ substr( (string) $role_row->serve_date, 0, 10 ) ][] = $labels[ $key ];
+				}
+			}
 		}
 	}
 	if ( $person && $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'church_admin_new_rota' ) ) ) {
@@ -610,10 +629,10 @@ function emerson_schedule_my_serving(): array {
 }
 
 /**
- * People who ticked that they can serve, by date. Names only, and only for
- * administrators, editors, and the designated board list.
+ * People who ticked that they can serve, by date, with any positions they chose.
+ * Administrators, editors, and the designated board list only.
  *
- * @return array<string, list<string>>
+ * @return array<string, list<array{name: string, roles: list<string>}>>
  */
 function emerson_schedule_service_requests( string $from, string $until ): array {
 	if ( ! emerson_schedule_can_view_roster() || ! function_exists( 'emerson_serving_table' ) ) {
@@ -622,7 +641,7 @@ function emerson_schedule_service_requests( string $from, string $until ): array
 	global $wpdb;
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT a.serve_date, p.first_name, p.last_name
+			'SELECT a.serve_date, a.people_id, p.first_name, p.last_name, p.user_id
 			FROM ' . emerson_serving_table() . ' a
 			JOIN ' . $wpdb->prefix . 'church_admin_people p ON p.people_id = a.people_id
 			WHERE a.can_serve = 1 AND a.serve_date >= %s AND a.serve_date <= %s
@@ -635,14 +654,48 @@ function emerson_schedule_service_requests( string $from, string $until ): array
 	if ( ! is_array( $rows ) ) {
 		return $out;
 	}
+	$chosen = array();
+	if ( function_exists( 'emerson_serving_roles_table' ) && function_exists( 'emerson_serving_role_choices' ) ) {
+		$role_rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT people_id, serve_date, role_key FROM ' . emerson_serving_roles_table() . ' WHERE serve_date >= %s AND serve_date <= %s',
+				$from,
+				$until
+			)
+		);
+		$labels = emerson_serving_role_choices();
+		if ( is_array( $role_rows ) ) {
+			foreach ( $role_rows as $role_row ) {
+				$key = (string) $role_row->role_key;
+				if ( ! isset( $labels[ $key ] ) ) {
+					continue;
+				}
+				$day = substr( (string) $role_row->serve_date, 0, 10 );
+				$chosen[ (int) $role_row->people_id . '|' . $day ][] = $labels[ $key ];
+			}
+		}
+	}
 	foreach ( $rows as $row ) {
-		$name = trim( (string) $row->first_name . ' ' . (string) $row->last_name );
+		$name = function_exists( 'emerson_account_name' )
+			? emerson_account_name( null, $row )
+			: trim( (string) $row->first_name . ' ' . (string) $row->last_name );
 		if ( $name === '' || str_contains( $name, '@' ) ) {
 			continue;
 		}
-		$ymd = substr( (string) $row->serve_date, 0, 10 );
-		if ( ! in_array( $name, $out[ $ymd ] ?? array(), true ) ) {
-			$out[ $ymd ][] = $name;
+		$ymd   = substr( (string) $row->serve_date, 0, 10 );
+		$entry = array(
+			'name'  => $name,
+			'roles' => $chosen[ (int) $row->people_id . '|' . $ymd ] ?? array(),
+		);
+		$already = false;
+		foreach ( $out[ $ymd ] ?? array() as $existing ) {
+			if ( ( $existing['name'] ?? '' ) === $name ) {
+				$already = true;
+				break;
+			}
+		}
+		if ( ! $already ) {
+			$out[ $ymd ][] = $entry;
 		}
 	}
 	return $out;

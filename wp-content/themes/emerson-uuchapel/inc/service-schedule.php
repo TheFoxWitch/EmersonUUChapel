@@ -51,6 +51,7 @@ add_shortcode(
 		// Days this member ticked as available, and any jobs the office has assigned them.
 		$available = array();
 		$jobs      = array();
+		$offered   = array();
 		if ( is_user_logged_in() ) {
 			$person = $wpdb->get_var( $wpdb->prepare( "SELECT people_id FROM {$wpdb->prefix}church_admin_people WHERE user_id = %d", get_current_user_id() ) );
 			if ( $person ) {
@@ -65,6 +66,26 @@ add_shortcode(
 					);
 					foreach ( $ticked as $day ) {
 						$available[ (int) substr( $day, 8, 2 ) ] = true;
+					}
+					if ( function_exists( 'emerson_serving_roles_table' ) && function_exists( 'emerson_serving_role_choices' ) ) {
+						$role_rows = $wpdb->get_results(
+							$wpdb->prepare(
+								'SELECT serve_date, role_key FROM ' . emerson_serving_roles_table() . ' WHERE people_id = %d AND serve_date BETWEEN %s AND %s',
+								(int) $person,
+								$first,
+								$last
+							)
+						);
+						$labels = emerson_serving_role_choices();
+						if ( is_array( $role_rows ) ) {
+							foreach ( $role_rows as $role_row ) {
+								$key = (string) $role_row->role_key;
+								if ( ! isset( $labels[ $key ] ) ) {
+									continue;
+								}
+								$offered[ (int) substr( (string) $role_row->serve_date, 8, 2 ) ][] = $labels[ $key ];
+							}
+						}
 					}
 				}
 				$assigned = $wpdb->get_results(
@@ -175,7 +196,10 @@ add_shortcode(
 					$out .= '<span class="emerson-schedule__serving">You&#8217;re serving: ' . esc_html( $job ) . '</span>';
 				}
 			} elseif ( $has && 'cancelled' !== $status && isset( $available[ $day ] ) ) {
-				$out .= '<span class="emerson-schedule__available">You can serve</span>';
+				$positions = $offered[ $day ] ?? array();
+				$out      .= '<span class="emerson-schedule__available">You can serve'
+					. ( $positions ? ': ' . esc_html( implode( ', ', $positions ) ) : '' )
+					. '</span>';
 			}
 			$out .= '</td>';
 		}

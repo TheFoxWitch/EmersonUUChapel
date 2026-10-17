@@ -15,13 +15,38 @@
 
 declare( strict_types=1 );
 
-const EMERSON_SERVING_DB_VERSION = '1';
+const EMERSON_SERVING_DB_VERSION = '2';
 // Church Admin's auto-fill offers up to 6 months ahead.
 const EMERSON_SERVING_MONTHS = 6;
 
 function emerson_serving_table(): string {
 	global $wpdb;
 	return $wpdb->prefix . 'emerson_serving_answers';
+}
+
+function emerson_serving_roles_table(): string {
+	global $wpdb;
+	return $wpdb->prefix . 'emerson_serving_roles';
+}
+
+/**
+ * Positions a member can offer for a date. RE class topic is a subject, not a job.
+ *
+ * @return array<string,string>
+ */
+function emerson_serving_role_choices(): array {
+	$roles = function_exists( 'emerson_schedule_roster_labels' )
+		? emerson_schedule_roster_labels()
+		: array(
+			'liturgist'     => 'Liturgist',
+			'tech'          => 'Tech',
+			'greeter'       => 'Greeter',
+			'hospitality'   => 'Hospitality',
+			'board'         => 'Board person of the day',
+			're_volunteers' => 'RE volunteers',
+		);
+	unset( $roles['re_topic'] );
+	return $roles;
 }
 
 function emerson_serving_ready(): bool {
@@ -44,6 +69,15 @@ add_action(
   can_serve tinyint(1) NOT NULL,
   answered datetime NOT NULL,
   PRIMARY KEY  (people_id,serve_date)
+) {$wpdb->get_charset_collate()};"
+		);
+		$roles = emerson_serving_roles_table();
+		dbDelta(
+			"CREATE TABLE {$roles} (
+  people_id int(11) NOT NULL,
+  serve_date date NOT NULL,
+  role_key varchar(32) NOT NULL,
+  PRIMARY KEY  (people_id,serve_date,role_key)
 ) {$wpdb->get_charset_collate()};"
 		);
 		// Dates saved before this change are real "can't serve" answers.
@@ -192,6 +226,69 @@ function emerson_serving_summary_html( object $person, bool $own ): string {
 	return '<p class="emerson-unavailable-summary">' . $summary . '</p>';
 }
 
+/**
+ * Positions already saved for one person, keyed by date.
+ *
+ * @return array<string, list<string>>
+ */
+function emerson_serving_saved_roles( int $people_id ): array {
+	global $wpdb;
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			'SELECT serve_date, role_key FROM ' . emerson_serving_roles_table() . ' WHERE people_id = %d',
+			$people_id
+		)
+	);
+	$out = array();
+	if ( ! is_array( $rows ) ) {
+		return $out;
+	}
+	foreach ( $rows as $row ) {
+		$out[ substr( (string) $row->serve_date, 0, 10 ) ][] = (string) $row->role_key;
+	}
+	return $out;
+}
+
+/**
+ * Replace the positions for the dates on the form. Unticked dates keep none.
+ *
+ * @param list<string> $shown
+ * @param list<string> $ticked
+ */
+function emerson_serving_save_roles( int $people_id, array $shown, array $ticked ): void {
+	global $wpdb;
+	if ( ! $shown ) {
+		return;
+	}
+	$allowed = array_keys( emerson_serving_role_choices() );
+	$table   = emerson_serving_roles_table();
+	$marks   = implode( ', ', array_fill( 0, count( $shown ), '%s' ) );
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$table} WHERE people_id = %d AND serve_date IN ({$marks})",
+			array_merge( array( $people_id ), $shown )
+		)
+	);
+	$posted = isset( $_POST['serve_roles'] ) && is_array( $_POST['serve_roles'] ) ? wp_unslash( $_POST['serve_roles'] ) : array();
+	foreach ( $ticked as $date ) {
+		$chosen = isset( $posted[ $date ] ) ? (array) $posted[ $date ] : array();
+		foreach ( array_unique( array_map( 'sanitize_key', $chosen ) ) as $key ) {
+			if ( ! in_array( $key, $allowed, true ) ) {
+				continue;
+			}
+			$wpdb->insert(
+				$table,
+				array(
+					'people_id'  => $people_id,
+					'serve_date' => $date,
+					'role_key'   => $key,
+				),
+				array( '%d', '%s', '%s' )
+			);
+		}
+	}
+}
+
 /** The person Church Admin's form is for: someone an admin picked with "Choose person", otherwise the member. */
 function emerson_serving_person(): ?object {
 	global $wpdb;
@@ -231,6 +328,7 @@ add_filter(
 				)
 			);
 		}
+		emerson_serving_save_roles( (int) $person->people_id, $shown, $ticked );
 		$GLOBALS['emerson_serving_saved_for'] = (int) $person->people_id;
 		return $return;
 	},
@@ -262,6 +360,7 @@ add_filter(
 				current_time( 'Y-m-d' )
 			)
 		);
+		$saved_roles = emerson_serving_saved_roles( (int) $person->people_id );
 		$name = esc_html( emerson_account_name( null, $person ) );
 
 		$output = str_replace(
@@ -337,9 +436,35 @@ add_filter(
 			}
 		}
 
+		$choices = emerson_serving_role_choices();
+		$output  = preg_replace_callback(
+			'#(<div class="church-admin-form-group"><input type="checkbox" name="can_serve\[\]" id="can-serve-(\d{4}-\d{2}-\d{2})"[^>]*> <label for="can-serve-\2">.*?</label>)#s',
+			static function ( array $match ) use ( $choices, $saved_roles, $can_serve ): string {
+				$date = $match[2];
+				$open = in_array( $date, $can_serve, true );
+				$picked = $saved_roles[ $date ] ?? array();
+				$roles  = '<div class="emerson-serve-roles"' . ( $open ? '' : ' hidden' ) . '>';
+				foreach ( $choices as $key => $label ) {
+					$id = 'serve-role-' . $date . '-' . $key;
+					$roles .= '<label class="emerson-serve-roles__item" for="' . esc_attr( $id ) . '">';
+					$roles .= '<input type="checkbox" name="serve_roles[' . esc_attr( $date ) . '][]" id="' . esc_attr( $id ) . '" value="' . esc_attr( $key ) . '"';
+					if ( in_array( $key, $picked, true ) ) {
+						$roles .= ' checked="checked"';
+					}
+					if ( ! $open ) {
+						$roles .= ' disabled="disabled"';
+					}
+					$roles .= '> ' . esc_html( $label ) . '</label>';
+				}
+				$roles .= '</div>';
+				return $match[1] . $roles;
+			},
+			$output
+		);
+
 		$bulk = '<p class="emerson-serve-bulk">'
-			. '<button type="button" onclick="this.form.querySelectorAll(\'input[name=&quot;can_serve[]&quot;]\').forEach(function(b){b.checked=true;})">Mark all</button> '
-			. '<button type="button" onclick="this.form.querySelectorAll(\'input[name=&quot;can_serve[]&quot;]\').forEach(function(b){b.checked=false;})">Clear all</button>'
+			. '<button type="button" data-emerson-serve-all="mark">Mark all</button> '
+			. '<button type="button" data-emerson-serve-all="clear">Clear all</button>'
 			. '</p>';
 		$output = preg_replace( '#(<div class="church-admin-form-group"><input type="checkbox" name="can_serve\[\]")#', $bulk . '$1', $output, 1 );
 

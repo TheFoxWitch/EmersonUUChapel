@@ -85,6 +85,39 @@
 		}
 	}
 
+	// Serving dates: positions appear when a date is ticked, and Mark all / Clear all follow.
+	document.addEventListener('change', function (event) {
+		var box = event.target;
+		if (!box.matches || !box.matches('input[name="can_serve[]"]')) {
+			return;
+		}
+		var group = box.closest ? box.closest('.church-admin-form-group') : null;
+		var roles = group ? group.querySelector('.emerson-serve-roles') : null;
+		if (!roles) {
+			return;
+		}
+		roles.hidden = !box.checked;
+		roles.querySelectorAll('input').forEach(function (input) {
+			input.disabled = !box.checked;
+		});
+	});
+	document.addEventListener('click', function (event) {
+		var button = event.target.closest ? event.target.closest('[data-emerson-serve-all]') : null;
+		if (!button) {
+			return;
+		}
+		var mark = button.getAttribute('data-emerson-serve-all') === 'mark';
+		document.querySelectorAll('input[name="can_serve[]"]').forEach(function (box) {
+			box.checked = mark;
+			box.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+		if (!mark) {
+			document.querySelectorAll('.emerson-serve-roles input').forEach(function (input) {
+				input.checked = false;
+			});
+		}
+	});
+
 	// Yearly Planner dropdown: Church Admin names every copy "guideform", so document.guideform
 	// can be a list and picking 2027/2028 goes nowhere. Use this select's own value.
 	document.querySelectorAll('form[name="guideform"] select[name="guidelinks"]').forEach(function (select) {
@@ -260,9 +293,10 @@
 			if (data.canViewRoster || !available) {
 				return null;
 			}
+			var offered = (serving.offered && serving.offered[ymd]) || [];
 			var mark = document.createElement('span');
 			mark.className = 'emerson-ca-available';
-			mark.textContent = 'You can serve';
+			mark.textContent = offered.length ? 'You can serve: ' + offered.join(', ') : 'You can serve';
 			return mark;
 		}
 
@@ -331,9 +365,11 @@
 			note.textContent = 'Marked available to serve';
 			body.appendChild(note);
 			var list = document.createElement('ul');
-			names.forEach(function (name) {
+			names.forEach(function (entry) {
 				var item = document.createElement('li');
-				item.textContent = name;
+				var person = typeof entry === 'string' ? entry : (entry.name || '');
+				var roles = entry && entry.roles && entry.roles.length ? entry.roles.join(', ') : '';
+				item.textContent = roles ? person + ': ' + roles : person;
 				list.appendChild(item);
 			});
 			body.appendChild(list);

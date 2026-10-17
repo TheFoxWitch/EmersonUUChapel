@@ -60,3 +60,4 @@ require_once get_stylesheet_directory() . '/inc/navigation.php';
 require_once get_stylesheet_directory() . '/inc/private-files.php';
 require_once get_stylesheet_directory() . '/inc/cookies.php';
 require_once get_stylesheet_directory() . '/inc/recommitment.php';
+require_once get_stylesheet_directory() . '/inc/home-gallery.php';

@@ -127,6 +127,26 @@ Saving **Cancelled** or **Moved** a second time, with the same time and place, d
 
 That is not a one-Sunday Moved. Ask the intern: the default YMCA line lives in `inc/sunday-location.php`, and Visit Us (page 58) still has to match (section 4).
 
+## Homepage photo slider — how to change the pictures
+
+The welcome photo under “We welcome all ages…” is a slider on the public homepage. In the editor those same pictures are a normal gallery: a grid you can click. The first photo in that grid is the photo the slider opens on. `community6` should stay in the gallery only once.
+
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
+
+**Where:** Pages → **Emerson Unitarian Universalist Chapel** (the front page; the web address ends in `welcome`) → Edit. The gallery sits under the “We welcome all ages…” paragraph. In the editor it is a grid of photos. Click **Update** when the pictures look right. View the homepage to see the slider.
+
+### Remove a photo
+
+Click the gallery, then click the photo. On its toolbar, open the three-dot menu and choose **Delete**. Update the page.
+
+### Add a photo
+
+Click the gallery so the gallery toolbar shows. Choose **Add**, pick a photo from the Media Library (or upload one), and insert it. Drag it to the place you want. The top-left photo is the first slide, then left to right, then the next row. Update the page.
+
+### Change the order
+
+Drag a photo to a new spot in the grid, then update the page.
+
 ## Sunday Schedule spreadsheet — how to update the URL
 
 The public **Calendar** and **Service Schedule** read the monthly theme, holiday, title, and speaker from the church’s Sunday Morning Schedule Google Sheet. The church keeps editing that one spreadsheet. Same-file edits show on the site after about 30 minutes, or right away after **Refresh from spreadsheet**.

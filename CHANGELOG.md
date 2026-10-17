@@ -12,6 +12,16 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-16
 
+### Homepage community photos
+- The single welcome photo (`community4`) is now a slider. `community4` stays first, then community1, 5, 6, 7, 9, 11, 12, 14, 16, and whoWeAre. `community6` is included once. Previous and Next, and the dots, move between photos. On the last photo, Next returns to the first; on the first, Previous goes to the last.
+- The pictures are a Gallery block on the homepage, so an editor can add, remove, and reorder them on the page. The public homepage still shows the slider. In the editor the same pictures appear as a grid.
+- **File:** `inc/home-gallery.php`, `assets/vendor/blossom/` (Blossom Carousel 1.6.0), `assets/css/custom.css`.
+- **Local DB:** homepage (page 15). Backup: `backups/pages/page-15-before-gallery-block.html`.
+
+### Members: serving dates include the job
+- Ticking a date on **Members → Serving dates** opens the Sunday positions: Liturgist, Tech, Greeter, Hospitality, Board person of the day, and RE volunteers. Any of them can be ticked. A date already ticked, with no positions chosen, shows those boxes unchecked. **Service Requests** on the calendar lists the positions next to the name. A member who is not an admin sees the same positions on their own days, as **You can serve: Greeter**.
+- **File:** `inc/serving-dates.php`, `inc/sunday-schedule-sheet.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+
 ### Homepage: Re-commitment Form
 - A **Re-commitment Form** button sits with **2024-25 Pledge Form** and **Approximate Paypal Fees**. It opens a form on the homepage: name, pledge (dollars and cents), monthly / quarterly / annually, the date payments continue, a phone number, an email address, a drawn signature, and the date signed. Both dates start as today and move forward each day. Submit emails `office@emersonuuchapel.org`, with the person's email as the reply address. On this local copy that message follows the usual test redirect.
 - The president's draft said "montthy" and "comminutment". The form says **monthly** and **commitment**.

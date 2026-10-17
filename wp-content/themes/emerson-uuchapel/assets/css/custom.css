@@ -928,6 +928,95 @@ iframe.emerson-map {
 	background: #e0e0e0;
 }
 
+.emerson-serve-roles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.15rem 1rem;
+	margin: 0.15rem 0 0.85rem 1.6rem;
+}
+
+.emerson-serve-roles[hidden] {
+	display: none;
+}
+
+.emerson-serve-roles__item {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	min-height: 44px;
+}
+
+/* Homepage community photo gallery */
+.emerson-home-gallery {
+	margin: 1.5rem 0;
+	color: var(--emerson-blue);
+}
+
+.emerson-home-gallery .screen-reader-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
+}
+
+.emerson-home-gallery__track {
+	display: block;
+	scroll-snap-type: x mandatory;
+}
+
+.emerson-home-gallery__slide {
+	width: 100%;
+	scroll-snap-align: start;
+	scroll-snap-stop: always;
+}
+
+.emerson-home-gallery__slide img {
+	display: block;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+}
+
+.emerson-home-gallery__controls {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	margin-top: 0.75rem;
+}
+
+.emerson-home-gallery blossom-prev button,
+.emerson-home-gallery blossom-next button {
+	min-width: 44px;
+	min-height: 44px;
+	padding: 0.35rem 0.9rem;
+	border: 2px solid var(--emerson-blue);
+	border-radius: 999px;
+	background: #fff;
+	color: var(--emerson-blue);
+	font: inherit;
+	cursor: pointer;
+}
+
+.emerson-home-gallery blossom-prev button:hover,
+.emerson-home-gallery blossom-next button:hover,
+.emerson-home-gallery blossom-prev button:focus-visible,
+.emerson-home-gallery blossom-next button:focus-visible {
+	background: var(--emerson-blue);
+	color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.emerson-home-gallery__track {
+		scroll-behavior: auto;
+	}
+}
+
 /* Church Admin registration "Next" button: same size as the Log In button above, keeping its light grey */
 #ca-first-step input[type="submit"] {
 	min-width: 150px;

@@ -12,6 +12,10 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-18
 
+### Calendar: day text fits the cell at tablet width
+- Just before the calendar switches to the phone week view, a day is only about ninety pixels wide. Event titles were sized to that full width. Service Requests also has a count, so its words had less room and drew on top of the number. Each piece of text now shrinks to the space it actually has, and the count stays beside the words. While the window is being resized, that size follows the cell instead of jumping.
+- **File:** `assets/js/custom.js`, `assets/css/custom.css`.
+
 ### Who Are We: photo collage
 - The fire-circle photo is now a collage of worship, game day, and community pictures. Nine show at once, in three columns. Every five seconds three tiles flip, one from each row, a fraction of a second apart. Each turn keeps moving through the edge, and the next photo is in place before the tile opens. A tile does not flip while the one beside it is flipping. The photo that appears is chosen at random from the pictures that are not on screen. `community2` is not in the Media Library, so it is not included. Edit it like the homepage gallery: the pictures are a Gallery block under the opening paragraph.
 - **File:** `assets/css/custom.css`.

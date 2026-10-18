@@ -621,9 +621,6 @@
 				if (!blocks.length) {
 					return;
 				}
-				blocks.forEach(function (block) {
-					block.style.fontSize = '';
-				});
 				var dayStyle = window.getComputedStyle(day);
 				var width =
 					day.clientWidth -
@@ -633,32 +630,96 @@
 				if (width < 12) {
 					return;
 				}
-				function longestWord() {
+				function painted(block) {
+					return block.querySelector('.emerson-ca-requests__button') || block;
+				}
+				function widest(target) {
+					var cs = window.getComputedStyle(target);
+					probe.style.font = cs.font;
+					probe.style.letterSpacing = cs.letterSpacing;
 					var max = 0;
-					blocks.forEach(function (block) {
-						var cs = window.getComputedStyle(block);
-						probe.style.font = cs.font;
-						probe.style.letterSpacing = cs.letterSpacing;
-						(block.innerText || '')
-							.split(/\s+/)
-							.filter(Boolean)
-							.forEach(function (word) {
-								probe.textContent = word;
-								max = Math.max(max, probe.offsetWidth);
-							});
-					});
+					var text = target.classList.contains('emerson-ca-requests__button')
+						? (target.querySelector('span') || target).textContent
+						: target.innerText || '';
+					text
+						.split(/\s+/)
+						.filter(Boolean)
+						.forEach(function (word) {
+							probe.textContent = word;
+							max = Math.max(max, probe.offsetWidth);
+						});
 					return max;
 				}
-				if (longestWord() <= width) {
-					return;
+				function room(block) {
+					return width;
 				}
-				var size = parseFloat(window.getComputedStyle(blocks[0]).fontSize) || 11;
-				while (size > 6 && longestWord() > width) {
-					size = Math.max(6, Math.floor((size - 0.3) * 10) / 10);
-					blocks.forEach(function (block) {
-						block.style.fontSize = size + 'px';
-					});
+				function fitRequests(button) {
+					var label = button.querySelector('span');
+					if (!label || button.clientWidth < 12) {
+						return;
+					}
+					var count = button.querySelector('.emerson-ca-requests__count');
+					var parentSize = parseFloat(window.getComputedStyle(button.parentElement || button).fontSize) || 16;
+					var natural = window.matchMedia('(max-width: 1000px)').matches
+						? parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16
+						: parentSize * 0.75;
+					var ref = 16;
+					var buttonStyle = window.getComputedStyle(button);
+					probe.style.font = buttonStyle.font;
+					probe.style.letterSpacing = buttonStyle.letterSpacing;
+					probe.style.fontWeight = buttonStyle.fontWeight;
+					probe.style.fontSize = ref + 'px';
+					var word = 0;
+					label.textContent
+						.split(/\s+/)
+						.filter(Boolean)
+						.forEach(function (part) {
+							probe.textContent = part;
+							word = Math.max(word, probe.offsetWidth);
+						});
+					var badge = 0;
+					if (count) {
+						probe.style.fontSize = ref * 0.85 + 'px';
+						probe.textContent = count.textContent || '';
+						badge = Math.max(probe.offsetWidth, ref * 0.85 * 1.4) + ref * 0.85 * 0.7;
+					}
+					var pad = (parseFloat(buttonStyle.paddingLeft) || 0) + (parseFloat(buttonStyle.paddingRight) || 0);
+					var gap = parseFloat(buttonStyle.columnGap);
+					if (isNaN(gap)) {
+						gap = parseFloat(buttonStyle.gap) || 0;
+					}
+					var current = parseFloat(buttonStyle.fontSize) || natural;
+					var padScales = Math.abs(pad - current * 0.8) < 2;
+					var gapScales = Math.abs(gap - current * 0.35) < 1.25;
+					var fixed = (padScales ? 0 : pad) + (gapScales ? 0 : gap);
+					// Small sizes render a little wider than a straight scale, so the fit stays inside the count.
+					var scaled = (word + badge) * 1.08 + (padScales ? ref * 0.8 : 0) + (gapScales ? ref * 0.35 : 0);
+					if (scaled < 1) {
+						return;
+					}
+					var size = Math.min(natural, Math.max(8, ((button.clientWidth - fixed) * ref) / scaled));
+					if (size >= natural - 0.2) {
+						button.style.fontSize = '';
+						return;
+					}
+					button.style.fontSize = size.toFixed(2) + 'px';
 				}
+				Array.prototype.forEach.call(blocks, function (block) {
+					var button = block.querySelector('.emerson-ca-requests__button');
+					if (button) {
+						fitRequests(button);
+						return;
+					}
+					var target = painted(block);
+					target.style.fontSize = '';
+					var size = parseFloat(window.getComputedStyle(target).fontSize) || 11;
+					var guard = 0;
+					while (guard < 24 && size > 8 && widest(target) > room(block)) {
+						size = Math.max(8, Math.round((size - 0.4) * 10) / 10);
+						target.style.fontSize = size + 'px';
+						guard += 1;
+					}
+				});
 			});
 			probe.remove();
 		}
@@ -899,7 +960,18 @@
 		);
 
 		var fitTimer = null;
+		var fitFrame = 0;
 		window.addEventListener('resize', function () {
+			if (fitFrame) {
+				window.cancelAnimationFrame(fitFrame);
+			}
+			fitFrame = window.requestAnimationFrame(function () {
+				fitFrame = 0;
+				fitDayCopy();
+				if (requestsPanel) {
+					placeRequests();
+				}
+			});
 			if (fitTimer) {
 				clearTimeout(fitTimer);
 			}

@@ -10,7 +10,19 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-18
+
+### Who Are We: photo collage
+- The fire-circle photo is now a collage of worship, game day, and community pictures. Nine show at once, in three columns. Every five seconds three tiles flip, one from each row, a fraction of a second apart. Each turn keeps moving through the edge, and the next photo is in place before the tile opens. A tile does not flip while the one beside it is flipping. The photo that appears is chosen at random from the pictures that are not on screen. `community2` is not in the Media Library, so it is not included. Edit it like the homepage gallery: the pictures are a Gallery block under the opening paragraph.
+- **File:** `assets/css/custom.css`.
+- **Local DB:** page 190. Backup: `backups/pages/page-190-before-collage.html`.
+
 ## 2026-10-17
+
+### Visit Us: phone and email icons
+- The **T** and **E** beside the phone number and email on Visit Us are now a phone icon and an envelope icon.
+- **File:** `assets/css/custom.css`.
+- **Local DB:** page 58. Backup: `backups/pages/page-58-before-contact-icons.html`.
 
 ### Church Admin: serving sign-ups
 - **Church Admin → Serving sign-ups** lists who ticked an upcoming Sunday on the Members page, and the positions they offered. It does not assign them on the rota. Editors, administrators, and the designated schedule viewers can open it.

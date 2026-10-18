@@ -153,6 +153,14 @@ Click the gallery so the gallery toolbar shows. Choose **Add**, pick a photo fro
 
 Drag a photo to a new spot in the grid, then update the page.
 
+## Who Are We photo collage — how to change the pictures
+
+Under the opening paragraph, the photos are a collage. Nine show at a time, in three columns on a phone and on a wide screen. Every five seconds three tiles flip, one from each row, a fraction of a second apart. A tile does not flip while the one beside it is flipping. The new photo is one from the gallery that is not already showing. In the editor they are a normal gallery grid. `community2` is not in the Media Library.
+
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
+
+**Where:** Pages → **Who Are We** → Edit. Add, delete, or drag photos the same way as the homepage gallery, then click **Update**.
+
 ## Homepage sermon video — how it stays current
 
 Between the two lines under “Sign up for our Newsletter!” and above “New to Emerson?” the homepage plays the newest sermon. It is the same list as **Past Sermons** and the three videos on **Sunday Services**.

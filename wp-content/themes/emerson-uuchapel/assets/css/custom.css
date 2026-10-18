@@ -2088,6 +2088,7 @@ blockquote {
 }
 
 .emerson-ca-requests__button span:first-child {
+	flex: 1 1 auto;
 	min-width: 0;
 }
 

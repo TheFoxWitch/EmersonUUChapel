@@ -1005,4 +1005,183 @@
 		});
 		observer.observe(root, { childList: true, subtree: true });
 	})();
+
+	// Who Are We collage: nine tiles, each on its own timer. A tile will not flip while the one beside it is flipping.
+	(function emersonWhoCollage() {
+		var gallery = document.querySelector('.emerson-who-collage');
+		if (!gallery) {
+			return;
+		}
+		var all = Array.prototype.slice.call(gallery.querySelectorAll(':scope > .wp-block-image'));
+		if (all.length < 10) {
+			return;
+		}
+		function fileOf(src) {
+			return String(src || '').split('/').pop().split('?')[0];
+		}
+		function picture(tile) {
+			var image = tile.querySelector('img');
+			if (!image) {
+				return null;
+			}
+			return { src: image.getAttribute('src'), alt: image.alt || '', file: fileOf(image.getAttribute('src')) };
+		}
+		var deck = all.map(picture).filter(Boolean);
+		var tiles = all.slice(0, 9);
+		all.slice(9).forEach(function (tile) {
+			tile.hidden = true;
+		});
+		var waiting = deck.slice(9);
+		var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+		function isFlipping(tile) {
+			return tile.classList.contains('is-flipping');
+		}
+
+		function beside(index) {
+			var mates = [];
+			if (index % 3 !== 0) {
+				mates.push(tiles[index - 1]);
+			}
+			if (index % 3 !== 2) {
+				mates.push(tiles[index + 1]);
+			}
+			return mates;
+		}
+
+		function show(tile, next) {
+			var image = tile.querySelector('img');
+			if (!image) {
+				return;
+			}
+			waiting.push({ src: image.getAttribute('src'), alt: image.alt || '', file: fileOf(image.getAttribute('src')) });
+			image.removeAttribute('srcset');
+			image.removeAttribute('sizes');
+			image.src = next.src;
+			image.alt = next.alt;
+		}
+
+		function flip(tile, next, direction) {
+			if (reduced || typeof tile.animate !== 'function') {
+				show(tile, next);
+				return;
+			}
+			var image = tile.querySelector('img');
+			if (!image) {
+				return;
+			}
+			var incoming = new Image();
+			incoming.src = next.src;
+			var run = function () {
+				var turned = direction === 'up' ? 1 : -1;
+				var swapped = false;
+				var finished = false;
+				var duration = 1120;
+				var timing = { duration: duration, easing: 'cubic-bezier(0.45, 0.05, 0.55, 0.95)', fill: 'both' };
+				var swap = function () {
+					if (swapped) {
+						return;
+					}
+					swapped = true;
+					show(tile, next);
+				};
+				var close = function () {
+					if (finished) {
+						return;
+					}
+					finished = true;
+					swap();
+					try {
+						spin.cancel();
+					} catch (error) {}
+					try {
+						counter.cancel();
+					} catch (error) {}
+					tile.style.willChange = '';
+					image.style.willChange = '';
+					tile.classList.remove('is-flipping');
+				};
+				tile.classList.add('is-flipping');
+				tile.style.willChange = 'transform';
+				image.style.willChange = 'transform';
+				var spin = tile.animate([
+					{ transform: 'perspective(2400px) rotateX(0deg)' },
+					{ transform: 'perspective(2400px) rotateX(' + (turned * 180) + 'deg)' }
+				], timing);
+				var counter = image.animate([
+					{ transform: 'rotateX(0deg)', offset: 0 },
+					{ transform: 'rotateX(0deg)', offset: 0.5 },
+					{ transform: 'rotateX(180deg)', offset: 0.5 },
+					{ transform: 'rotateX(180deg)', offset: 1 }
+				], timing);
+				var watch = function () {
+					if (swapped || finished) {
+						return;
+					}
+					if (spin.currentTime >= duration * 0.5) {
+						swap();
+						return;
+					}
+					window.requestAnimationFrame(watch);
+				};
+				window.requestAnimationFrame(watch);
+				spin.onfinish = close;
+				counter.onfinish = close;
+			};
+			if (typeof incoming.decode === 'function') {
+				incoming.decode().then(run, run);
+			} else {
+				run();
+			}
+		}
+
+		function turn(index) {
+			if (document.hidden) {
+				return false;
+			}
+			if (isFlipping(tiles[index]) || beside(index).some(isFlipping)) {
+				return false;
+			}
+			var visible = tiles.map(function (tile) {
+				var image = tile.querySelector('img');
+				return image ? fileOf(image.getAttribute('src')) : '';
+			});
+			var choices = waiting.filter(function (item) {
+				return visible.indexOf(item.file) === -1;
+			});
+			if (!choices.length) {
+				return false;
+			}
+			var next = choices[Math.floor(Math.random() * choices.length)];
+			waiting.splice(waiting.indexOf(next), 1);
+			flip(tiles[index], next, Math.random() < 0.5 ? 'up' : 'down');
+			return true;
+		}
+
+		function wave() {
+			if (document.hidden) {
+				return;
+			}
+			var picks = [0, 1, 2].map(function (row) {
+				var columns = [0, 1, 2].filter(function (column) {
+					var index = row * 3 + column;
+					return !isFlipping(tiles[index]) && !beside(index).some(isFlipping);
+				});
+				if (!columns.length) {
+					return -1;
+				}
+				return row * 3 + columns[Math.floor(Math.random() * columns.length)];
+			}).filter(function (index) {
+				return index >= 0;
+			});
+			picks.forEach(function (index, order) {
+				window.setTimeout(function () {
+					turn(index);
+				}, order * (280 + Math.random() * 220));
+			});
+		}
+
+		window.setTimeout(wave, 800);
+		window.setInterval(wave, 5000);
+	})();
 })();

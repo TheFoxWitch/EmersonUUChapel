@@ -17,6 +17,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - The phone field accepts `(636) 555-0123`, `636-555-0123` and `6365550123`
   - Answering **Yes** to the newsletter question also sends the "Please confirm your subscription" email. After the click, "New newsletter subscriber" says "Signed up from: Newcomer Information form". Answering **No** sends only the office email. The name and email used for that sign-up are Name 1 and Email from the top of the form.
   - **What are you looking for** (added 2026-10-08): Inspirational Messages, Creativity, Ritual/practice, Other. Other opens a text box. Re-check that those answers appear in the office email.
+  - A ninth submission from the same connection within an hour is refused: "Too many submissions from this connection." Nothing is emailed.
 - [x] **Newsletter pop-up** (homepage, logged out)
   - Opens after 5 seconds, fades in; ×, "No thanks", Esc and clicking outside all fade it out
   - Sign-up shows "Almost done!" within about a second (not about 10), then fades out after about 4 seconds

@@ -98,16 +98,20 @@ function emerson_recommit_dialog(): void {
 				Signed
 				<label class="screen-reader-text" for="emerson-recommit-pad">Draw your signature</label>
 				<canvas class="emerson-recommit__pad" id="emerson-recommit-pad"></canvas>
-				<button type="button" class="emerson-recommit__clear">Clear signature</button>
-				and date
-				<label class="screen-reader-text" for="emerson-recommit-signed">Date signed</label>
-				<input id="emerson-recommit-signed" name="signed_on" type="date" required>.
 			</p>
+			<div class="emerson-recommit__sign-row">
+				<p class="emerson-recommit__sign-actions">
+					<button type="button" class="emerson-recommit__clear">Clear signature</button>
+					and date
+					<label class="screen-reader-text" for="emerson-recommit-signed">Date signed</label>
+					<input id="emerson-recommit-signed" name="signed_on" type="date" required>.
+				</p>
+				<button type="submit" class="emerson-recommit__submit">Submit</button>
+			</div>
 			<p class="emerson-recommit__hp" aria-hidden="true">
 				<label>Company <input name="company" tabindex="-1" autocomplete="off"></label>
 			</p>
 			<p class="emerson-recommit__status" role="status"></p>
-			<button type="submit" class="emerson-recommit__submit">Submit</button>
 		</form>
 	</dialog>
 	<?php

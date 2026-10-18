@@ -12,6 +12,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-18
 
+### Newcomer form: hourly submission limit
+- The Newcomer Information form now stops after eight tries in an hour from the same connection, the same limit as the re-commitment form. The ninth try is refused and is not emailed.
+- **File:** `inc/newsletter.php`.
+
+### Re-commitment form: Submit sits higher
+- The **Submit** button in the re-commitment form is the same size as **Clear signature** and sits on that same line, on the right.
+- **File:** `assets/css/custom.css`, `inc/recommitment.php`.
+
 ### Calendar: day text fits the cell at tablet width
 - Just before the calendar switches to the phone week view, a day is only about ninety pixels wide. Event titles were sized to that full width. Service Requests also has a count, so its words had less room and drew on top of the number. Each piece of text now shrinks to the space it actually has, and the count stays beside the words. While the window is being resized, that size follows the cell instead of jumping.
 - **File:** `assets/js/custom.js`, `assets/css/custom.css`.

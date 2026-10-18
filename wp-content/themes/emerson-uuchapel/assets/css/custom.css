@@ -423,6 +423,9 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	line-height: 2.2;
 	margin: 0 0 1rem;
 }
+.emerson-recommit__sign {
+	margin-bottom: 0;
+}
 .emerson-recommit input[type="text"],
 .emerson-recommit input[type="email"],
 .emerson-recommit input[type="tel"],
@@ -506,21 +509,39 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	touch-action: none;
 	cursor: crosshair;
 }
+.emerson-recommit__sign-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem 1rem;
+	margin: 0 0 1rem;
+}
+.emerson-recommit__sign-actions {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	line-height: 2.2;
+}
 .emerson-recommit__clear,
 .emerson-recommit__submit {
+	box-sizing: border-box;
 	min-height: 44px;
+	margin: 0;
 	padding: 0.35rem 1rem;
 	border: 2px solid var(--emerson-blue);
 	border-radius: 999px;
 	background: #fff;
 	color: var(--emerson-blue);
 	font: inherit;
+	font-size: 1rem;
+	font-weight: 400;
+	line-height: 1.2;
 	cursor: pointer;
 }
 .emerson-recommit__submit {
+	flex: 0 0 auto;
 	background: var(--emerson-blue);
 	color: #fff;
-	font-weight: 600;
 }
 .emerson-recommit__status {
 	min-height: 1.4em;

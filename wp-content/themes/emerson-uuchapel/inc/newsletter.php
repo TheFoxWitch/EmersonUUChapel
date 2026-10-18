@@ -15,6 +15,7 @@ const EMERSON_NL_MEMBER_TYPE_ID = 1;
 const EMERSON_NL_PENDING_TTL    = 7 * DAY_IN_SECONDS;
 const EMERSON_NL_RESEND_WAIT    = 10 * MINUTE_IN_SECONDS;
 const EMERSON_NL_MAX_PER_HOUR   = 5;
+const EMERSON_NL_NEWCOMER_MAX_PER_HOUR = 8;
 const EMERSON_NL_MIN_SECONDS    = 2;
 const EMERSON_NL_MAX_NAME       = 60;
 const EMERSON_NL_MAX_EMAIL      = 100;
@@ -334,6 +335,39 @@ add_action(
 			);
 		}
 	}
+);
+
+/**
+ * The Newcomer form allows eight tries an hour from one connection, the same as the re-commitment form.
+ */
+function emerson_nl_newcomer_limited(): bool {
+	$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
+	$key = 'emerson_nl_newcomer_' . md5( $ip );
+	$n   = (int) get_transient( $key );
+	if ( $n >= EMERSON_NL_NEWCOMER_MAX_PER_HOUR ) {
+		return true;
+	}
+	set_transient( $key, $n + 1, HOUR_IN_SECONDS );
+	return false;
+}
+
+add_action(
+	'wpforms_process_before',
+	static function ( $entry, $form_data ): void {
+		if ( EMERSON_NL_NEWCOMER_FORM_ID !== (int) ( $form_data['id'] ?? 0 ) ) {
+			return;
+		}
+		if ( ! emerson_nl_newcomer_limited() || ! function_exists( 'wpforms' ) ) {
+			return;
+		}
+		$process = wpforms()->obj( 'process' );
+		if ( ! is_object( $process ) ) {
+			return;
+		}
+		$process->errors[ EMERSON_NL_NEWCOMER_FORM_ID ]['header'] = 'Too many submissions from this connection. Please try again in an hour, or email the office.';
+	},
+	10,
+	2
 );
 
 /*

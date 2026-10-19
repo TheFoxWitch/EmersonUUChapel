@@ -17,7 +17,7 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 - **File:** `wp-content/uploads/2023/03/hand-mural.jpg` (Media attachment 348). Backup: `backups/images/hand-mural-before-2026-10-19.jpg`.
 
 ### Who Are We: values graphics larger on a desktop
-- **Love at the Center** and the **Seven Principles** graphic, under the values paragraph, are one third larger on a wide screen. Phone and tablet stay the same size. On a wide screen the Seven Principles graphic is shifted left so it no longer sits under Love at the Center, leaving a gap between them.
+- **Love at the Center** and the **Seven Principles** graphic, under the values paragraph, are one third larger on a wide screen. Phone and tablet stay the same size. On a wide screen the Seven Principles graphic is shifted left so it no longer sits under Love at the Center, leaving a gap between them. The flipping nine-photo grid is half the content width on a wide screen and full width on a phone or tablet.
 - **File:** `assets/css/custom.css`.
 
 ### PayPal fees calculator: heading removed

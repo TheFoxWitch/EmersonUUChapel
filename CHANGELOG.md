@@ -12,6 +12,10 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-19
 
+### Religious Education: updated handprint banner
+- The banner above the Religious Education title is the edited `images/hand-mural.jpg`. The page editor cannot change it, because the banner is added by the theme from the Media Library file.
+- **File:** `wp-content/uploads/2023/03/hand-mural.jpg` (Media attachment 348). Backup: `backups/images/hand-mural-before-2026-10-19.jpg`.
+
 ### Who Are We: values graphics larger on a desktop
 - **Love at the Center** and the **Seven Principles** graphic, under the values paragraph, are one third larger on a wide screen. Phone and tablet stay the same size. On a wide screen the Seven Principles graphic is shifted left so it no longer sits under Love at the Center, leaving a gap between them.
 - **File:** `assets/css/custom.css`.

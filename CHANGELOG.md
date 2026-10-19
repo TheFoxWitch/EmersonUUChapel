@@ -12,6 +12,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-19
 
+### Who Are We: values graphics larger on a desktop
+- **Love at the Center** and the **Seven Principles** graphic, under the values paragraph, are one third larger on a wide screen. Phone and tablet stay the same size. On a wide screen the Seven Principles graphic is shifted left so it no longer sits under Love at the Center, leaving a gap between them.
+- **File:** `assets/css/custom.css`.
+
+### PayPal fees calculator: heading removed
+- The calculator no longer shows the heading **Approximately Calculate PayPal Fees**. The note under it stays.
+- **Local DB:** Calculated Fields form 8. Backup: `backups/calculator/cff-form-8-before-title.txt`.
+
 ### Engage: meeting details on small screens
 - On a phone or tablet, the meeting time and meeting location under **Womyn’s Web** and **Men’s Night** are centred. Men’s Night meets at a rotating location, the same as Womyn’s Web, instead of the chapel address. **Board Meetings** centres the time, location, join line, and the link to previous minutes the same way.
 - **File:** `assets/css/custom.css`.

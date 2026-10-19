@@ -242,6 +242,22 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	}
 }
 
+/* Who Are We: Love at the Center and Seven Principles, one third larger on a desktop */
+@media (min-width: 1001px) {
+	.page-id-190 .wp-block-post-content .wp-block-image img.wp-image-957,
+	.page-id-190 .wp-block-post-content .wp-block-image img.wp-image-959 {
+		width: calc(313px * 1.33);
+		max-width: none;
+		height: auto;
+		max-height: none;
+	}
+
+	.page-id-190 .wp-block-post-content .wp-block-image img.wp-image-957 {
+		margin-right: 0;
+		margin-left: calc(313px * -0.33);
+	}
+}
+
 /* Religious Education (page 203): handprint mural spans the page above the title */
 .page-id-203 .emerson-re-banner {
 	margin-top: 0;

@@ -86,6 +86,13 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 }
 /** End Home page text **/
 
+/* Engage: meeting time and location centre when the columns stack */
+@media (max-width: 781px) {
+	.page-id-68 .emerson-engage-detail {
+		text-align: center;
+	}
+}
+
 /* Homepage: next Sunday, including cancelled / moved */
 .emerson-sunday-location {
 	text-align: center;

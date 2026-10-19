@@ -12,6 +12,11 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-19
 
+### Engage: meeting details on small screens
+- On a phone or tablet, the meeting time and meeting location under **Womyn’s Web** and **Men’s Night** are centred. Men’s Night meets at a rotating location, the same as Womyn’s Web, instead of the chapel address. **Board Meetings** centres the time, location, join line, and the link to previous minutes the same way.
+- **File:** `assets/css/custom.css`.
+- **Local DB:** page 68. Backups: `backups/pages/page-68-before-engage-meeting-align.html`, `backups/pages/page-68-before-board-align.html`.
+
 ### Religious Education: photo description
 - Lauren’s photo above the quote has alternative text for screen readers only: “Lauren, Religious Education coordinator.” It is not printed on the page.
 - **Local DB:** page 203. Backup: `backups/pages/page-203-before-lauren-alt.html`.

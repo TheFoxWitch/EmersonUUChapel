@@ -10,7 +10,22 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-19
+
+### Religious Education: photo description
+- Lauren’s photo above the quote has alternative text for screen readers only: “Lauren, Religious Education coordinator.” It is not printed on the page.
+- **Local DB:** page 203. Backup: `backups/pages/page-203-before-lauren-alt.html`.
+
 ## 2026-10-18
+
+### Religious Education: welcome quote
+- A quote from the Religious Education coordinator now sits between the page title and the first paragraph. Its lines and the italic text are each three quarters of the width and centred.
+- **File:** `assets/css/custom.css`.
+- **Local DB:** page 203. Backup: `backups/pages/page-203-before-re-quote.html`.
+
+### Homepage photo slider: every slide is the same size
+- The first homepage photo was a slightly different shape from the later ones, so the slider jumped as it moved. Every photo now fills the same frame.
+- **File:** `assets/css/custom.css`.
 
 ### Newcomer form: hourly submission limit
 - The Newcomer Information form now stops after eight tries in an hour from the same connection, the same limit as the re-commitment form. The ninth try is refused and is not emailed.

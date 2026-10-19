@@ -247,6 +247,37 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	height: auto;
 }
 
+.page-id-203 .wp-block-post-content .wp-block-quote {
+	border: 0;
+	padding: 0.85rem 0;
+	margin-left: 0;
+	margin-right: 0;
+}
+
+.page-id-203 .wp-block-post-content .wp-block-quote::before,
+.page-id-203 .wp-block-post-content .wp-block-quote::after {
+	content: "";
+	display: block;
+	width: 75%;
+	margin-inline: auto;
+	border-top: 1px solid currentColor;
+}
+
+.page-id-203 .wp-block-post-content .wp-block-quote::before {
+	margin-bottom: 0.85rem;
+}
+
+.page-id-203 .wp-block-post-content .wp-block-quote::after {
+	margin-top: 0.85rem;
+}
+
+.page-id-203 .wp-block-post-content .wp-block-quote p {
+	width: 75%;
+	margin-inline: auto;
+	text-align: center;
+	font-style: italic;
+}
+
 /* Religious Education (page 203): section headings match the page title */
 .page-id-203 .wp-block-post-content h2 {
 	font-size: var(--emerson-h1-size);
@@ -1055,21 +1086,29 @@ iframe.emerson-map {
 
 .emerson-home-gallery__track {
 	display: block;
+	aspect-ratio: 4 / 3;
 	scroll-snap-type: x mandatory;
 }
 
 .emerson-home-gallery__slide {
+	position: relative;
 	width: 100%;
+	height: 100%;
+	overflow: hidden;
 	scroll-snap-align: start;
 	scroll-snap-stop: always;
 }
 
 .emerson-home-gallery__slide img {
+	position: absolute;
+	inset: 0;
 	display: block;
 	width: 100%;
-	height: auto;
-	aspect-ratio: 4 / 3;
+	height: 100%;
+	max-width: none;
+	max-height: none;
 	object-fit: cover;
+	object-position: center;
 }
 
 .emerson-home-gallery__controls {

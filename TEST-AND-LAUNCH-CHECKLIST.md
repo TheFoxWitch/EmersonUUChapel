@@ -89,7 +89,9 @@ The homepage heading **Sunday Service Location** can still be edited on the page
 
 The screen lists the next 12 Sundays. Each row has **Status**, **Time**, **At the** (the building name), **Located at** (the street address), **Note**, and **Signed up** (who would be emailed).
 
-Leave a Sunday as **Regular** unless something is different that week. Regular Sundays use **10 am** at the **St. Charles YMCA**, **3900 Shady Springs Ln, St Peters, MO 63376**. After that Sunday's service, the homepage moves to the next one on its own.
+At the top, **Regular Sunday default** is the time and place for every Sunday left as **Regular**, including Sundays after those 12. Change **Time**, **At the**, and **Located at** there and click **Update regular Sundays**. Moved and Cancelled Sundays are left alone, and nobody is emailed.
+
+To change one Regular Sunday only, type its address in that row’s **Located at** and click **Save Sundays**. Status can stay **Regular**. After that Sunday's service, the homepage moves to the next one on its own.
 
 ### The usual place this week (nothing special)
 
@@ -122,9 +124,21 @@ Check the **Signed up** column before you save, so you know who will get mail.
 
 ### Put it back to a normal Sunday
 
-Set **Status** back to **Regular** and click **Save Sundays**. The homepage and schedule return to 10 am at the YMCA. That does **not** send another email.
+Set **Status** back to **Regular** and click **Save Sundays**. The homepage and schedule return to the time and place in **Regular Sunday default**. That does **not** send another email.
 
 Saving **Cancelled** or **Moved** a second time, with the same time and place, does not email people again. Changing the time or place on a Moved Sunday does.
+
+## Board Location — how to update
+
+Board meetings are the third Monday at 6:30 pm. A regular meeting is at a **Rotating** location. The calendar shows that word, and Engage says **Rotating** under Meeting Location.
+
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
+
+**Where:** WordPress admin (the left-hand menu) → **Board Location**. It is a location pin, directly under **Sunday Location**.
+
+The screen lists the next 12 board Mondays. Each row has **Status**, **Time**, **At the**, **Located at**, and **Note**.
+
+Type this month’s place in **Located at** and click **Save board meetings**. The calendar uses that place as soon as you save. Leave **Located at** empty and the calendar says **Rotating**. Choose **Cancelled** when there is no meeting.
 
 ## Serving sign-ups — where admins see them
 
@@ -134,7 +148,7 @@ Saving **Cancelled** or **Moved** a second time, with the same time and place, d
 
 ### If the church’s usual meeting place changes for good
 
-That is not a one-Sunday Moved. Ask the intern: the default YMCA line lives in `inc/sunday-location.php`, and Visit Us (page 58) still has to match (section 4).
+That is not a one-Sunday Moved. Open **Sunday Location** and change **Regular Sunday default**, then click **Update regular Sundays**. Visit Us (page 58) still has to match (section 4).
 
 ## Homepage photo slider — how to change the pictures
 
@@ -183,21 +197,22 @@ To go back to the newest sermon in **Video Gallery**, clear **YouTube URL** and 
 
 ## Re-commitment Form — how to update the link
 
-The homepage button **Re-commitment Form** opens a Microsoft Form in the dialog. The questions stay on Microsoft’s form. A new year’s form is a new link.
+The homepage button **Emerson Community Survey** opens the chapel commitment form in Calculated Fields. Submitting it emails the office. Change the button wording under **Modals → Emerson Community Survey**. Click **Edit the commitment form** on that screen to change the fields, wording, and submit button. Check **Include the signature box** and save to put the drawing area, **Clear signature**, and the date back after the email field. The separate **2026-27 Commitment Form** button is the Microsoft form.
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
 **Where:** WordPress admin (the left-hand menu) → **Modals**. It is a speech-bubble icon, just under **Sunday Schedule**.
 
-1. Open the new form in the browser.
-2. Copy the address from the address bar. It looks like `https://forms.cloud.microsoft/r/…`.
-3. In WordPress, open **Modals**.
-4. Under **Re-commitment**, change **Button text** if the wording should change. Those words are the homepage button and the heading in the dialog.
-5. Paste the form address into **Form URL** when the form itself is changing.
-6. Click **Save re-commitment**.
-7. On the homepage, click the button and confirm the new wording and the form.
+1. In WordPress, open **Modals**.
+2. Under **Emerson Community Survey**, change **Button text** if the wording should change. Those words are the homepage button and the heading in the dialog.
+3. Click **Save survey button**.
+4. On the homepage, click the button and confirm the commitment form opens.
 
-Until a link is saved, the button opens this year’s form: `https://forms.cloud.microsoft/r/59mVXw4vPP`.
+### 2026-27 Commitment Form
+
+The homepage **2026-27 Commitment Form** button opens its form in a dialog. Change the wording and the form address under **Modals → 2026-27 Commitment Form**, then click **Save commitment form**. Do not edit that button on the homepage. Editing it there does not change the dialog, and an old link left in the page is ignored.
+
+A Microsoft Forms address looks like `https://forms.cloud.microsoft/r/…`. A Google Forms address looks like `https://docs.google.com/forms/…`. Until a link is saved, the button opens the 2026–2027 commitment form.
 
 ### Approximate PayPal Fees
 
@@ -295,6 +310,7 @@ Do not put personal emails or phone numbers in the theme files or GitHub. The li
 ## 2. Before making the WPvivid backup
 
 - [ ] Email back to save only: `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`
+- [ ] **Clear the unsent-mail backlog before anyone receives it.** While mail was caught or redirected, WordPress still queued messages (Action Scheduler, WPForms background email, Church Admin and Zephyr jobs). Turning the redirect off, or restoring this database onto the live site, will send that queue to the original people. Delete those pending jobs first. Do not resend the copies in `wp-content/local-mail/`; those files are only a record.
 - [ ] Test data removed (see "Clean up afterwards" in section 1)
 - [ ] No scheduled jobs in the past: `docker compose run --rm -T wpcli cron event list`. The overdue ones were rescheduled on 2026-09-29.
 - [ ] Every question in section 4 (questions for the church) is answered, and its change made or deliberately left for later
@@ -420,7 +436,7 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
   - Serve Emerson Chapel and Engage banners: `service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg` and `board-meetings.jpg` (uploaded 2021/11 and 2022/07). Engage also needs `image.jpeg` (2022/07), the "Serve Our Wider Community" photo. Until then those banners are solid blue. See `CHANGELOG.md` for how to put the photos back.
 - [x] **Twitter/X.** They no longer use it (2026-10-03). Removed from the footer, Ways to Connect, and two leftover empty links on Religious Education and Our Congregation.
 - [ ] **Church Leadership: personal emails and extra contact details.** The page lists names and roles only. Two board members' personal emails were sent for a possible contact list; they are **not** on the page, and must not go into GitHub. Ask leadership whether they want personal emails (or other private contact details) on this public page. If yes: add them on the page only, not in the repo. If no: leave the names as they are.
-- [ ] **2026 pledge form.** The homepage button still says **2024-25 Pledge Form** and goes to `https://forms.gle/PeAst4DMzSA9FKjG6`. Ask for this year's Google Form (or confirmation the old one is still current), then update the button label and that link. The old Welcome! page (412) still has an even older "Join The 2022-2023 Pledge Drive" link (`forms.gle/GfZt7bZsiYhPiFWX9`); update or remove that too if the page stays.
+- [ ] **2026 commitment form.** The homepage button says **2026-27 Commitment Form** and is edited under **Modals → 2026-27 Commitment Form**. Until a different address is saved, it opens the 2026–2027 commitment form. The old Welcome! page (412) still has an even older "Join The 2022-2023 Pledge Drive" link (`forms.gle/GfZt7bZsiYhPiFWX9`); update or remove that too if the page stays.
 - [ ] **Mint green (`#00d084`).** It has low contrast as text on white. Keep it, or choose a darker green for text? The homepage **You Are Welcome!** heading is no longer mint (rainbow gradient, 2026-10-08). Mint is still the pledge / contribute button background.
 - [ ] **Privacy Policy.** Leadership approves the wording, including the newsletter, local-storage and login-protection sections. Also approve the new **Cookies** (`/cookies/`) and **Terms of Use** (`/terms-of-use/`) pages, and the cookie notice (Okay remembers the choice in this browser). Church Admin needs PHP's `calendar` extension. Locally it's added by the project `Dockerfile`; most hosts have it. If the live site gives a server error there, ask the host to enable it.
 

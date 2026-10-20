@@ -11,7 +11,8 @@
 
 declare( strict_types=1 );
 
-const EMERSON_SUNDAY_OPTION         = 'emerson_sunday_exceptions';
+const EMERSON_SUNDAY_OPTION          = 'emerson_sunday_exceptions';
+const EMERSON_SUNDAY_DEFAULTS_OPTION = 'emerson_sunday_defaults';
 const EMERSON_SUNDAY_DEFAULT_TIME   = '10:00:00';
 const EMERSON_SUNDAY_DEFAULT_VENUE  = 'St. Charles YMCA';
 const EMERSON_SUNDAY_DEFAULT_ADDRESS = '3900 Shady Springs Ln, St Peters, MO 63376';
@@ -21,6 +22,44 @@ const EMERSON_SUNDAY_VISIT_PATH     = '/visit-us/';
 function emerson_sunday_exceptions(): array {
 	$stored = get_option( EMERSON_SUNDAY_OPTION, array() );
 	return is_array( $stored ) ? $stored : array();
+}
+
+/**
+ * Time and place for every Sunday left as Regular.
+ *
+ * @return array{time:string,venue:string,address:string,place:string}
+ */
+function emerson_sunday_defaults(): array {
+	$stored = get_option( EMERSON_SUNDAY_DEFAULTS_OPTION, null );
+	if ( ! is_array( $stored ) ) {
+		return array(
+			'time'    => EMERSON_SUNDAY_DEFAULT_TIME,
+			'venue'   => EMERSON_SUNDAY_DEFAULT_VENUE,
+			'address' => EMERSON_SUNDAY_DEFAULT_ADDRESS,
+			'place'   => EMERSON_SUNDAY_DEFAULT_PLACE,
+		);
+	}
+	$time = (string) ( $stored['time'] ?? '' );
+	if ( preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
+		$time .= ':00';
+	}
+	if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $time ) ) {
+		$time = EMERSON_SUNDAY_DEFAULT_TIME;
+	}
+	$venue   = trim( (string) ( $stored['venue'] ?? '' ) );
+	$address = trim( (string) ( $stored['address'] ?? '' ) );
+	if ( $venue === '' ) {
+		$venue = EMERSON_SUNDAY_DEFAULT_VENUE;
+	}
+	if ( $address === '' ) {
+		$address = EMERSON_SUNDAY_DEFAULT_ADDRESS;
+	}
+	return array(
+		'time'    => $time,
+		'venue'   => $venue,
+		'address' => $address,
+		'place'   => $venue . ', ' . $address,
+	);
 }
 
 function emerson_sunday_exception( string $date ): ?array {
@@ -201,25 +240,27 @@ function emerson_sunday_place_line( string $date ): string {
 
 function emerson_sunday_display( array $base ): array {
 	$date   = $base['date'];
-	$ex     = emerson_sunday_exception( $date );
-	$status = $ex['status'] ?? 'regular';
-	$time   = ( $ex && ! empty( $ex['time'] ) ) ? $ex['time'] : $base['time'];
-	$parts  = emerson_sunday_split_place( $base['place'] ?? EMERSON_SUNDAY_DEFAULT_PLACE );
-	$venue  = $base['venue'] ?? $parts['venue'];
-	$address = $base['address'] ?? $parts['address'];
-	if ( $ex ) {
-		if ( ! empty( $ex['venue'] ) ) {
-			$venue = (string) $ex['venue'];
-		}
-		if ( ! empty( $ex['address'] ) ) {
-			$address = (string) $ex['address'];
-		} elseif ( ! empty( $ex['place'] ) ) {
-			$parts   = emerson_sunday_split_place( (string) $ex['place'] );
-			$venue   = $ex['venue'] ?? $parts['venue'];
-			$address = $parts['address'];
-		}
+	$stored = emerson_sunday_exceptions()[ $date ] ?? null;
+	$stored = is_array( $stored ) ? $stored : array();
+	$status = (string) ( $stored['status'] ?? 'regular' );
+	if ( ! in_array( $status, array( 'regular', 'cancelled', 'moved' ), true ) ) {
+		$status = 'regular';
 	}
-	$note = ( $ex && ! empty( $ex['note'] ) ) ? (string) $ex['note'] : '';
+	$defaults = emerson_sunday_defaults();
+	$time     = ! empty( $stored['time'] ) ? (string) $stored['time'] : $defaults['time'];
+	$venue    = $defaults['venue'];
+	$address  = $defaults['address'];
+	if ( ! empty( $stored['venue'] ) ) {
+		$venue = (string) $stored['venue'];
+	}
+	if ( ! empty( $stored['address'] ) ) {
+		$address = (string) $stored['address'];
+	} elseif ( ! empty( $stored['place'] ) ) {
+		$parts   = emerson_sunday_split_place( (string) $stored['place'] );
+		$venue   = $stored['venue'] ?? $parts['venue'];
+		$address = $parts['address'];
+	}
+	$note = ! empty( $stored['note'] ) ? (string) $stored['note'] : '';
 	return array(
 		'date'    => $date,
 		'time'    => $time,
@@ -444,9 +485,6 @@ function emerson_sunday_admin_save(): ?string {
 		if ( ! in_array( $status, array( 'regular', 'cancelled', 'moved' ), true ) ) {
 			$status = 'regular';
 		}
-		if ( 'regular' === $status ) {
-			continue;
-		}
 		$time = sanitize_text_field( (string) ( $row['time'] ?? '' ) );
 		if ( $time && preg_match( '/^\d{1,2}:\d{2}$/', $time ) ) {
 			$time .= ':00';
@@ -454,22 +492,32 @@ function emerson_sunday_admin_save(): ?string {
 		if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $time ) ) {
 			$time = $base['time'];
 		}
-		$venue   = sanitize_text_field( (string) ( $row['venue'] ?? '' ) ) ?: ( $base['venue'] ?? EMERSON_SUNDAY_DEFAULT_VENUE );
-		$address = sanitize_text_field( (string) ( $row['address'] ?? '' ) ) ?: ( $base['address'] ?? EMERSON_SUNDAY_DEFAULT_ADDRESS );
-		$saved   = array(
+		$defaults = emerson_sunday_defaults();
+		$venue    = sanitize_text_field( (string) ( $row['venue'] ?? '' ) ) ?: $defaults['venue'];
+		$address  = sanitize_text_field( (string) ( $row['address'] ?? '' ) ) ?: $defaults['address'];
+		$note     = sanitize_textarea_field( (string) ( $row['note'] ?? '' ) );
+		$saved    = array(
 			'status'  => $status,
 			'time'    => $time,
 			'venue'   => $venue,
 			'address' => $address,
 			'place'   => $venue . ', ' . $address,
-			'note'    => sanitize_textarea_field( (string) ( $row['note'] ?? '' ) ),
+			'note'    => $note,
 		);
+		$unchanged = 'regular' === $status
+			&& $time === $defaults['time']
+			&& $venue === $defaults['venue']
+			&& $address === $defaults['address']
+			&& $note === '';
+		if ( $unchanged ) {
+			continue;
+		}
 		$prev     = is_array( $old[ $date ] ?? null ) ? $old[ $date ] : array();
 		$prev_key = ( $prev['status'] ?? '' ) . '|' . ( $prev['time'] ?? '' ) . '|' . ( $prev['venue'] ?? '' ) . '|' . ( $prev['address'] ?? $prev['place'] ?? '' );
 		$new_key  = $saved['status'] . '|' . $saved['time'] . '|' . $saved['venue'] . '|' . $saved['address'];
 		$already  = ( $prev['notified'] ?? '' ) === $new_key;
 		$saved['notified'] = $already ? $new_key : ( $prev['notified'] ?? '' );
-		if ( $prev_key !== $new_key && ! $already ) {
+		if ( 'regular' !== $status && $prev_key !== $new_key && ! $already ) {
 			// Claim this exact change before any mail goes out. Mail is slow, and a
 			// second click used to start another send before the first one recorded
 			// that these people had already been told.
@@ -513,17 +561,72 @@ function emerson_sunday_admin_save(): ?string {
 	return 'Sunday Location saved.';
 }
 
+function emerson_sunday_defaults_save(): ?string {
+	if ( ! emerson_sunday_can_manage() || empty( $_POST['emerson_sunday_defaults_save'] ) ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_sunday_defaults_save' );
+	$time = sanitize_text_field( (string) ( $_POST['default_time'] ?? '' ) );
+	if ( $time !== '' && preg_match( '/^\d{1,2}:\d{2}$/', $time ) ) {
+		$time .= ':00';
+	}
+	if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $time ) ) {
+		$time = EMERSON_SUNDAY_DEFAULT_TIME;
+	}
+	$venue   = sanitize_text_field( (string) ( wp_unslash( $_POST['default_venue'] ?? '' ) ) );
+	$address = sanitize_text_field( (string) ( wp_unslash( $_POST['default_address'] ?? '' ) ) );
+	if ( $venue === '' ) {
+		$venue = EMERSON_SUNDAY_DEFAULT_VENUE;
+	}
+	if ( $address === '' ) {
+		$address = EMERSON_SUNDAY_DEFAULT_ADDRESS;
+	}
+	update_option(
+		EMERSON_SUNDAY_DEFAULTS_OPTION,
+		array(
+			'time'    => $time,
+			'venue'   => $venue,
+			'address' => $address,
+		),
+		false
+	);
+	$next = emerson_sunday_exceptions();
+	foreach ( $next as $date => $row ) {
+		if ( is_array( $row ) && ( $row['status'] ?? 'regular' ) === 'regular' ) {
+			unset( $next[ $date ] );
+		}
+	}
+	update_option( EMERSON_SUNDAY_OPTION, $next, false );
+	return 'Regular Sundays now use this time and place. Moved and Cancelled Sundays were left as they are.';
+}
+
 function emerson_sunday_admin_page(): void {
 	if ( ! emerson_sunday_can_manage() ) {
 		wp_die( esc_html__( 'You do not have permission to edit Sunday Location.' ) );
 	}
-	$notice = emerson_sunday_admin_save();
+	$defaults_notice = emerson_sunday_defaults_save();
+	$notice          = emerson_sunday_admin_save();
+	$defaults        = emerson_sunday_defaults();
 	echo '<div class="wrap emerson-sunday-admin"><h1>Sunday Location</h1>';
-	echo '<style>.emerson-sunday-admin table input.large-text{min-width:16rem}.emerson-sunday-admin select{min-width:8rem}</style>';
+	echo '<style>.emerson-sunday-admin table input.large-text,.emerson-sunday-admin .emerson-sunday-default input.large-text{min-width:16rem}.emerson-sunday-admin select{min-width:8rem}.emerson-sunday-default{margin:1rem 0 1.5rem;padding:1rem 1rem 0;background:#fff;border:1px solid #c3c4c7}</style>';
+	if ( $defaults_notice ) {
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $defaults_notice ) . '</p></div>';
+	}
 	if ( $notice ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
 	}
-	echo '<p>The homepage says <strong>This week, meet us at [time], at the [place] located at [address]</strong>. Leave a date as <strong>Regular</strong> unless that service is cancelled or moved. Saving Cancelled or Moved emails anyone assigned that day or who ticked they can serve, plus the office.</p>';
+	echo '<p>The homepage says <strong>This week, meet us at [time], at the [place] located at [address]</strong>. A new street address in <strong>Located at</strong> is kept when you save, even if Status stays <strong>Regular</strong>. Saving <strong>Cancelled</strong> or <strong>Moved</strong> emails anyone assigned that day or who ticked they can serve, plus the office.</p>';
+	echo '<form method="post" class="emerson-sunday-default">';
+	wp_nonce_field( 'emerson_sunday_defaults_save' );
+	echo '<h2>Regular Sunday default</h2>';
+	echo '<p>This time and place is used for every Sunday left as <strong>Regular</strong>, including Sundays after the 12 listed below. Sundays marked <strong>Moved</strong> or <strong>Cancelled</strong> stay as they are. Updating this does not send email.</p>';
+	echo '<table class="form-table" role="presentation"><tbody>';
+	echo '<tr><th scope="row"><label for="emerson-default-time">Time</label></th><td><input type="time" id="emerson-default-time" name="default_time" value="' . esc_attr( substr( $defaults['time'], 0, 5 ) ) . '"></td></tr>';
+	echo '<tr><th scope="row"><label for="emerson-default-venue">At the</label></th><td><input type="text" class="large-text" id="emerson-default-venue" name="default_venue" value="' . esc_attr( $defaults['venue'] ) . '"></td></tr>';
+	echo '<tr><th scope="row"><label for="emerson-default-address">Located at</label></th><td><input type="text" class="large-text" id="emerson-default-address" name="default_address" value="' . esc_attr( $defaults['address'] ) . '"></td></tr>';
+	echo '</tbody></table>';
+	echo '<p class="submit"><button type="submit" name="emerson_sunday_defaults_save" value="1" class="button button-primary">Update regular Sundays</button></p>';
+	echo '</form>';
 	echo '<form method="post" onsubmit="if (this.dataset.emersonSaved) { return false; } this.dataset.emersonSaved = \'1\';">';
 	wp_nonce_field( 'emerson_sunday_save' );
 	echo '<table class="widefat striped"><thead><tr>';

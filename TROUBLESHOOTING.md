@@ -139,6 +139,8 @@ docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to
 
 Switch back to save only before making the WPvivid backup. The mode would do nothing on the live site anyway, because the catcher only runs on `localhost`.
 
+Before that switch, or before this database is restored onto the live site, clear the backlog of mail that never reached its real recipients. Action Scheduler, WPForms background email, and Church Admin or Zephyr jobs can still be waiting. Once the redirect is gone they go out to the original addresses, which would be a flood. Delete those pending jobs. The text files in `wp-content/local-mail/` are a record only. Do not send them.
+
 ### Submitting a form takes about 10 seconds
 NetSol's SMTP server is slow: about 7 seconds to connect, encrypt and log in, then the message itself. Anything that waits for `wp_mail()` before answering the visitor feels frozen.
 

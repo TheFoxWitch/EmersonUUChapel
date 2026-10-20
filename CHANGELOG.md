@@ -10,7 +10,66 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-20
+
+### Unsent mail must be cleared before launch
+- Mail caught or redirected locally may still be queued in WordPress. That queue has to be deleted before the redirect is turned off or this database is restored live, or the original recipients get a flood. `wp-content/local-mail/` is a record only and must not be resent.
+- **File:** `TEST-AND-LAUNCH-CHECKLIST.md`, `TROUBLESHOOTING.md`.
+
+### Survey dialog fits a phone and a tablet
+- The Emerson Community Survey form scales to the dialog on every screen size, so the fields, signature, and Submit stay on screen without scrolling.
+- **File:** `assets/css/custom.css`, `assets/js/recommitment.js`.
+
+### Survey signature is a Modals checkbox
+- **Modals → Emerson Community Survey** has **Include the signature box**. When it is checked, the drawing area and **Clear signature** appear after the email field, with the date beside them. A signature is required and is attached to the office email.
+- **File:** `inc/recommitment.php`, `inc/modals.php`, `assets/js/recommitment.js`, `assets/css/custom.css`.
+
+### Community survey form is edited in Calculated Fields
+- **Emerson Community Survey** opens a Calculated Fields form (name, pledge, how often, dates, phone, and email). **Modals** has **Edit the commitment form**, which opens that builder. Submitting it emails the office. The drawn signature is not part of this form.
+- **File:** `inc/recommitment.php`, `inc/modals.php`, `assets/js/recommitment.js`, `assets/css/custom.css`. **Local DB:** the Calculated Fields form.
+
+### Commitment dialog has no extra heading
+- The 2026-27 Commitment Form dialog no longer repeats a title above the Microsoft form. Close stays in the top-right corner.
+- **File:** `inc/modals.php`.
+
+### Dialog titles are centered
+- The heading in each site dialog is centered. The Close button stays in the top-right corner.
+- **File:** `assets/css/custom.css`.
+
+### Pledge button renamed to 2026-27 Commitment Form
+- The homepage button and its dialog heading now say **2026-27 Commitment Form**.
+- **File:** `inc/modals.php`. **Local DB:** the saved button label.
+
+### Emerson Community Survey opens the chapel commitment form
+- That homepage button opens the commitment form we built (name, pledge, schedule, phone, email, and signature). The pledge button stays the Microsoft form.
+- **File:** `inc/recommitment.php`, `inc/modals.php`, `assets/js/recommitment.js`, `assets/css/custom.css`.
+
+### Giving page: donate button sits under PayPal fees
+- On Make a Contribution, the PayPal **Donate** button is centered under **Approximate PayPal Fees**.
+- **File:** `assets/css/custom.css`.
+
+### Pledge form is edited from Modals
+- **Modals → Pledge form** sets the homepage button text, the dialog heading, and the form address. Editing the button on the page no longer changes the dialog.
+- **File:** `inc/modals.php`, `assets/js/recommitment.js`, `assets/css/custom.css`.
+
+### 2026-27 Pledge Form opens in the dialog
+- The homepage button keeps the words typed on the page. It opens the 2026–2027 commitment form in the dialog instead of leaving the site for the 2024–2025 Google Form.
+- **File:** `assets/js/recommitment.js`.
+
+### Sunday Location default updates every Regular Sunday
+- **Regular Sunday default** at the top of **Sunday Location** sets the time, building, and street address for every Sunday left as **Regular**, including ones after the 12 on the list. **Moved** and **Cancelled** Sundays stay as they are. Updating the default does not send email.
+- **File:** `inc/sunday-location.php`.
+
+### Sunday Location keeps a new street address
+- **Located at** on **Sunday Location** is saved even when Status stays **Regular**. The homepage sentence uses that address. Clearing the box returns the usual YMCA address. **Cancelled** and **Moved** still email people signed up to serve.
+- **File:** `inc/sunday-location.php`.
+
 ## 2026-10-19
+
+### Board meetings: rotating location, edited like Sunday Location
+- Board meetings default to **Rotating** on the calendar and on Engage. **Board Location**, directly under **Sunday Location**, lists the next 12 third Mondays. A place typed in **Located at** is kept on save. **Cancelled** marks no meeting. Clearing **Located at** returns that Monday to Rotating.
+- **File:** `inc/board-location.php`, `inc/calendar-listed-events.php`, `assets/js/custom.js`.
+- **Local DB:** Board Meeting calendar rows, and page 68. Backup: `backups/pages/page-68-before-board-rotating.html`.
 
 ### Documents screen: stay on the list you are editing
 - Adding, saving, moving, or removing a file no longer reloads the Documents screen back to the top. **Add** and **Save** sit together at the top of each list. Congregational Meetings and Other Documents sit side by side, and Board of Trustees meetings is the full-width list underneath. Each list shows five files and scrolls inside itself after that. A new file fades in, a removed row fades out, and **Move up** / **Move down** slide that row. A rainbow circle with a white arrow appears after you are a quarter of the way down and returns you to the top.

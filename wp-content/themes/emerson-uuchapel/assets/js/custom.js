@@ -521,8 +521,7 @@
 				}
 				extras.forEach(function (item) {
 					if (item && item.title) {
-						var inCell = !/board meeting/i.test(item.title);
-						day.appendChild(eventMark(item, inCell));
+						day.appendChild(eventMark(item, true));
 					}
 				});
 				if (mark) {

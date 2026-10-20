@@ -381,10 +381,15 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	border-radius: 25px;
 	transition: all 0.3s ease-in-out;
 }
-button.wp-block-button__link[data-emerson-paypal-fees] {
+button.wp-block-button__link[data-emerson-paypal-fees],
+button.wp-block-button__link[data-emerson-pledge] {
 	border: 0;
 	font: inherit;
 	cursor: pointer;
+}
+.page-id-49 form[action*="paypal.com/donate"] {
+	display: flex;
+	justify-content: center;
 }
 .paypal-fees-button .wp-block-button__link:hover,
 .newcomer-button .wp-block-button__link:hover,
@@ -454,9 +459,11 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 }
 
 .emerson-paypal-fees__close {
-	float: right;
+	position: absolute;
+	top: 1.25rem;
+	right: 1.35rem;
 	min-height: 44px;
-	margin: 0 0 0.5rem 0.75rem;
+	margin: 0;
 	padding: 0.35rem 0.9rem;
 	border: 2px solid #1e1e1e;
 	border-radius: 999px;
@@ -466,8 +473,14 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 }
 
 .emerson-paypal-fees h2 {
-	margin: 0.35rem 0 0.75rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	margin: 0 0 0.75rem;
+	padding-inline: 6.75rem;
 	font-size: 1.35rem;
+	text-align: center;
 }
 
 /* The calculator remembers a placeholder height and prints it as a min-height.
@@ -481,6 +494,37 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 .emerson-recommit[open] {
 	display: flex;
 	flex-direction: column;
+}
+#emerson-recommit.emerson-recommit--form {
+	height: calc(100dvh - 1.5rem);
+	max-height: calc(100dvh - 1.5rem);
+	overflow: hidden;
+}
+#emerson-recommit.emerson-recommit--form form.cff-form {
+	transform-origin: top center;
+}
+.emerson-recommit--form form.cff-form {
+	height: auto !important;
+	min-height: 0 !important;
+}
+@media (max-width: 1000px) {
+	#emerson-recommit.emerson-recommit--form {
+		height: calc(100dvh - 1rem);
+		max-height: calc(100dvh - 1rem);
+		overflow: hidden;
+		padding: 0.5rem 0.7rem 0.45rem;
+	}
+	#emerson-recommit.emerson-recommit--form .emerson-recommit__bar {
+		min-height: 2.25rem;
+		margin-bottom: 0.35rem;
+	}
+	#emerson-recommit.emerson-recommit--form .emerson-recommit__close,
+	#emerson-recommit.emerson-recommit--form h2 {
+		min-height: 2.25rem;
+	}
+	#emerson-recommit.emerson-recommit--form h2 {
+		font-size: 1.05rem;
+	}
 }
 .emerson-recommit {
 	width: min(46rem, calc(100vw - 1.5rem));
@@ -508,14 +552,14 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	background: rgba(20, 24, 50, 0.35);
 }
 .emerson-recommit__bar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
+	position: relative;
+	min-height: 44px;
 	margin-bottom: 0.75rem;
 }
 .emerson-recommit__close {
-	flex: 0 0 auto;
+	position: absolute;
+	top: 0;
+	right: 0;
 	min-height: 44px;
 	margin: 0;
 	padding: 0.35rem 0.9rem;
@@ -526,8 +570,14 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	cursor: pointer;
 }
 .emerson-recommit h2 {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
 	margin: 0;
+	padding-inline: 6.75rem;
 	font-size: 1.35rem;
+	text-align: center;
 }
 .emerson-recommit__fit {
 	flex: 1 1 auto;
@@ -652,9 +702,36 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 }
 .emerson-recommit__sign-actions {
 	flex: 1 1 auto;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem 0.5rem;
 	min-width: 0;
 	margin: 0;
 	line-height: 2.2;
+}
+#emerson-recommit .emerson-recommit__sign-actions [class*="fieldname7_"],
+#emerson-recommit .emerson-recommit__sign-actions [class*="fieldname7_"] .dfield {
+	display: inline-flex;
+	align-items: center;
+	width: auto;
+	flex: 0 0 auto;
+	margin: 0;
+}
+#emerson-recommit .emerson-recommit__sign-actions [class*="fieldname7_"] input {
+	width: 11rem;
+}
+#emerson-recommit button.emerson-recommit__clear {
+	background: #fff !important;
+	color: var(--emerson-blue) !important;
+}
+.emerson-recommit__sign-actions [class*="fieldname7_"] label,
+.emerson-recommit__sign-actions [class*="fieldname7_"] .uh {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
 }
 .emerson-recommit__clear,
 .emerson-recommit__submit {

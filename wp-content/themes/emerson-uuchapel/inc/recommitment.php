@@ -106,27 +106,248 @@ function emerson_recommit_enqueue(): void {
 		(string) filemtime( $path ),
 		true
 	);
+	wp_localize_script(
+		'emerson-recommit',
+		'emersonRecommit',
+		array(
+			'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+			'nonce'     => wp_create_nonce( 'emerson_recommit' ),
+			'signature' => emerson_survey_signature_enabled(),
+		)
+	);
 }
 add_action( 'wp_enqueue_scripts', 'emerson_recommit_enqueue' );
+
+function emerson_survey_form_id(): int {
+	$stored = (int) get_option( 'emerson_survey_cff_id', 0 );
+	if ( $stored <= 0 || ! defined( 'CP_CALCULATEDFIELDSF_FORMS_TABLE' ) ) {
+		return 0;
+	}
+	global $wpdb;
+	$found = (int) $wpdb->get_var(
+		$wpdb->prepare(
+			'SELECT id FROM ' . $wpdb->prefix . CP_CALCULATEDFIELDSF_FORMS_TABLE . ' WHERE id = %d',
+			$stored
+		)
+	);
+	return $found > 0 ? $found : 0;
+}
+
+function emerson_survey_ensure_form(): void {
+	if ( ! class_exists( 'CPCFF_FORM' ) || emerson_survey_form_id() > 0 ) {
+		return;
+	}
+	$form = CPCFF_FORM::create_default( 'Emerson Community Survey' );
+	if ( empty( $form ) ) {
+		return;
+	}
+	$settings = json_decode( CP_CALCULATEDFIELDSF_DEFAULT_form_structure_blank, true );
+	if ( ! is_array( $settings ) ) {
+		return;
+	}
+	$field = static function ( array $row, int $index ): array {
+		$row['form_identifier'] = '';
+		$row['index']           = $index;
+		$row['shortlabel']      = '';
+		$row['userhelp']        = $row['userhelp'] ?? '';
+		$row['csslayout']       = '';
+		$row['advanced']        = array( 'css' => new stdClass() );
+		return $row;
+	};
+	$settings[0] = array(
+		$field(
+			array(
+				'name'   => 'fieldname8',
+				'ftype'  => 'fCommentArea',
+				'title'  => 'I commit to my pledge for the fiscal year 2025-2026. This is to ensure the financial security and commitment Emerson UU Chapel is intending to take on this fiscal year.',
+			),
+			0
+		),
+		$field(
+			array(
+				'name'     => 'fieldname1',
+				'ftype'    => 'ftext',
+				'title'    => 'Name',
+				'required' => true,
+				'size'     => 'medium',
+			),
+			1
+		),
+		$field(
+			array(
+				'name'             => 'fieldname2',
+				'ftype'            => 'fcurrency',
+				'title'            => 'Pledge',
+				'required'         => true,
+				'size'             => 'medium',
+				'currencySymbol'   => '$',
+				'currencyText'     => '',
+				'thousandSeparator'=> ',',
+				'centSeparator'    => '.',
+				'twoDecimals'      => true,
+				'noCents'          => false,
+			),
+			2
+		),
+		$field(
+			array(
+				'name'              => 'fieldname3',
+				'ftype'             => 'fdropdown',
+				'title'             => 'I will pay this',
+				'required'          => true,
+				'size'              => 'medium',
+				'choices'           => array( 'monthly', 'quarterly', 'annually' ),
+				'choicesVal'        => array( 'monthly', 'quarterly', 'annually' ),
+				'first_choice'      => true,
+				'first_choice_text' => 'Choose',
+			),
+			3
+		),
+		$field(
+			array(
+				'name'     => 'fieldname4',
+				'ftype'    => 'fdate',
+				'title'    => 'Date payments continue',
+				'required' => true,
+				'size'     => 'medium',
+				'dformat'  => 'mm/dd/yyyy',
+			),
+			4
+		),
+		$field(
+			array(
+				'name'            => 'fieldname5',
+				'ftype'           => 'fPhone',
+				'title'           => 'Phone',
+				'required'        => true,
+				'size'            => 'medium',
+				'dformat'           => '###-###-####',
+				'predefined'        => '',
+				'predefinedClick'   => false,
+				'showFormatAsHint'  => false,
+			),
+			5
+		),
+		$field(
+			array(
+				'name'     => 'fieldname6',
+				'ftype'    => 'femail',
+				'title'    => 'Email',
+				'required' => true,
+				'size'     => 'medium',
+			),
+			6
+		),
+		$field(
+			array(
+				'name'     => 'fieldname7',
+				'ftype'    => 'fdate',
+				'title'    => 'Date signed',
+				'required' => true,
+				'size'     => 'medium',
+				'dformat'  => 'mm/dd/yyyy',
+			),
+			7
+		),
+	);
+	if ( isset( $settings[1][0] ) && is_array( $settings[1][0] ) ) {
+		$settings[1][0]['title']       = '';
+		$settings[1][0]['description'] = '';
+	}
+	$form->save_settings(
+		array(
+			'form_structure'         => wp_json_encode( $settings ),
+			'fp_from_email'          => EMERSON_RECOMMIT_OFFICE,
+			'fp_destination_emails'  => EMERSON_RECOMMIT_OFFICE,
+			'fp_subject'             => 'Commitment form',
+			'fp_message'             => "A commitment form was submitted.\n\n<%INFO%>\n",
+			'fp_emailformat'         => 'text',
+			'fp_inc_additional_info' => 'false',
+			'fp_reply_to_emails'     => '<%fieldname6%>',
+			'fp_ajax'                => 1,
+			'fp_ajax_reset_form'     => 1,
+			'fp_thanks_mssg'         => 'Sent. Thank you for your commitment.',
+			'enable_submit'          => '',
+			'vs_text_submitbtn'      => 'Submit',
+			'enable_paypal'          => 0,
+			'cv_enable_captcha'      => 'false',
+		)
+	);
+	update_option( 'emerson_survey_cff_id', $form->get_id(), false );
+}
+add_action( 'init', 'emerson_survey_ensure_form', 20 );
+
+function emerson_survey_editor_url(): string {
+	$id = emerson_survey_form_id();
+	if ( $id <= 0 ) {
+		return '';
+	}
+	return admin_url( 'admin.php?page=cp_calculated_fields_form&cal=' . $id . '&_cpcff_nonce=' . wp_create_nonce( 'cff-form-settings' ) );
+}
 
 function emerson_recommit_dialog(): void {
 	if ( ! is_front_page() ) {
 		return;
 	}
-	$src   = emerson_recommit_embed_url();
-	$label = emerson_recommit_label();
+	$label   = emerson_recommit_label();
+	$form_id = emerson_survey_form_id();
 	?>
-	<dialog id="emerson-recommit" class="emerson-recommit">
+	<dialog id="emerson-recommit" class="emerson-recommit emerson-recommit--form">
 		<div class="emerson-recommit__bar">
 			<h2><?php echo esc_html( $label ); ?></h2>
 			<button type="button" class="emerson-recommit__close">Close</button>
 		</div>
-		<?php if ( $src !== '' ) : ?>
-		<div class="emerson-recommit__fit">
-			<iframe class="emerson-recommit__frame" title="<?php echo esc_attr( $label ); ?>" data-src="<?php echo esc_url( $src ); ?>"></iframe>
-		</div>
+		<?php if ( $form_id > 0 ) : ?>
+			<?php echo do_shortcode( '[CP_CALCULATED_FIELDS id="' . $form_id . '"]' ); ?>
 		<?php else : ?>
-		<p>The re-commitment form is not available right now.</p>
+		<form class="emerson-recommit__form" novalidate>
+			<p class="emerson-recommit__sentence">
+				I
+				<label class="screen-reader-text" for="emerson-recommit-name">Your name</label>
+				<input class="emerson-recommit__name" id="emerson-recommit-name" name="name" type="text" maxlength="80" placeholder="Your Name" autocomplete="name" required>
+				commit to my pledge of
+				<label class="screen-reader-text" for="emerson-recommit-pledge">Your pledge</label>
+				<span class="emerson-recommit__money">$<input class="emerson-recommit__pledge" id="emerson-recommit-pledge" name="pledge" type="text" inputmode="decimal" placeholder="Your Pledge" autocomplete="off" required></span>
+				for the fiscal year 2025-2026 and will pay this
+				<label class="screen-reader-text" for="emerson-recommit-frequency">How often you will pay</label>
+				<select id="emerson-recommit-frequency" name="frequency" required>
+					<option value="">Choose</option>
+					<option value="monthly">monthly</option>
+					<option value="quarterly">quarterly</option>
+					<option value="annually">annually</option>
+				</select>
+				continued on
+				<label class="screen-reader-text" for="emerson-recommit-continue">Date payments continue</label>
+				<input id="emerson-recommit-continue" name="continue_on" type="date" required>.
+				This is to ensure the financial security and commitment Emerson UU Chapel is intending to take on this fiscal year.
+			</p>
+			<div class="emerson-recommit__contact">
+				<label for="emerson-recommit-phone">Phone
+					<input id="emerson-recommit-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="(636) 555-0100" required>
+				</label>
+				<label for="emerson-recommit-email">Email
+					<input id="emerson-recommit-email" name="email" type="email" autocomplete="email" maxlength="100" placeholder="name@email.com" required>
+				</label>
+			</div>
+			<p class="emerson-recommit__sign">
+				Signed
+				<label class="screen-reader-text" for="emerson-recommit-pad">Draw your signature</label>
+				<canvas class="emerson-recommit__pad" id="emerson-recommit-pad"></canvas>
+			</p>
+			<div class="emerson-recommit__sign-row">
+				<p class="emerson-recommit__sign-actions">
+					<button type="button" class="emerson-recommit__clear">Clear signature</button>
+					and date
+					<label class="screen-reader-text" for="emerson-recommit-signed">Date signed</label>
+					<input id="emerson-recommit-signed" name="signed_on" type="date" required>.
+				</p>
+				<button type="submit" class="emerson-recommit__submit">Submit</button>
+			</div>
+			<p class="emerson-recommit__hp" aria-hidden="true">
+				<label>Company <input name="company" tabindex="-1" autocomplete="off"></label>
+			</p>
+			<p class="emerson-recommit__status" role="status"></p>
+		</form>
 		<?php endif; ?>
 	</dialog>
 	<?php
@@ -138,8 +359,6 @@ function emerson_recommit_admin_save(): ?string {
 		return null;
 	}
 	check_admin_referer( 'emerson_recommit_save' );
-	$raw   = isset( $_POST['form_url'] ) ? wp_unslash( (string) $_POST['form_url'] ) : '';
-	$url   = emerson_recommit_clean_form_url( $raw );
 	$label = isset( $_POST['button_label'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['button_label'] ) ) : '';
 	$label = trim( preg_replace( '/\s+/', ' ', $label ) ?? '' );
 	if ( $label === '' ) {
@@ -148,13 +367,68 @@ function emerson_recommit_admin_save(): ?string {
 	if ( mb_strlen( $label ) > 80 ) {
 		return 'The button text is too long. Keep it to 80 characters.';
 	}
-	if ( ! emerson_recommit_is_form_url( $url ) ) {
-		return 'That does not look like a Microsoft Forms link. Paste the address from the browser while the form is open.';
-	}
-	update_option( EMERSON_RECOMMIT_FORM_OPTION, $url, false );
 	update_option( EMERSON_RECOMMIT_LABEL_OPTION, $label, false );
-	return 'Saved. The homepage button will use this wording and open this form.';
+	update_option( 'emerson_survey_signature', empty( $_POST['survey_signature'] ) ? '0' : '1', false );
+	return 'Saved. The homepage button will use this wording and open the commitment form.';
 }
+
+function emerson_survey_signature_enabled(): bool {
+	return get_option( 'emerson_survey_signature', '0' ) === '1';
+}
+
+/**
+ * PNG bytes from the signature field, or an empty string when it is missing or blank.
+ */
+function emerson_survey_signature_png(): string {
+	$signature = isset( $_POST['emerson_signature'] ) ? (string) wp_unslash( $_POST['emerson_signature'] ) : '';
+	if ( ! preg_match( '#^data:image/png;base64,#', $signature ) ) {
+		return '';
+	}
+	$png = base64_decode( substr( $signature, strlen( 'data:image/png;base64,' ) ), true );
+	if ( ! is_string( $png ) || strlen( $png ) < 80 || strlen( $png ) > 400000 || ! str_starts_with( $png, "\x89PNG\r\n\x1a\n" ) || ! emerson_recommit_has_ink( $png ) ) {
+		return '';
+	}
+	return $png;
+}
+
+function emerson_survey_require_signature(): void {
+	if ( ! emerson_survey_signature_enabled() ) {
+		return;
+	}
+	$form_id = isset( $_POST['cp_calculatedfieldsf_id'] ) ? (int) $_POST['cp_calculatedfieldsf_id'] : 0;
+	if ( $form_id <= 0 || $form_id !== emerson_survey_form_id() ) {
+		return;
+	}
+	$png = emerson_survey_signature_png();
+	if ( $png === '' ) {
+		echo 'Draw your signature.';
+		exit;
+	}
+	$file = get_temp_dir() . 'emerson-recommit-' . wp_generate_password( 12, false ) . '.png';
+	if ( false === file_put_contents( $file, $png ) ) {
+		echo 'The form could not be sent. Please try again, or email the office.';
+		exit;
+	}
+	$GLOBALS['emerson_survey_signature_file'] = $file;
+}
+add_action( 'init', 'emerson_survey_require_signature', 98 );
+
+function emerson_survey_attach_signature( $phpmailer ): void {
+	$file = $GLOBALS['emerson_survey_signature_file'] ?? '';
+	if ( ! is_string( $file ) || $file === '' || ! is_readable( $file ) ) {
+		return;
+	}
+	$phpmailer->addAttachment( $file, 'signature.png' );
+}
+add_action( 'phpmailer_init', 'emerson_survey_attach_signature' );
+
+function emerson_survey_delete_signature_file(): void {
+	$file = $GLOBALS['emerson_survey_signature_file'] ?? '';
+	if ( is_string( $file ) && $file !== '' && file_exists( $file ) ) {
+		wp_delete_file( $file );
+	}
+}
+add_action( 'shutdown', 'emerson_survey_delete_signature_file' );
 
 /**
  * @return string Normalized dollars.cents, or an empty string when the amount is not usable.

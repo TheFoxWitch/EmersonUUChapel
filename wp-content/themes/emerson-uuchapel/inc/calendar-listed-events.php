@@ -48,8 +48,8 @@ function emerson_listed_event_rules(): array {
 			'nth'         => 3,
 			'wday'        => 1,
 			'recurring'   => 'n31',
-			'location'    => 'Emerson Unitarian Universalist Chapel',
-			'description' => 'Board of Trustees meeting. Third Monday of the month, 6:30 pm. Open to all members.',
+			'location'    => 'Rotating',
+			'description' => 'Board of Trustees meeting. Third Monday of the month, 6:30 pm. Open to all members. Location rotates unless a place is set for that Monday.',
 			'link'        => $engage,
 			'link_title'  => 'Engage',
 		),
@@ -261,6 +261,9 @@ function emerson_calendar_other_events( string $first, string $last ): array {
 		}
 	}
 	ksort( $out );
+	if ( function_exists( 'emerson_board_apply_locations' ) ) {
+		$out = emerson_board_apply_locations( $out );
+	}
 	return $out;
 }
 

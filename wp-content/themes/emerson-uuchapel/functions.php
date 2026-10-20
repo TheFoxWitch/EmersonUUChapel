@@ -53,6 +53,7 @@ require_once get_stylesheet_directory() . '/inc/serving-dates.php';
 require_once get_stylesheet_directory() . '/inc/calendar-listed-events.php';
 require_once get_stylesheet_directory() . '/inc/calendar-pdfs.php';
 require_once get_stylesheet_directory() . '/inc/sunday-location.php';
+require_once get_stylesheet_directory() . '/inc/board-location.php';
 require_once get_stylesheet_directory() . '/inc/sunday-schedule-sheet.php';
 require_once get_stylesheet_directory() . '/inc/service-schedule.php';
 require_once get_stylesheet_directory() . '/inc/site-icon.php';

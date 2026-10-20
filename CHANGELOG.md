@@ -16,6 +16,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 - Mail caught or redirected locally may still be queued in WordPress. That queue has to be deleted before the redirect is turned off or this database is restored live, or the original recipients get a flood. `wp-content/local-mail/` is a record only and must not be resent.
 - **File:** `TEST-AND-LAUNCH-CHECKLIST.md`, `TROUBLESHOOTING.md`.
 
+### Documents in three columns
+- The public Documents page shows Board, Congregational, and Other side by side. On a desktop the row is as wide as the calendar, 75% of the window, so the headings are not squeezed. A tablet shows two columns and a phone shows one. Each list keeps ten files in view, and the rest of that list scrolls on its own. A down chevron shows when more files are below, and an up chevron fades in once you have scrolled. Clicking one jumps to the bottom or the top of that list.
+- **File:** `inc/documents.php`, `assets/css/custom.css`, `assets/js/custom.js`.
+
+### Optional foil background
+- A rainbow button in the bottom-right corner switches the white page background to a drifting field of the chapel symbols. The symbols keep their own colors, drawn at 25% opacity so they stay in the background. The symbols are painted once, at 25% opacity. The drift and the shine start after that picture is ready, including on a reload. The money bag in that set is the heart-hands symbol. The choice stays in that browser. Photos and colored sections stay as they are. The reading glow stays off section banners, column blocks, and the rainbow “You Are Welcome” heading.
+- **File:** `inc/foil-background.php`, `assets/css/custom.css`, `assets/js/custom.js`. The symbol list is edited under **Page background** in the dashboard. Until that list is saved, the theme’s built-in symbols are used.
+
 ### Survey dialog fits a phone and a tablet
 - The Emerson Community Survey form scales to the dialog on every screen size, so the fields, signature, and Submit stay on screen without scrolling.
 - **File:** `assets/css/custom.css`, `assets/js/recommitment.js`.

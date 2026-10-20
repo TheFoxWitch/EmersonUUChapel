@@ -67,3 +67,4 @@ require_once get_stylesheet_directory() . '/inc/home-gallery.php';
 require_once get_stylesheet_directory() . '/inc/latest-sermon.php';
 require_once get_stylesheet_directory() . '/inc/religious-education.php';
 require_once get_stylesheet_directory() . '/inc/documents.php';
+require_once get_stylesheet_directory() . '/inc/foil-background.php';

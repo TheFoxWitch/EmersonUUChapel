@@ -210,6 +210,35 @@ function emerson_documents_shortcode( $attributes = array() ): string {
 }
 add_shortcode( 'emerson_documents', 'emerson_documents_shortcode' );
 
+/**
+ * Three category columns on the public Documents page. Each list shows ten
+ * files, and the rest scroll inside that column.
+ */
+function emerson_documents_public_layout( string $content ): string {
+	if ( is_admin() || ! is_page( 'documents' ) || str_contains( $content, 'emerson-documents-board' ) ) {
+		return $content;
+	}
+	$sections = '';
+	$rest     = preg_replace_callback(
+		'/(<h[23]\b[^>]*>.*?<\/h[23]>\s*)(<(?:ul|p)\b[^>]*class="[^"]*emerson-documents[^"]*"[^>]*>.*?<\/(?:ul|p)>)/s',
+		static function ( array $match ) use ( &$sections ): string {
+			$sections .= '<section class="emerson-documents-column">' . $match[1]
+				. '<div class="emerson-documents-scroll">' . $match[2] . '</div></section>';
+			return '';
+		},
+		$content
+	);
+	if ( ! is_string( $rest ) || $sections === '' ) {
+		return $content;
+	}
+	$board = '<div class="emerson-documents-board">' . $sections . '</div>';
+	if ( trim( wp_strip_all_tags( $rest ) ) === '' ) {
+		return $board;
+	}
+	return $board . $rest;
+}
+add_filter( 'the_content', 'emerson_documents_public_layout', 12 );
+
 add_action(
 	'admin_menu',
 	static function (): void {

@@ -46,7 +46,7 @@ function emerson_serving_role_choices(): array {
 			're_volunteers' => 'RE volunteers',
 		);
 	unset( $roles['re_topic'] );
-	return $roles;
+	return array( 'speaker' => 'Speaker' ) + $roles;
 }
 
 function emerson_serving_ready(): bool {

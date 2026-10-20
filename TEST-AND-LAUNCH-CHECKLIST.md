@@ -28,6 +28,8 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - The person appears in Church Admin as **Mailing List** and is hidden from the directory
   - Clicking the link a second time says it has expired or was already used
 - [x] **Ways to Connect form** (`/ways-to-connect/`): same results as the pop-up
+- [ ] **Re-commitment Form** (homepage). How to change the Microsoft Form is in **Re-commitment Form — how to update the link**.
+- [ ] **Office mail copies.** How to change who receives messages sent to `office@emersonuuchapel.org` is in **Office mail — who receives a copy**.
 - [ ] **Sunday Location** (homepage + **Sunday Location** in the WordPress admin). How to update it is in the section after this one.
   - Homepage says **This week, meet us at 10 am, at the St. Charles YMCA located at …**, then moves on after that service
   - Marking a Sunday **Cancelled** or **Moved** updates the homepage and the Service Schedule
@@ -162,13 +164,94 @@ Under the opening paragraph, the photos are a collage. Nine show at a time, in t
 
 **Where:** Pages → **Who Are We** → Edit. Add, delete, or drag photos the same way as the homepage gallery, then click **Update**.
 
-## Homepage sermon video — how it stays current
+## Homepage sermon video — how to update the link
 
-Between the two lines under “Sign up for our Newsletter!” and above “New to Emerson?” the homepage plays the newest sermon. It is the same list as **Past Sermons** and the three videos on **Sunday Services**.
+Between the two lines under “Sign up for our Newsletter!” and above “New to Emerson?” the homepage plays a YouTube video in the sized player. Leave the shortcode `[emerson_latest_sermon]` on the page.
 
-**Who can do this:** whoever adds sermons in **Video Gallery**.
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
 
-**Where:** WordPress admin → **Video Gallery** → add the new sermon and paste its YouTube link. Set the video’s date to that Sunday (Publish box), the same way the other sermon pages stay in order. The homepage player changes on the next visit. Leave the homepage shortcode as it is.
+**Where:** WordPress admin (the left-hand menu) → **Homepage video**. It is a video icon, just under **Office mail**.
+
+1. Open the video on YouTube.
+2. Copy the address from the address bar. It looks like `https://www.youtube.com/watch?v=…`.
+3. In WordPress, open **Homepage video**.
+4. Paste that address into **YouTube URL**.
+5. Click **Save**.
+6. On the homepage, confirm that video is playing and the frame is the wide short one, not a tall gallery player.
+
+To go back to the newest sermon in **Video Gallery**, clear **YouTube URL** and click **Save**. Past Sermons and Sunday Services still use Video Gallery, and those dates should stay set to the Sunday of the service.
+
+## Re-commitment Form — how to update the link
+
+The homepage button **Re-commitment Form** opens a Microsoft Form in the dialog. The questions stay on Microsoft’s form. A new year’s form is a new link.
+
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
+
+**Where:** WordPress admin (the left-hand menu) → **Modals**. It is a speech-bubble icon, just under **Sunday Schedule**.
+
+1. Open the new form in the browser.
+2. Copy the address from the address bar. It looks like `https://forms.cloud.microsoft/r/…`.
+3. In WordPress, open **Modals**.
+4. Under **Re-commitment**, change **Button text** if the wording should change. Those words are the homepage button and the heading in the dialog.
+5. Paste the form address into **Form URL** when the form itself is changing.
+6. Click **Save re-commitment**.
+7. On the homepage, click the button and confirm the new wording and the form.
+
+Until a link is saved, the button opens this year’s form: `https://forms.cloud.microsoft/r/59mVXw4vPP`.
+
+### Approximate PayPal Fees
+
+The same dialog opens from the homepage and from Make a Contribution.
+
+1. Open **Modals**.
+2. Under **Approximate PayPal Fees**, change **Button text** and **Dialog heading** if the wording should change.
+3. Click **Save PayPal fees**.
+4. Click **Edit the fee form** to change the fields and the fee math. That opens Calculated Fields.
+
+## Documents — how to upload or change a file
+
+The public **Documents** page has three lists: **Board of Trustees meetings**, **Congregational Meetings**, and **Other Documents**. Each item is a file from the Media Library. The page headings stay. Do not edit the old tables.
+
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
+
+**Where:** WordPress admin (the left-hand menu) → **Documents**. It is a document icon, under **Homepage video**.
+
+### Add a file
+
+1. Open **Documents**.
+2. Find the list it belongs on.
+3. Type **Link text**. For minutes, use the meeting date, such as March 18, 2026.
+4. Type a **Note** only when the link needs one, such as Special Board Meeting. Otherwise leave it blank.
+5. Choose the file.
+6. Click **Add to** that list.
+7. Open the Documents page and confirm the new link is at the top of that list and the file opens.
+
+The Documents screen stays on the list you are editing. Congregational Meetings and Other Documents sit side by side, and Board of Trustees meetings is the wide list underneath. **Add** and **Save** sit next to each other at the top of each list. Each list shows five files, and any further files scroll inside that list. A new file fades in, a removed row fades out, and **Move up** / **Move down** slide that row. After you are a quarter of the way down the screen, a rainbow circle with a white arrow appears and returns you to the top.
+
+### Change the words, the note, or the file
+
+1. Open **Documents** and find the row.
+2. Change **Link text** or **Note**, or choose a new file under **Replace file**.
+3. Click **Save** for that list.
+4. **Move up** and **Move down** change the order on the page.
+
+### Take a file off the page
+
+Tick **Remove from this list**, then **Save**. The link leaves the Documents page. The file stays in **Media** so it can be added again later.
+
+## Office mail — who receives a copy
+
+When the site emails `office@emersonuuchapel.org` (a form notification, a Sunday change, a new newsletter subscriber), the people on this list also receive that message. The office address still receives it. Mail sent only to a member, such as a password reset or a service notice to the person serving, is not copied.
+
+**Who can do this:** anyone who can edit pages (Administrator or Editor).
+
+**Where:** WordPress admin (the left-hand menu) → **Office mail**. It is an envelope icon, just under **Modals**.
+
+1. Open **Office mail**.
+2. Add or remove people, one per line: `Name <email@example.com>`.
+3. Click **Save**.
+
+On this local copy, outgoing mail still goes only to the test mailbox. The list is used when that redirect is off, including on the live site.
 
 ## Sunday Schedule spreadsheet — how to update the URL
 

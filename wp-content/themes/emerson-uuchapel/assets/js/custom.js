@@ -25,6 +25,19 @@
 			return;
 		}
 		event.preventDefault();
+		openPaypalFees(dialog);
+	});
+
+	function revealPaypalFees(dialog) {
+		var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (reduceMotion) {
+			return;
+		}
+		void getComputedStyle(dialog).transform;
+		dialog.classList.remove('is-opening');
+	}
+
+	function openPaypalFees(dialog) {
 		if (dialog.open || dialog.classList.contains('is-closing')) {
 			return;
 		}
@@ -33,12 +46,35 @@
 			dialog.classList.add('is-opening');
 		}
 		dialog.showModal();
-		if (!reduceMotion) {
-			// Apply the off-screen start before removing it, or the slide has nothing to move from.
-			void getComputedStyle(dialog).transform;
-			dialog.classList.remove('is-opening');
+		// The calculator prints a stored placeholder height, then draws the real
+		// fields and drops that placeholder. Hold the dialog off-screen until the
+		// fields are in place so the slide-in starts at the finished height.
+		var list = dialog.querySelector('[id^="fieldlist_"]');
+		if (!list || list.children.length || reduceMotion) {
+			revealPaypalFees(dialog);
+			return;
 		}
-	});
+		var revealed = false;
+		function reveal() {
+			if (revealed) {
+				return;
+			}
+			revealed = true;
+			observer.disconnect();
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(function () {
+					revealPaypalFees(dialog);
+				});
+			});
+		}
+		var observer = new MutationObserver(function () {
+			if (list.children.length) {
+				reveal();
+			}
+		});
+		observer.observe(list, { childList: true });
+		window.setTimeout(reveal, 4000);
+	}
 	var paypalFees = document.getElementById('emerson-paypal-fees');
 	if (paypalFees) {
 		function closePaypalFees() {

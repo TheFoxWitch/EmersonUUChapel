@@ -12,6 +12,69 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-19
 
+### Documents screen: stay on the list you are editing
+- Adding, saving, moving, or removing a file no longer reloads the Documents screen back to the top. **Add** and **Save** sit together at the top of each list. Congregational Meetings and Other Documents sit side by side, and Board of Trustees meetings is the full-width list underneath. Each list shows five files and scrolls inside itself after that. A new file fades in, a removed row fades out, and **Move up** / **Move down** slide that row. A rainbow circle with a white arrow appears after you are a quarter of the way down and returns you to the top.
+- **File:** `inc/documents.php`, `assets/js/documents-admin.js`.
+
+### Documents: upload files instead of editing tables
+- The Documents page lists files from the Media Library. **Documents** in the left-hand menu adds a file to Board of Trustees meetings, Congregational Meetings, or Other Documents. The old TablePress shortcodes are no longer what the page shows.
+- **File:** `inc/documents.php`, `assets/css/custom.css`.
+- **Local DB:** page 508 and the saved document list. Backup: `backups/pages/page-508-before-document-lists.html`.
+
+### Phone numbers removed from the site
+- The chapel phone number is no longer in the footer, Privacy Policy, Visit Us, Engage, Serve Emerson Chapel, Welcome!, or the unpublished Come Visit Us page. Church Leadership no longer lists a phone number next to the Pastoral Care Team Chair. Email addresses stay.
+- **File:** `patterns/footer.php`.
+- **Local DB:** pages 3, 58, 68, 192, 220, 344, and 412. Backups: `backups/pages/page-*-before-remove-phones.html`.
+
+### Serving dates: Speaker is a sign-up position
+- **Speaker** is the first position a member can offer when they tick a Sunday they can serve. It is on the Members page for every logged-in member.
+- **File:** `inc/serving-dates.php`.
+
+### PayPal fees dialog: no height jump on first open
+- The calculator prints a stored placeholder height, then replaces it with the real fields, so the dialog opened tall and snapped shorter. The placeholder is ignored, and the dialog waits until the fields are drawn before it animates open.
+- **File:** `assets/css/custom.css`.
+
+### Re-commitment: Microsoft form fits in the dialog
+- The Microsoft Form in the homepage dialog is shown a little smaller, and the dialog uses the height of the window, so the opening page fits without its own scrollbar.
+- **File:** `inc/recommitment.php`, `assets/css/custom.css`.
+
+### Dashboard: one screen for the dialogs
+- **Modals** in the left-hand menu lists the re-commitment dialog and Approximate PayPal Fees. Re-commitment is a form address and button wording. PayPal fees edits the button and the dialog heading here, and **Edit the fee form** opens the Calculated Fields builder for the fee fields. The PayPal dialog is one copy, used by the homepage and Make a Contribution.
+- **File:** `inc/modals.php`, `inc/recommitment.php`.
+- **Local DB:** pages 15 and 49 no longer contain their own copy of the PayPal dialog. Backups: `backups/pages/page-15-before-modals.html`, `backups/pages/page-49-before-modals.html`.
+
+### Homepage: sermon video address is on the dashboard
+- The homepage sermon is the sized player again (`[emerson_latest_sermon]`), not the large gallery-plugin player. **Homepage video** in the left-hand menu stores the YouTube address. Clearing that field uses the newest sermon in Video Gallery.
+- **File:** `inc/latest-sermon.php`.
+- **Local DB:** homepage (page 15) and the saved address. Backup: `backups/pages/page-15-before-homepage-video-url.html`.
+
+### Header: social icons under the home logo
+- Facebook, Instagram, YouTube, and GroupMe sit under the home logo in the header, shifted up 17.77px, with each icon link 1.5rem square. They are no longer in the footer.
+- **File:** `patterns/header-logo.php`, `patterns/footer.php`, `assets/css/custom.css`.
+
+### Board minutes: Emerson spelling in two file names
+- Two Board of Trustees minute files were named **Emmerson**. They are now **Emerson**, and the Board of Trustees Meetings table links to the corrected names. The title inside each PDF was corrected the same way.
+- **Local DB:** Media attachments 871 and 874, and TablePress table 506. The files are `wp-content/uploads/2026/03/Emerson-Board-Minutes-for-8_19_25-1.pdf` and `wp-content/uploads/2026/03/Emerson-Board-Meeting-Notes-12_17.pdf`.
+
+### Office mail: copies of messages sent to the office
+- **Office mail** in the WordPress left-hand menu lists who also receives a message when the site emails `office@emersonuuchapel.org`. The office address still receives it. A message sent only to a member is not copied. The names and addresses are stored in the database, not in the theme files.
+- **File:** `inc/office-mail.php`.
+- **Local DB:** the saved list. On this local copy the test redirect still sends mail only to the test mailbox.
+
+### Homepage: re-commitment button wording is on the dashboard
+- **Button text** on the **Re-commitment** screen is the homepage button and the heading in the dialog. Until someone saves new words, the button still says **Re-commitment Form**.
+- **File:** `inc/recommitment.php`.
+- **Local DB:** the saved wording, once someone clicks **Save**.
+
+### Homepage: re-commitment form link is on the dashboard
+- **Re-commitment** in the WordPress left-hand menu stores the Microsoft Form address. Pasting a new share link switches the form the homepage button opens. Until someone saves a link, the button still opens `https://forms.cloud.microsoft/r/59mVXw4vPP`.
+- **File:** `inc/recommitment.php`.
+- **Local DB:** the saved address, once someone clicks **Save URL**.
+
+### Homepage: re-commitment opens the Microsoft form
+- **Re-commitment Form** still opens on the homepage. The dialog now shows the chapel’s Microsoft Form, the same one at `https://forms.cloud.microsoft/r/59mVXw4vPP`. Answers stay on Microsoft’s form. The form loads when the button is clicked.
+- **File:** `inc/recommitment.php`, `assets/js/recommitment.js`, `assets/css/custom.css`.
+
 ### Religious Education: updated handprint banner
 - The banner above the Religious Education title is the edited `images/hand-mural.jpg`. The page editor cannot change it, because the banner is added by the theme from the Media Library file.
 - **File:** `wp-content/uploads/2023/03/hand-mural.jpg` (Media attachment 348). Backup: `backups/images/hand-mural-before-2026-10-19.jpg`.

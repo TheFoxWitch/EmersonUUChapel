@@ -2,15 +2,75 @@
 /**
  * Homepage re-commitment form.
  *
- * The button sits with the pledge and PayPal-fees buttons. The form opens on this page
- * and emails office@emersonuuchapel.org. On the local site that message follows the
- * mail redirect, the same as every other email.
+ * The button sits with the pledge and PayPal-fees buttons. It opens Microsoft's form
+ * inside the dialog on this page.
  */
 
 declare( strict_types=1 );
 
-const EMERSON_RECOMMIT_OFFICE = 'office@emersonuuchapel.org';
+const EMERSON_RECOMMIT_OFFICE       = 'office@emersonuuchapel.org';
 const EMERSON_RECOMMIT_MAX_PER_HOUR = 8;
+const EMERSON_RECOMMIT_FORM_OPTION   = 'emerson_recommit_form_url';
+const EMERSON_RECOMMIT_FORM_DEFAULT  = 'https://forms.cloud.microsoft/r/59mVXw4vPP';
+const EMERSON_RECOMMIT_LABEL_OPTION  = 'emerson_recommit_label';
+const EMERSON_RECOMMIT_LABEL_DEFAULT = 'Re-commitment Form';
+
+/**
+ * Words on the homepage button and the dialog heading.
+ */
+function emerson_recommit_label(): string {
+	$stored = sanitize_text_field( trim( (string) get_option( EMERSON_RECOMMIT_LABEL_OPTION, '' ) ) );
+	return $stored !== '' ? $stored : EMERSON_RECOMMIT_LABEL_DEFAULT;
+}
+
+/**
+ * Share link saved in the dashboard, or this year's form when nothing is saved yet.
+ */
+function emerson_recommit_form_url(): string {
+	$stored = trim( (string) get_option( EMERSON_RECOMMIT_FORM_OPTION, '' ) );
+	return $stored !== '' ? $stored : EMERSON_RECOMMIT_FORM_DEFAULT;
+}
+
+/**
+ * A Microsoft Forms share link or response page. Other sites are refused.
+ */
+function emerson_recommit_is_form_url( string $url ): bool {
+	$parts = wp_parse_url( $url );
+	if ( ! is_array( $parts ) || ( $parts['scheme'] ?? '' ) !== 'https' || empty( $parts['host'] ) ) {
+		return false;
+	}
+	$host = strtolower( (string) $parts['host'] );
+	if ( ! in_array( $host, array( 'forms.cloud.microsoft', 'forms.office.com', 'forms.microsoft.com' ), true ) ) {
+		return false;
+	}
+	$path = (string) ( $parts['path'] ?? '' );
+	return (bool) preg_match( '#^/(r|e|pages/responsepage\.aspx)(/|$)#i', $path );
+}
+
+/**
+ * Pull a URL out of a pasted address or out of Microsoft's iframe embed code.
+ */
+function emerson_recommit_clean_form_url( string $raw ): string {
+	$raw = trim( $raw );
+	if ( preg_match( '/\bsrc\s*=\s*["\']([^"\']+)["\']/i', $raw, $match ) ) {
+		$raw = html_entity_decode( $match[1], ENT_QUOTES );
+	}
+	return esc_url_raw( $raw );
+}
+
+/**
+ * Address the dialog loads. embed=true lets Microsoft show the form inside the page.
+ */
+function emerson_recommit_embed_url(): string {
+	$url = emerson_recommit_form_url();
+	if ( ! emerson_recommit_is_form_url( $url ) ) {
+		return '';
+	}
+	if ( preg_match( '/(?:^|[?&])embed=true(?:&|$)/i', $url ) ) {
+		return $url;
+	}
+	return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . 'embed=true';
+}
 
 /**
  * Add the button to the homepage row that already holds the pledge form.
@@ -25,7 +85,7 @@ function emerson_recommit_render_button( string $content, array $block ): string
 	if ( ! str_contains( $content, 'pledge-button' ) || str_contains( $content, 'data-emerson-recommit' ) ) {
 		return $content;
 	}
-	$button = '<div class="wp-block-button recommit-button"><button type="button" class="wp-block-button__link wp-element-button" data-emerson-recommit>Re-commitment Form</button></div>';
+	$button = '<div class="wp-block-button recommit-button"><button type="button" class="wp-block-button__link wp-element-button" data-emerson-recommit>' . esc_html( emerson_recommit_label() ) . '</button></div>';
 	$pos    = strrpos( $content, '</div>' );
 	if ( false === $pos ) {
 		return $content . $button;
@@ -46,14 +106,6 @@ function emerson_recommit_enqueue(): void {
 		(string) filemtime( $path ),
 		true
 	);
-	wp_localize_script(
-		'emerson-recommit',
-		'emersonRecommit',
-		array(
-			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-			'nonce'   => wp_create_nonce( 'emerson_recommit' ),
-		)
-	);
 }
 add_action( 'wp_enqueue_scripts', 'emerson_recommit_enqueue' );
 
@@ -61,62 +113,48 @@ function emerson_recommit_dialog(): void {
 	if ( ! is_front_page() ) {
 		return;
 	}
+	$src   = emerson_recommit_embed_url();
+	$label = emerson_recommit_label();
 	?>
 	<dialog id="emerson-recommit" class="emerson-recommit">
-		<button type="button" class="emerson-recommit__close">Close</button>
-		<h2>Re-commitment Form</h2>
-		<form class="emerson-recommit__form" novalidate>
-			<p class="emerson-recommit__sentence">
-				I
-				<label class="screen-reader-text" for="emerson-recommit-name">Your name</label>
-				<input class="emerson-recommit__name" id="emerson-recommit-name" name="name" type="text" maxlength="80" placeholder="Your Name" autocomplete="name" required>
-				commit to my pledge of
-				<label class="screen-reader-text" for="emerson-recommit-pledge">Your pledge</label>
-				<span class="emerson-recommit__money">$<input class="emerson-recommit__pledge" id="emerson-recommit-pledge" name="pledge" type="text" inputmode="decimal" placeholder="Your Pledge" autocomplete="off" required></span>
-				for the fiscal year 2025-2026 and will pay this
-				<label class="screen-reader-text" for="emerson-recommit-frequency">How often you will pay</label>
-				<select id="emerson-recommit-frequency" name="frequency" required>
-					<option value="">Choose</option>
-					<option value="monthly">monthly</option>
-					<option value="quarterly">quarterly</option>
-					<option value="annually">annually</option>
-				</select>
-				continued on
-				<label class="screen-reader-text" for="emerson-recommit-continue">Date payments continue</label>
-				<input id="emerson-recommit-continue" name="continue_on" type="date" required>.
-				This is to ensure the financial security and commitment Emerson UU Chapel is intending to take on this fiscal year.
-			</p>
-			<div class="emerson-recommit__contact">
-				<label for="emerson-recommit-phone">Phone
-					<input id="emerson-recommit-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="(636) 555-0100" required>
-				</label>
-				<label for="emerson-recommit-email">Email
-					<input id="emerson-recommit-email" name="email" type="email" autocomplete="email" maxlength="100" placeholder="name@email.com" required>
-				</label>
-			</div>
-			<p class="emerson-recommit__sign">
-				Signed
-				<label class="screen-reader-text" for="emerson-recommit-pad">Draw your signature</label>
-				<canvas class="emerson-recommit__pad" id="emerson-recommit-pad"></canvas>
-			</p>
-			<div class="emerson-recommit__sign-row">
-				<p class="emerson-recommit__sign-actions">
-					<button type="button" class="emerson-recommit__clear">Clear signature</button>
-					and date
-					<label class="screen-reader-text" for="emerson-recommit-signed">Date signed</label>
-					<input id="emerson-recommit-signed" name="signed_on" type="date" required>.
-				</p>
-				<button type="submit" class="emerson-recommit__submit">Submit</button>
-			</div>
-			<p class="emerson-recommit__hp" aria-hidden="true">
-				<label>Company <input name="company" tabindex="-1" autocomplete="off"></label>
-			</p>
-			<p class="emerson-recommit__status" role="status"></p>
-		</form>
+		<div class="emerson-recommit__bar">
+			<h2><?php echo esc_html( $label ); ?></h2>
+			<button type="button" class="emerson-recommit__close">Close</button>
+		</div>
+		<?php if ( $src !== '' ) : ?>
+		<div class="emerson-recommit__fit">
+			<iframe class="emerson-recommit__frame" title="<?php echo esc_attr( $label ); ?>" data-src="<?php echo esc_url( $src ); ?>"></iframe>
+		</div>
+		<?php else : ?>
+		<p>The re-commitment form is not available right now.</p>
+		<?php endif; ?>
 	</dialog>
 	<?php
 }
 add_action( 'wp_footer', 'emerson_recommit_dialog' );
+
+function emerson_recommit_admin_save(): ?string {
+	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_recommit_save'] ) ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_recommit_save' );
+	$raw   = isset( $_POST['form_url'] ) ? wp_unslash( (string) $_POST['form_url'] ) : '';
+	$url   = emerson_recommit_clean_form_url( $raw );
+	$label = isset( $_POST['button_label'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['button_label'] ) ) : '';
+	$label = trim( preg_replace( '/\s+/', ' ', $label ) ?? '' );
+	if ( $label === '' ) {
+		return 'Type the words that should appear on the homepage button.';
+	}
+	if ( mb_strlen( $label ) > 80 ) {
+		return 'The button text is too long. Keep it to 80 characters.';
+	}
+	if ( ! emerson_recommit_is_form_url( $url ) ) {
+		return 'That does not look like a Microsoft Forms link. Paste the address from the browser while the form is open.';
+	}
+	update_option( EMERSON_RECOMMIT_FORM_OPTION, $url, false );
+	update_option( EMERSON_RECOMMIT_LABEL_OPTION, $label, false );
+	return 'Saved. The homepage button will use this wording and open this form.';
+}
 
 /**
  * @return string Normalized dollars.cents, or an empty string when the amount is not usable.

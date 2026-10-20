@@ -38,6 +38,44 @@ body a:where(:not(.wp-element-button)):active,
 	width: 240px;
 	height: auto;
 }
+
+.emerson-header-brand {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.emerson-header-social {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+	list-style: none;
+	position: relative;
+	top: -17.77px;
+	margin: 7.77px 0 0;
+	padding: 0;
+}
+
+.emerson-header-social a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	color: var(--emerson-blue);
+}
+
+.emerson-header-social a:hover,
+.emerson-header-social a:focus-visible {
+	color: var(--emerson-blue-dark);
+}
+
+.emerson-header-social svg {
+	display: block;
+	width: 2.5rem;
+	height: 2.5rem;
+}
 /** End Logo **/
 
 /* Header menu drop-downs open to the right. The menu is right-justified, so WordPress opens them leftward;
@@ -432,11 +470,24 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	font-size: 1.35rem;
 }
 
+/* The calculator remembers a placeholder height and prints it as a min-height.
+   On the first paint that makes the dialog tall, then the form script clears it
+   and the dialog snaps shorter. Keep the form at its real height from the start. */
+.emerson-paypal-fees form.cff-form {
+	height: auto !important;
+	min-height: 0 !important;
+}
+
+.emerson-recommit[open] {
+	display: flex;
+	flex-direction: column;
+}
 .emerson-recommit {
-	width: min(40rem, calc(100vw - 2rem));
-	max-height: min(85vh, 44rem);
-	overflow: auto;
-	padding: 1.25rem 1.35rem 1.5rem;
+	width: min(46rem, calc(100vw - 1.5rem));
+	height: calc(100vh - 1.5rem);
+	max-height: calc(100vh - 1.5rem);
+	overflow: hidden;
+	padding: 1rem 1rem 0.75rem;
 	border: 0;
 	border-radius: 16px;
 	box-shadow: 0 12px 36px rgba(20, 24, 50, 0.22);
@@ -456,10 +507,17 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 .emerson-recommit::backdrop {
 	background: rgba(20, 24, 50, 0.35);
 }
+.emerson-recommit__bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 0.75rem;
+}
 .emerson-recommit__close {
-	float: right;
+	flex: 0 0 auto;
 	min-height: 44px;
-	margin: 0 0 0.5rem 0.75rem;
+	margin: 0;
 	padding: 0.35rem 0.9rem;
 	border: 2px solid #1e1e1e;
 	border-radius: 999px;
@@ -468,8 +526,21 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	cursor: pointer;
 }
 .emerson-recommit h2 {
-	margin: 0.35rem 0 0.75rem;
+	margin: 0;
 	font-size: 1.35rem;
+}
+.emerson-recommit__fit {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+}
+.emerson-recommit__frame {
+	display: block;
+	width: 100%;
+	height: calc(100% / 0.74);
+	border: 0;
+	transform: scale(0.74);
+	transform-origin: top center;
 }
 .emerson-recommit .screen-reader-text {
 	position: absolute;
@@ -1285,6 +1356,25 @@ blockquote {
 }
 /** End Typography **/
 
+/* Documents page: file lists from the Media Library */
+.emerson-documents {
+	list-style: none;
+	margin: 0 0 2rem;
+	padding: 0;
+}
+
+.emerson-documents li {
+	margin: 0 0 0.55rem;
+}
+
+.emerson-documents__note {
+	color: #3c434a;
+}
+
+.emerson-documents__empty {
+	margin: 0 0 2rem;
+}
+
 /* Footer */
 .emerson-footer {
 	max-width: var(--wp--style--global--wide-size, 1200px);
@@ -1329,36 +1419,6 @@ blockquote {
 
 .emerson-footer__links li {
 	margin-bottom: 0.35rem;
-}
-
-.emerson-footer__social {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.75rem;
-	list-style: none;
-	margin: 0;
-	padding: 0;
-}
-
-.emerson-footer__social a {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 2rem;
-	height: 2rem;
-	color: var(--emerson-blue);
-}
-
-.emerson-footer__social a:hover,
-.emerson-footer__social a:focus-visible {
-	color: var(--emerson-blue-dark);
-}
-
-.emerson-footer__social svg {
-	display: block;
-	width: 2.5rem;
-	height: 2.5rem;
 }
 
 .emerson-footer__bottom {
@@ -1456,10 +1516,6 @@ blockquote {
 @media (max-width: 600px) {
 	.emerson-footer {
 		text-align: center;
-	}
-
-	.emerson-footer__social {
-		justify-content: center;
 	}
 
 	.emerson-footer__bottom {

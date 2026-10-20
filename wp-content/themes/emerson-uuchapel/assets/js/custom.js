@@ -1358,3 +1358,66 @@
 		}
 	}
 })();
+
+(function () {
+	var boxes = document.querySelectorAll('.emerson-documents-scroll');
+	if (!boxes.length) {
+		return;
+	}
+	function chevron(direction) {
+		var button = document.createElement('button');
+		button.type = 'button';
+		button.className = 'emerson-documents-chevron emerson-documents-chevron--' + direction;
+		button.setAttribute('aria-label', direction === 'up' ? 'Scroll to the top of this list' : 'Scroll to the bottom of this list');
+		button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+		return button;
+	}
+	function updateChevrons(box) {
+		var column = box.parentElement;
+		var up = column.querySelector('.emerson-documents-chevron--up');
+		var down = column.querySelector('.emerson-documents-chevron--down');
+		if (!up || !down) {
+			return;
+		}
+		var overflow = box.scrollHeight > box.clientHeight + 2;
+		var atTop = box.scrollTop <= 2;
+		var atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 2;
+		up.classList.toggle('is-visible', overflow && !atTop);
+		down.classList.toggle('is-visible', overflow && !atBottom);
+	}
+	function fitDocumentLists() {
+		boxes.forEach(function (box) {
+			var items = box.querySelectorAll('.emerson-documents > li');
+			var place = box.scrollTop;
+			box.style.maxHeight = '';
+			if (items.length > 10) {
+				box.scrollTop = 0;
+				var limit = items[9].getBoundingClientRect().bottom - box.getBoundingClientRect().top;
+				box.style.maxHeight = Math.ceil(limit) + 'px';
+				box.scrollTop = place;
+			}
+			updateChevrons(box);
+		});
+	}
+	boxes.forEach(function (box) {
+		var up = chevron('up');
+		var down = chevron('down');
+		box.parentElement.insertBefore(up, box);
+		box.insertAdjacentElement('afterend', down);
+		up.addEventListener('click', function () {
+			box.scrollTo({ top: 0, behavior: 'smooth' });
+		});
+		down.addEventListener('click', function () {
+			box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+		});
+		box.addEventListener('scroll', function () {
+			updateChevrons(box);
+		});
+	});
+	fitDocumentLists();
+	var fitTimer = 0;
+	window.addEventListener('resize', function () {
+		window.clearTimeout(fitTimer);
+		fitTimer = window.setTimeout(fitDocumentLists, 80);
+	});
+})();

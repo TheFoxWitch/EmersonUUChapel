@@ -2418,4 +2418,112 @@ blockquote {
 }
 /** End Sunday Morning Schedule sheet **/
 
+.emerson-foil-layer {
+	display: none;
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+	pointer-events: none;
+	background: #f4f7f1;
+	contain: paint;
+	transform: translateZ(0);
+}
+html.emerson-foil .emerson-foil-layer {
+	display: block;
+}
+html.emerson-foil,
+html.emerson-foil body,
+html.emerson-foil .wp-site-blocks {
+	background-color: transparent !important;
+	background-image: none !important;
+}
+html.emerson-foil .wp-site-blocks {
+	position: relative;
+	z-index: 1;
+	text-shadow: 0 0 0.28em #fff, 0 0 0.28em #fff, 0 0 0.12em #fff;
+}
+html.emerson-foil .wp-site-blocks :is(button, .wp-element-button, input, select, textarea, .wp-block-button__link, .wp-block-cover, .wp-block-columns) {
+	text-shadow: none;
+}
+.emerson-foil__sheet {
+	position: relative;
+	width: max-content;
+	line-height: 1;
+}
+html.emerson-foil-ready .emerson-foil__sheet {
+	animation: emerson-foil-drift 36s linear infinite alternate;
+}
+.emerson-foil__canvas {
+	display: block;
+	opacity: 0.25;
+}
+.emerson-foil__shine {
+	position: absolute;
+	left: 0;
+	top: 0;
+	overflow: hidden;
+	opacity: 0.25;
+	pointer-events: none;
+}
+.emerson-foil__shine span {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 22%;
+	background: linear-gradient(
+		100deg,
+		transparent 0%,
+		rgba(255, 255, 255, 0.95) 46%,
+		rgba(255, 248, 214, 0.95) 54%,
+		transparent 100%
+	);
+}
+html.emerson-foil-ready .emerson-foil__shine span {
+	animation: emerson-foil-pan 3.2s linear infinite;
+}
+@keyframes emerson-foil-pan {
+	from { transform: translate3d(-120%, 0, 0); }
+	to { transform: translate3d(480%, 0, 0); }
+}
+@keyframes emerson-foil-drift {
+	from { transform: translate3d(0, 0, 0); }
+	to { transform: translate3d(-8%, -6%, 0); }
+}
+.emerson-foil-toggle {
+	position: fixed;
+	z-index: 40;
+	right: 1.5rem;
+	bottom: 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 3.25rem;
+	height: 3.25rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	cursor: pointer;
+	background: conic-gradient(#e40303, #ff8c00, #ffed00, #008026, #24408e, #732982, #e40303);
+	box-shadow: 0 6px 18px rgba(20, 24, 50, 0.28);
+}
+.emerson-foil-toggle svg {
+	display: block;
+	width: 1.45rem;
+	height: 1.45rem;
+	fill: #fff;
+	filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
+}
+.emerson-foil-toggle[aria-pressed="true"] {
+	outline: 3px solid #fff;
+	outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+	html.emerson-foil-ready .emerson-foil__sheet,
+	html.emerson-foil-ready .emerson-foil__shine span {
+		animation: none;
+	}
+}
+
 

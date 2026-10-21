@@ -45,9 +45,11 @@ function emerson_foil_default_symbols(): array {
  *   shine_seconds:float,
  *   canvas_opacity:float,
  *   shine_opacity:float,
+ *   shine_angle:float,
  *   drift_on:bool,
  *   shine_on:bool,
  *   glow_on:bool,
+ *   randomize_on_load:bool,
  *   layer_color:string,
  *   toggle_emoji:string,
  *   glow_exclude:list<string>
@@ -55,16 +57,18 @@ function emerson_foil_default_symbols(): array {
  */
 function emerson_foil_style_defaults(): array {
 	return array(
-		'drift_seconds'  => 36.0,
-		'shine_seconds'  => 3.2,
-		'canvas_opacity' => 0.25,
-		'shine_opacity'  => 0.25,
-		'drift_on'       => true,
-		'shine_on'       => true,
-		'glow_on'        => true,
-		'layer_color'    => '#f4f7f1',
-		'toggle_emoji'   => '🌈',
-		'glow_exclude'   => array(
+		'drift_seconds'     => 36.0,
+		'shine_seconds'     => 3.2,
+		'canvas_opacity'    => 0.25,
+		'shine_opacity'     => 0.25,
+		'shine_angle'       => 0.0,
+		'drift_on'          => true,
+		'shine_on'          => true,
+		'glow_on'           => true,
+		'randomize_on_load' => false,
+		'layer_color'       => '#f4f7f1',
+		'toggle_emoji'      => '🌈',
+		'glow_exclude'      => array(
 			'button',
 			'.wp-element-button',
 			'input',
@@ -164,9 +168,11 @@ function emerson_foil_symbols(): array {
  *   shine_seconds:float,
  *   canvas_opacity:float,
  *   shine_opacity:float,
+ *   shine_angle:float,
  *   drift_on:bool,
  *   shine_on:bool,
  *   glow_on:bool,
+ *   randomize_on_load:bool,
  *   layer_color:string,
  *   toggle_emoji:string,
  *   glow_exclude:list<string>
@@ -214,16 +220,18 @@ function emerson_foil_style(): array {
 	}
 
 	return array(
-		'drift_seconds'  => emerson_foil_clamp_float( $stored['drift_seconds'] ?? null, 1.0, 120.0, $defaults['drift_seconds'] ),
-		'shine_seconds'  => emerson_foil_clamp_float( $stored['shine_seconds'] ?? null, 0.5, 30.0, $defaults['shine_seconds'] ),
-		'canvas_opacity' => emerson_foil_clamp_float( $stored['canvas_opacity'] ?? null, 0.05, 1.0, $defaults['canvas_opacity'] ),
-		'shine_opacity'  => emerson_foil_clamp_float( $stored['shine_opacity'] ?? null, 0.05, 1.0, $defaults['shine_opacity'] ),
-		'drift_on'       => array_key_exists( 'drift_on', $stored ) ? ! empty( $stored['drift_on'] ) : $defaults['drift_on'],
-		'shine_on'       => array_key_exists( 'shine_on', $stored ) ? ! empty( $stored['shine_on'] ) : $defaults['shine_on'],
-		'glow_on'        => array_key_exists( 'glow_on', $stored ) ? ! empty( $stored['glow_on'] ) : $defaults['glow_on'],
-		'layer_color'    => $color,
-		'toggle_emoji'   => $emoji,
-		'glow_exclude'   => $exclude,
+		'drift_seconds'     => emerson_foil_clamp_float( $stored['drift_seconds'] ?? null, 1.0, 120.0, $defaults['drift_seconds'] ),
+		'shine_seconds'     => emerson_foil_clamp_float( $stored['shine_seconds'] ?? null, 0.5, 30.0, $defaults['shine_seconds'] ),
+		'canvas_opacity'    => emerson_foil_clamp_float( $stored['canvas_opacity'] ?? null, 0.05, 1.0, $defaults['canvas_opacity'] ),
+		'shine_opacity'     => emerson_foil_clamp_float( $stored['shine_opacity'] ?? null, 0.05, 1.0, $defaults['shine_opacity'] ),
+		'shine_angle'       => emerson_foil_clamp_float( $stored['shine_angle'] ?? null, 0.0, 360.0, $defaults['shine_angle'] ),
+		'drift_on'          => array_key_exists( 'drift_on', $stored ) ? ! empty( $stored['drift_on'] ) : $defaults['drift_on'],
+		'shine_on'          => array_key_exists( 'shine_on', $stored ) ? ! empty( $stored['shine_on'] ) : $defaults['shine_on'],
+		'glow_on'           => array_key_exists( 'glow_on', $stored ) ? ! empty( $stored['glow_on'] ) : $defaults['glow_on'],
+		'randomize_on_load' => array_key_exists( 'randomize_on_load', $stored ) ? ! empty( $stored['randomize_on_load'] ) : $defaults['randomize_on_load'],
+		'layer_color'       => $color,
+		'toggle_emoji'      => $emoji,
+		'glow_exclude'      => $exclude,
 	);
 }
 
@@ -260,6 +268,7 @@ add_action(
 			. '--emerson-foil-layer-color:' . $style['layer_color'] . ';'
 			. '--emerson-foil-canvas-opacity:' . $style['canvas_opacity'] . ';'
 			. '--emerson-foil-shine-opacity:' . $style['shine_opacity'] . ';'
+			. '--emerson-foil-shine-angle:' . $style['shine_angle'] . 'deg;'
 			. '--emerson-foil-drift-animation:' . $drift_anim . ';'
 			. '--emerson-foil-shine-animation:' . $shine_anim . ';'
 			. '--emerson-foil-glow:' . $glow_shadow . ';'
@@ -281,7 +290,9 @@ add_action(
 		$style   = emerson_foil_style();
 		echo '<div class="emerson-foil-layer" aria-hidden="true">';
 		echo '<div class="emerson-foil__sheet">';
-		echo '<canvas class="emerson-foil__canvas" data-symbols="' . esc_attr( wp_json_encode( $symbols ) ) . '"></canvas>';
+		echo '<canvas class="emerson-foil__canvas" data-symbols="' . esc_attr( wp_json_encode( $symbols ) ) . '"'
+			. ( ! empty( $style['randomize_on_load'] ) ? ' data-randomize="1"' : '' )
+			. '></canvas>';
 		echo '<div class="emerson-foil__shine"><span></span></div>';
 		echo '</div></div>';
 		echo '<button type="button" class="emerson-foil-toggle wp-exclude-emoji" aria-pressed="false" aria-label="Switch the page background">'
@@ -375,16 +386,18 @@ function emerson_foil_style_save(): ?string {
 	}
 
 	$saved = array(
-		'drift_seconds'  => emerson_foil_clamp_float( wp_unslash( $_POST['foil_drift_seconds'] ?? null ), 1.0, 120.0, $defaults['drift_seconds'] ),
-		'shine_seconds'  => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_seconds'] ?? null ), 0.5, 30.0, $defaults['shine_seconds'] ),
-		'canvas_opacity' => emerson_foil_clamp_float( wp_unslash( $_POST['foil_canvas_opacity'] ?? null ), 5.0, 100.0, $defaults['canvas_opacity'] * 100 ) / 100,
-		'shine_opacity'  => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_opacity'] ?? null ), 5.0, 100.0, $defaults['shine_opacity'] * 100 ) / 100,
-		'drift_on'       => ! empty( $_POST['foil_drift_on'] ),
-		'shine_on'       => ! empty( $_POST['foil_shine_on'] ),
-		'glow_on'        => ! empty( $_POST['foil_glow_on'] ),
-		'layer_color'    => $color,
-		'toggle_emoji'   => $emoji,
-		'glow_exclude'   => $exclude,
+		'drift_seconds'     => emerson_foil_clamp_float( wp_unslash( $_POST['foil_drift_seconds'] ?? null ), 1.0, 120.0, $defaults['drift_seconds'] ),
+		'shine_seconds'     => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_seconds'] ?? null ), 0.5, 30.0, $defaults['shine_seconds'] ),
+		'canvas_opacity'    => emerson_foil_clamp_float( wp_unslash( $_POST['foil_canvas_opacity'] ?? null ), 5.0, 100.0, $defaults['canvas_opacity'] * 100 ) / 100,
+		'shine_opacity'     => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_opacity'] ?? null ), 5.0, 100.0, $defaults['shine_opacity'] * 100 ) / 100,
+		'shine_angle'       => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_angle'] ?? null ), 0.0, 360.0, $defaults['shine_angle'] ),
+		'drift_on'          => ! empty( $_POST['foil_drift_on'] ),
+		'shine_on'          => ! empty( $_POST['foil_shine_on'] ),
+		'glow_on'           => ! empty( $_POST['foil_glow_on'] ),
+		'randomize_on_load' => ! empty( $_POST['foil_randomize_on_load'] ),
+		'layer_color'       => $color,
+		'toggle_emoji'      => $emoji,
+		'glow_exclude'      => $exclude,
 	);
 	update_option( EMERSON_FOIL_STYLE_OPTION, $saved, false );
 	return 'Saved motion and elements for the page background.';
@@ -447,10 +460,18 @@ function emerson_foil_admin_page(): void {
 	echo '<input type="number" id="emerson-foil-drift-seconds" name="foil_drift_seconds" min="1" max="120" step="0.5" value="' . esc_attr( (string) $style['drift_seconds'] ) . '"></p>';
 	echo '</td></tr>';
 
+	echo '<tr><th scope="row">Pattern</th><td>';
+	echo '<label><input type="checkbox" name="foil_randomize_on_load" value="1"' . checked( $style['randomize_on_load'], true, false ) . '> Randomize on load</label>';
+	echo '<p class="description">Shuffles the symbol order once when the page loads, so each visit can show a different pattern. Same symbols, speeds, and opacities.</p>';
+	echo '</td></tr>';
+
 	echo '<tr><th scope="row">Shine</th><td>';
 	echo '<label><input type="checkbox" name="foil_shine_on" value="1"' . checked( $style['shine_on'], true, false ) . '> Show the moving shine</label>';
 	echo '<p><label for="emerson-foil-shine-seconds">Seconds for one shine pass </label>';
 	echo '<input type="number" id="emerson-foil-shine-seconds" name="foil_shine_seconds" min="0.5" max="30" step="0.1" value="' . esc_attr( (string) $style['shine_seconds'] ) . '"></p>';
+	echo '<p><label for="emerson-foil-shine-angle">Shine angle (degrees) </label>';
+	echo '<input type="number" id="emerson-foil-shine-angle" name="foil_shine_angle" min="0" max="360" step="1" value="' . esc_attr( (string) $style['shine_angle'] ) . '"></p>';
+	echo '<p class="description">0 is upright (the usual look). 45 or −45 / 315 is a clear diagonal; 90 lays the band on its side.</p>';
 	echo '</td></tr>';
 
 	echo '<tr><th scope="row"><label for="emerson-foil-canvas-opacity">Symbol opacity</label></th><td>';

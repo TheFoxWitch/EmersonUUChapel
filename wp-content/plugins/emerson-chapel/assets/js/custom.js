@@ -1314,6 +1314,19 @@
 			foilSymbols = JSON.parse(foilCanvas.getAttribute('data-symbols') || '[]');
 		} catch (error) {}
 		if (foilSymbols.length) {
+			if (foilCanvas.getAttribute('data-randomize') === '1' && foilSymbols.length > 1) {
+				var foilShuffle = foilSymbols.slice();
+				var foilSwap;
+				var foilI;
+				var foilJ;
+				for (foilI = foilShuffle.length - 1; foilI > 0; foilI--) {
+					foilJ = Math.floor(Math.random() * (foilI + 1));
+					foilSwap = foilShuffle[foilI];
+					foilShuffle[foilI] = foilShuffle[foilJ];
+					foilShuffle[foilJ] = foilSwap;
+				}
+				foilSymbols = foilShuffle;
+			}
 			var foilCols = 36;
 			var foilRows = 24;
 			var foilCell = 88;

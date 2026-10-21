@@ -7,12 +7,15 @@ alwaysApply: false
 # Emerson UU Chapel — local WordPress
 
 - **Stack:** Docker Compose in project root; site at http://localhost:8080
-- **Active theme:** `emerson-uuchapel` (child of `twentytwentythree`)
-- **Edit front-end code in the child theme first:**
-  - CSS: `wp-content/themes/emerson-uuchapel/assets/css/custom.css`
-  - JS: `wp-content/themes/emerson-uuchapel/assets/js/custom.js`
-  - PHP: `wp-content/themes/emerson-uuchapel/functions.php`, `patterns/*.php`
+- **Active theme:** `emerson-uuchapel` (child of `twentytwentythree`) — layout/branding only
+- **Feature plugin:** `emerson-chapel` (`wp-content/plugins/emerson-chapel/`) — keep active; survives a theme switch
+  - CSS: `assets/css/custom.css`
+  - JS: `assets/js/custom.js` (and sibling scripts)
+  - PHP: `emerson-chapel.php`, `inc/*.php`
+- **Edit theme chrome in the child theme:**
+  - PHP patterns: `patterns/*.php`
   - Block HTML templates: `templates/*.html`, `parts/*.html`
+  - Logo images: `assets/images/`
 - **Page body HTML** is stored in the database as block markup; export/edit via WP admin Code editor, or WP-CLI `wp post get <id> --field=post_content`
-- **Do not edit** third-party plugin `vendor/` trees; prefer child theme or a small custom plugin for site-specific PHP
+- **Do not edit** third-party plugin `vendor/` trees; site-specific PHP belongs in `emerson-chapel`
 - **Refresh:** save file → reload browser (hard refresh if CSS/JS cached; W3 Total Cache may need purge locally)

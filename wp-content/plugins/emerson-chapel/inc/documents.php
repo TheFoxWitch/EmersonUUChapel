@@ -535,10 +535,10 @@ add_action(
 		if ( 'toplevel_page_emerson-documents' !== $hook ) {
 			return;
 		}
-		$path = get_stylesheet_directory() . '/assets/js/documents-admin.js';
+		$path = emerson_chapel_path( 'assets/js/documents-admin.js' );
 		wp_enqueue_script(
 			'emerson-documents-admin',
-			get_stylesheet_directory_uri() . '/assets/js/documents-admin.js',
+			emerson_chapel_url( 'assets/js/documents-admin.js' ),
 			array(),
 			(string) filemtime( $path ),
 			true

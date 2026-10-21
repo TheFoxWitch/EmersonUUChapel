@@ -2,13 +2,27 @@
 
 Every change made to the local copy, newest first. Each entry says:
 
-- **Where** the change lives: **File** (theme or plugin files, travels with GitHub / an upload of `wp-content/themes/emerson-uuchapel/`) or **Local DB** (the local database only, has to be redone on the live site or migrated with WPvivid).
+- **Where** the change lives: **File** (theme or Emerson Chapel plugin files, travels with GitHub / an upload of `wp-content/themes/emerson-uuchapel/` and `wp-content/plugins/emerson-chapel/`) or **Local DB** (the local database only, has to be redone on the live site or migrated with WPvivid).
 - **Backup**: the original content, saved before the change.
 - **On the live site**: how to repeat it there.
 
 Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 
 ---
+
+## 2026-10-21
+
+### Custom dialogs on the Modals screen
+- **Modals** can add or edit extra dialogs: button text, optional heading, then either a Microsoft/Google form link or a Calculated Fields form. Each one gets a shortcode `[emerson_modal id="…"]` to place the button on a page. The built-in commitment, survey, and PayPal fee dialogs stay as they are.
+- **File:** `wp-content/plugins/emerson-chapel/inc/modals.php`, `assets/js/recommitment.js`, `assets/css/custom.css`.
+
+### Page background motion and elements
+- **Page background** has a **Motion and elements** section: drift and shine on/off and speed, symbol and shine opacity, background colour, the corner button emoji (kept out of the WordPress emoji replacer), reading glow on/off, and a list of CSS selectors that skip the glow (banners, buttons, rainbow heading, and so on).
+- **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`, `assets/css/custom.css`.
+
+### Emerson features moved into a plugin
+- Sunday Location, Documents, Modals, foil background, newsletter, members tools, and the related CSS/JS now live in the **Emerson Chapel** plugin (`wp-content/plugins/emerson-chapel/`), not in the child theme. The theme keeps header/footer patterns and logo images only. Activate the plugin after a restore; a later theme switch leaves those tools running. Git tracks this plugin; other third-party plugins stay ignored as before.
+- **File:** `wp-content/plugins/emerson-chapel/`, `wp-content/themes/emerson-uuchapel/functions.php`, `.gitignore`, `HANDOFF.md`, `TEST-AND-LAUNCH-CHECKLIST.md`.
 
 ## 2026-10-20
 

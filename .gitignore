@@ -28,7 +28,9 @@ wp-content/local-mail/
 *.log
 
 # Third-party code (reinstall from wordpress.org or the WPvivid backup; Church Admin Premium is a paid licence)
-wp-content/plugins/
+wp-content/plugins/*
+!wp-content/plugins/emerson-chapel/
+!wp-content/plugins/emerson-chapel/**
 backups/plugins/
 wp-content/themes/*
 !wp-content/themes/emerson-uuchapel/

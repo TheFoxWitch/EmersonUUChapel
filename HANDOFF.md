@@ -81,12 +81,13 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
 
 | What | Where |
 |------|-------|
-| Site-wide CSS | `wp-content/themes/emerson-uuchapel/assets/css/custom.css` |
-| Site-wide JS | `wp-content/themes/emerson-uuchapel/assets/js/custom.js` |
-| PHP hooks / enqueues | `wp-content/themes/emerson-uuchapel/functions.php` |
+| Chapel features (Sunday Location, Documents, Modals, foil, members tools, …) | Plugin `wp-content/plugins/emerson-chapel/` — PHP in `inc/`, CSS/JS in `assets/` |
+| Site-wide feature CSS | `wp-content/plugins/emerson-chapel/assets/css/custom.css` |
+| Site-wide feature JS | `wp-content/plugins/emerson-chapel/assets/js/custom.js` |
+| Theme layout / branding only | Child theme `wp-content/themes/emerson-uuchapel/` (patterns, parts, logo images). `functions.php` no longer loads feature code. |
 | Page shell / header HTML | `wp-content/themes/emerson-uuchapel/templates/page.html`, `parts/header.html` |
 | Other templates | Copy from `wp-content/themes/twentytwentythree/templates/` or `parts/` into the same path in the child theme, then edit |
-| Header logo (links home; replaced site title + "Home" menu link) | Markup: `patterns/header-logo.php`; image: `assets/images/EmersonUUchapelLogoUpscale.png` (cleaned copy of `images/EmersonUUchapelLogoUpscale.png`); size: `.emerson-header-logo img` in `custom.css`. Footer uses the same file. After editing `patterns/`, clear the pattern cache: `docker compose run --rm wpcli eval 'wp_get_theme()->delete_pattern_cache();'` |
+| Header logo (links home; replaced site title + "Home" menu link) | Markup: `patterns/header-logo.php`; image: `assets/images/EmersonUUChapelLogo_original.png`; size: `.emerson-header-logo img` in the plugin `custom.css`. Footer uses the same file. After editing `patterns/`, clear the pattern cache: `docker compose run --rm wpcli eval 'wp_get_theme()->delete_pattern_cache();'` |
 | Main navigation menu | `wp-content/themes/emerson-uuchapel/parts/header.html` (`wp:navigation-link` / `wp:navigation-submenu` blocks) |
 | Page/post body content | **Database**, not files — wp-admin → edit page → **⋮ → Code editor**, or `docker compose run --rm wpcli post get <ID> --field=post_content` |
 

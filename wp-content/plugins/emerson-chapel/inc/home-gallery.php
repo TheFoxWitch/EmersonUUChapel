@@ -12,20 +12,20 @@ function emerson_home_gallery_enqueue(): void {
 	if ( ! is_front_page() ) {
 		return;
 	}
-	$css = get_stylesheet_directory() . '/assets/vendor/blossom/blossom-carousel-web.css';
-	$js  = get_stylesheet_directory() . '/assets/vendor/blossom/blossom-carousel-web.umd.js';
+	$css = emerson_chapel_path( 'assets/vendor/blossom/blossom-carousel-web.css' );
+	$js  = emerson_chapel_path( 'assets/vendor/blossom/blossom-carousel-web.umd.js' );
 	if ( ! is_readable( $css ) || ! is_readable( $js ) ) {
 		return;
 	}
 	wp_enqueue_style(
 		'blossom-carousel',
-		get_stylesheet_directory_uri() . '/assets/vendor/blossom/blossom-carousel-web.css',
+		emerson_chapel_url( 'assets/vendor/blossom/blossom-carousel-web.css' ),
 		array(),
 		(string) filemtime( $css )
 	);
 	wp_enqueue_script(
 		'blossom-carousel',
-		get_stylesheet_directory_uri() . '/assets/vendor/blossom/blossom-carousel-web.umd.js',
+		emerson_chapel_url( 'assets/vendor/blossom/blossom-carousel-web.umd.js' ),
 		array(),
 		(string) filemtime( $js ),
 		true

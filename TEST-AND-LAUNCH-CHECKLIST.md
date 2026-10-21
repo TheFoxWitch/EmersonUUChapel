@@ -442,14 +442,12 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
 
 ## 5. Later: a more modern look (not a launch item)
 
-The President liked some newer themes the intern showed. **Launch on this free theme first** (`emerson-uuchapel`, child of Twenty Twenty-Three). Do not change **Appearance → Themes** to get a modern look. That is not a one-click swap.
+The President liked some newer themes the intern showed. **Launch on this free theme first** (`emerson-uuchapel`, child of Twenty Twenty-Three). Do not change **Appearance → Themes** to get a modern look during launch.
 
-- **What does travel** if you activate another theme: pages and posts (Gutenberg blocks in the database), media, and plugins (Church Admin, forms, and so on).
-- **What stops working** unless you move it: almost everything we built. The Emerson-blue pills, calendar, footer icons and spacing live in `assets/css/custom.css`. The header and footer live in the theme patterns. Newsletter, members hub, serving dates, calendar PDFs and the Sunday schedule live in `inc/*.php` and are loaded from `functions.php`. A new theme does not load those files.
-- **Unused themes do nothing.** Leftover Magazine Pro CSS is still in the database; that theme is not active, so it has no effect. A store theme's demo will not restyle Church Admin, the members hub, or classes such as `bylaws-button` / `newcomer-button`.
-- **React kits** (for example Planes, shadcn) are for Next.js apps, not this PHP theme. Treat them as a mood board; rebuild a look in CSS if we want it.
-- **Two sane later options,** once the site works:
-  1. Stay on this child theme and modernise the CSS and templates. Same PHP, less risk.
-  2. Pick a new block theme, then port `custom.css` and the header/footer patterns, and move `inc/*.php` into a small plugin so those features survive a theme change.
+- **Emerson Chapel plugin** (`wp-content/plugins/emerson-chapel/`): Sunday Location, Documents, Modals, foil background, newsletter, members tools, serving dates, calendar helpers, and the feature CSS/JS. Keep this plugin **active**. It travels with a WPvivid backup that includes plugins, and it keeps working if the theme is swapped later.
+- **What still lives in the child theme:** header/footer patterns, logo images, and block templates. A new theme needs those ported (or rebuilt) for the same chrome.
+- **What travels** on a theme switch without extra work: pages/posts in the database, media, Church Admin and other plugins, and the Emerson Chapel feature plugin (when active).
+- **Unused themes do nothing.** Leftover Magazine Pro CSS is still in the database; that theme is not active, so it has no effect.
+- **Later look options:** stay on this child theme and restyle it, or activate another block theme and port the header/footer patterns. Feature tools should already survive via the Emerson Chapel plugin.
 
-- [ ] **After launch only:** if leadership still wants a more modern look, choose option 1 or 2 above. Do not flip themes on the live site to try it.
+- [ ] **After launch only:** if leadership still wants a more modern look, restyle or swap themes carefully. Do not flip themes on the live site just to try it. Confirm **Emerson Chapel** stays active after any change.

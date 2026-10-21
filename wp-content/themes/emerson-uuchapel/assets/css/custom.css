@@ -153,6 +153,37 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 .emerson-sunday-location__moved {
 	color: #6d1f0d;
 }
+
+/* Same purple as the Twemoji faith symbols above (#9266CC) */
+.emerson-sunday-location__zoom {
+	margin: 0.85em 0 0;
+	text-align: center;
+}
+
+.emerson-sunday-location a.emerson-sunday-location__zoom-btn {
+	display: inline-block;
+	padding: 0.55em 1.35em;
+	border-radius: 0.4em;
+	background: #9266cc;
+	color: #fff;
+	font-weight: 600;
+	text-decoration: none;
+	line-height: 1.3;
+	position: relative;
+	bottom: -15px;
+}
+
+.emerson-sunday-location a.emerson-sunday-location__zoom-btn:hover,
+.emerson-sunday-location a.emerson-sunday-location__zoom-btn:focus,
+.emerson-sunday-location a.emerson-sunday-location__zoom-btn:visited {
+	background: #7d52b3;
+	color: #fff;
+	text-decoration: none;
+}
+
+html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
+	text-shadow: none;
+}
 /** End Sunday Location **/
 
 /* Home page: You Are Welcome — flags, faith symbols, rainbow words */
@@ -2573,25 +2604,25 @@ html.emerson-foil-ready .emerson-foil__shine span {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 3.25rem;
-	height: 3.25rem;
+	width: 3.75rem;
+	height: 3.75rem;
 	padding: 0;
 	border: 0;
 	border-radius: 50%;
+	background: transparent;
+	font-size: 3.4rem;
+	line-height: 1;
 	cursor: pointer;
-	background: conic-gradient(#e40303, #ff8c00, #ffed00, #008026, #24408e, #732982, #e40303);
-	box-shadow: 0 6px 18px rgba(20, 24, 50, 0.28);
+	box-shadow: none;
+	outline: none;
 }
-.emerson-foil-toggle svg {
-	display: block;
-	width: 1.45rem;
-	height: 1.45rem;
-	fill: #fff;
-	filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
-}
+.emerson-foil-toggle:focus,
+.emerson-foil-toggle:focus-visible,
 .emerson-foil-toggle[aria-pressed="true"] {
-	outline: 3px solid #fff;
-	outline-offset: 2px;
+	outline: none;
+	border: 0;
+	box-shadow: none;
+	background: transparent;
 }
 @media (prefers-reduced-motion: reduce) {
 	html.emerson-foil-ready .emerson-foil__sheet,

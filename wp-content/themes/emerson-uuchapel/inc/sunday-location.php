@@ -296,7 +296,10 @@ function emerson_sunday_meet_html( array $shown ): string {
 function emerson_sunday_location_html(): string {
 	$upcoming = emerson_sunday_upcoming( 8 );
 	if ( ! $upcoming ) {
-		return '<p class="emerson-sunday-location">No upcoming Sunday service is on the calendar yet.</p>';
+		return '<div class="emerson-sunday-location">'
+			. '<p>No upcoming Sunday service is on the calendar yet.</p>'
+			. emerson_sunday_zoom_button_html()
+			. '</div>';
 	}
 	$next = emerson_sunday_display( $upcoming[0] );
 	$html = '<div class="emerson-sunday-location">';
@@ -326,7 +329,22 @@ function emerson_sunday_location_html(): string {
 			$html .= '<p class="emerson-sunday-location__note">' . esc_html( $next['note'] ) . '</p>';
 		}
 	}
+	$html .= emerson_sunday_zoom_button_html();
 	return $html . '</div>';
+}
+
+/**
+ * Same public Zoom join URL as Worship → Zoom Link and the footer.
+ */
+function emerson_sunday_zoom_url(): string {
+	return 'http://zoom.us/j/92538603507?pwd=K3NJWVE4ZnhvWkJWK1Nmbm8zOXhQUT09';
+}
+
+function emerson_sunday_zoom_button_html(): string {
+	return '<p class="emerson-sunday-location__zoom">'
+		. '<a class="emerson-sunday-location__zoom-btn" href="' . esc_url( emerson_sunday_zoom_url() ) . '">'
+		. esc_html__( 'Join on Zoom', 'emerson-uuchapel' )
+		. '</a></p>';
 }
 
 add_shortcode( 'emerson_sunday_location', 'emerson_sunday_location_html' );

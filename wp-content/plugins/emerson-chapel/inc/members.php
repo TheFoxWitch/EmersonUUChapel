@@ -90,7 +90,7 @@ add_shortcode(
 		if ( current_user_can( 'manage_options' ) || emerson_has_church_admin_permission( $user->ID ) ) {
 			$links[] = sprintf( '<a href="%s">Church Admin</a>', esc_url( admin_url( 'admin.php?page=premium_church_admin' ) ) );
 		}
-		$links[] = sprintf( '<a href="%s">Log out</a>', esc_url( wp_logout_url( home_url( '/' ) ) ) );
+		$links[] = sprintf( '<a href="%s">Log out</a>', esc_url( wp_logout_url( home_url( EMERSON_MEMBERS_PAGE ) ) ) );
 
 		return sprintf(
 			'<p class="emerson-member-links">Signed in as <strong>%1$s</strong> · %2$s</p>',
@@ -293,6 +293,16 @@ add_filter(
 	},
 	20,
 	3
+);
+
+// After logout, stay on the site: the Members page shows the login form again.
+// /wp-login.php and /wp-admin remain available for staff who go there on purpose.
+add_filter(
+	'logout_redirect',
+	static function () {
+		return home_url( EMERSON_MEMBERS_PAGE );
+	},
+	20
 );
 
 // Old login pages now send visitors to the Members page.

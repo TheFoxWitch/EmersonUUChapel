@@ -54,6 +54,30 @@
 						"text": "var(--wp--preset--color--emerson-blue-dark)"
 					}
 				}
+			},
+			"button": {
+				"color": {
+					"background": "var(--wp--preset--color--emerson-blue)",
+					"text": "var(--wp--preset--color--white)"
+				},
+				":hover": {
+					"color": {
+						"background": "var(--wp--preset--color--emerson-blue)",
+						"text": "var(--wp--preset--color--white)"
+					}
+				},
+				":focus": {
+					"color": {
+						"background": "var(--wp--preset--color--emerson-blue)",
+						"text": "var(--wp--preset--color--white)"
+					}
+				},
+				":active": {
+					"color": {
+						"background": "var(--wp--preset--color--emerson-blue)",
+						"text": "var(--wp--preset--color--white)"
+					}
+				}
 			}
 		},
 		"blocks": {

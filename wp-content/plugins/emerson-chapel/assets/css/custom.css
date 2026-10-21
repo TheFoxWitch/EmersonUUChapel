@@ -171,14 +171,21 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	line-height: 1.3;
 	position: relative;
 	bottom: -15px;
+	transition: transform 0.3s ease-in-out;
 }
 
 .emerson-sunday-location a.emerson-sunday-location__zoom-btn:hover,
 .emerson-sunday-location a.emerson-sunday-location__zoom-btn:focus,
+.emerson-sunday-location a.emerson-sunday-location__zoom-btn:focus-visible,
 .emerson-sunday-location a.emerson-sunday-location__zoom-btn:visited {
-	background: #7d52b3;
+	background: #9266cc;
 	color: #fff;
 	text-decoration: none;
+}
+
+.emerson-sunday-location a.emerson-sunday-location__zoom-btn:hover,
+.emerson-sunday-location a.emerson-sunday-location__zoom-btn:focus-visible {
+	transform: scale(1.05);
 }
 
 html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
@@ -387,6 +394,23 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 }
 /** End Religious Education **/
 
+/* Site buttons: keep rest colours on hover/focus; grow like calendar-save (scale 1.05).
+   Overrides the theme global styles that flip .wp-element-button to contrast/base. */
+:root :where(.wp-element-button, .wp-block-button__link) {
+	transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+:root :where(.wp-element-button:visited, .wp-block-button__link:visited) {
+	color: var(--wp--preset--color--white);
+}
+:root :where(.wp-element-button:hover, .wp-block-button__link:hover),
+:root :where(.wp-element-button:focus, .wp-block-button__link:focus),
+:root :where(.wp-element-button:focus-visible, .wp-block-button__link:focus-visible),
+:root :where(.wp-element-button:active, .wp-block-button__link:active) {
+	background-color: var(--wp--preset--color--emerson-blue);
+	color: var(--wp--preset--color--white);
+	transform: scale(1.05);
+}
+
 /* Buttons on the home page (and matching buttons on Serve Emerson Chapel) */
 /* 2024-25 Pledge Form, Make a Contribution */
 .pledge-button .wp-block-button__link,
@@ -397,7 +421,9 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 	transition: all 0.3s ease-in-out;
 }
 .pledge-button .wp-block-button__link:hover,
-.contribute-button .wp-block-button__link:hover {
+.pledge-button .wp-block-button__link:focus-visible,
+.contribute-button .wp-block-button__link:hover,
+.contribute-button .wp-block-button__link:focus-visible {
 	background: var(--wp--preset--color--vivid-green-cyan);
 	color: #1e1e1e;
 	transform: scale(1.05);
@@ -423,9 +449,13 @@ button.wp-block-button__link[data-emerson-pledge] {
 	justify-content: center;
 }
 .paypal-fees-button .wp-block-button__link:hover,
+.paypal-fees-button .wp-block-button__link:focus-visible,
 .newcomer-button .wp-block-button__link:hover,
+.newcomer-button .wp-block-button__link:focus-visible,
 .newsletter-button .wp-block-button__link:hover,
-.bylaws-button .wp-block-button__link:hover {
+.newsletter-button .wp-block-button__link:focus-visible,
+.bylaws-button .wp-block-button__link:hover,
+.bylaws-button .wp-block-button__link:focus-visible {
 	background: var(--emerson-blue);
 	color: #fff;
 	transform: scale(1.05);
@@ -439,8 +469,8 @@ button.wp-block-button__link[data-emerson-pledge] {
 }
 .recommit-button .wp-block-button__link:hover,
 .recommit-button .wp-block-button__link:focus-visible {
-	background: var(--emerson-blue);
-	color: #fff;
+	background: #fff;
+	color: var(--emerson-blue);
 	transform: scale(1.05);
 }
 
@@ -779,11 +809,24 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	font-weight: 400;
 	line-height: 1.2;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
 }
 .emerson-recommit__submit {
 	flex: 0 0 auto;
 	background: var(--emerson-blue);
 	color: #fff;
+}
+.emerson-recommit__clear:hover,
+.emerson-recommit__clear:focus-visible {
+	background: #fff;
+	color: var(--emerson-blue);
+	transform: scale(1.05);
+}
+.emerson-recommit__submit:hover,
+.emerson-recommit__submit:focus-visible {
+	background: var(--emerson-blue);
+	color: #fff;
+	transform: scale(1.05);
 }
 .emerson-recommit__status {
 	min-height: 1.4em;
@@ -800,6 +843,21 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	.emerson-recommit {
 		transition: none;
 	}
+	:root :where(.wp-element-button:hover, .wp-block-button__link:hover),
+	:root :where(.wp-element-button:focus, .wp-block-button__link:focus),
+	:root :where(.wp-element-button:focus-visible, .wp-block-button__link:focus-visible),
+	:root :where(.wp-element-button:active, .wp-block-button__link:active),
+	.pledge-button .wp-block-button__link:hover,
+	.contribute-button .wp-block-button__link:hover,
+	.paypal-fees-button .wp-block-button__link:hover,
+	.newcomer-button .wp-block-button__link:hover,
+	.newsletter-button .wp-block-button__link:hover,
+	.bylaws-button .wp-block-button__link:hover,
+	.recommit-button .wp-block-button__link:hover,
+	.emerson-recommit__clear:hover,
+	.emerson-recommit__submit:hover {
+		transform: none;
+	}
 }
 /** End Buttons on the home page **/
 
@@ -812,11 +870,14 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	color: #fff;
 	font: inherit;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
 }
 
 .wppb-user-forms input[type="submit"]:hover,
 .wppb-user-forms input[type="submit"]:focus-visible {
-	background: var(--emerson-blue-dark);
+	background: var(--emerson-blue);
+	color: #fff;
+	transform: scale(1.05);
 }
 
 .emerson-member-links {
@@ -838,12 +899,14 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	font-size: 16px;
 	text-decoration: none;
 	vertical-align: middle;
+	transition: transform 0.3s ease-in-out;
 }
 
 .wppb-user-forms a.emerson-profile-back:hover,
 .wppb-user-forms a.emerson-profile-back:focus-visible {
-	background: #e0e0e0;
+	background: #efefef;
 	color: #1e1e1e;
+	transform: scale(1.05);
 }
 
 /* Yearly Planner PDF dropdown sits a hair low next to its label */
@@ -869,6 +932,7 @@ button.ca-calendar-nav {
 	font-size: 20px;
 	line-height: 1.2;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
 }
 
 /* Month grid's Prev / Next (Church Admin gives them btn-info; Today is btn-warning): plain ← and → arrows beside the month name.
@@ -904,14 +968,23 @@ button.ca-calendar-nav.btn-info:last-of-type::before {
 
 button.ca-calendar-nav.btn-info:hover::before,
 button.ca-calendar-nav.btn-info:focus-visible::before {
-	color: var(--emerson-blue-dark);
+	color: var(--emerson-blue);
 }
 
 input.calendar-date-switcher:hover,
 input.calendar-date-switcher:focus-visible,
 button.ca-calendar-nav:hover,
 button.ca-calendar-nav:focus-visible {
-	background: #e0e0e0;
+	background: #3f4fa0;
+	color: #fff;
+	transform: scale(1.05);
+}
+
+button.ca-calendar-nav.btn-info:hover,
+button.ca-calendar-nav.btn-info:focus-visible {
+	background: none;
+	color: var(--emerson-blue);
+	transform: scale(1.05);
 }
 
 /* Church admin serving date save button: same big Emerson-blue pill as the Newcomer / Newsletter buttons */
@@ -1010,11 +1083,14 @@ input.ca-search-submit {
 	background: #3f4fa0;
 	color: #fff;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
 }
 
 input.ca-search-submit:hover,
 input.ca-search-submit:focus-visible {
-	background: #e0e0e0;
+	background: #3f4fa0;
+	color: #fff;
+	transform: scale(1.05);
 }
 
 /* "Show the full directory" after a search: same look as the Search button */
@@ -1028,12 +1104,14 @@ input.ca-search-submit:focus-visible {
 	color: #1e1e1e;
 	font-size: 20px;
 	text-decoration: none;
+	transition: transform 0.3s ease-in-out;
 }
 
 .emerson-directory-reset a:hover,
 .emerson-directory-reset a:focus-visible {
-	background: #e0e0e0;
+	background: #efefef;
 	color: #1e1e1e;
+	transform: scale(1.05);
 }
 
 /* Service Schedule page: [emerson_service_schedule] month calendar */
@@ -1046,14 +1124,17 @@ input.ca-search-submit:focus-visible {
 }
 
 .emerson-schedule__arrow {
+	display: inline-block;
 	color: var(--emerson-blue);
 	text-decoration: none;
 	line-height: 1;
+	transition: transform 0.3s ease-in-out;
 }
 
 .emerson-schedule__arrow:hover,
 .emerson-schedule__arrow:focus-visible {
-	color: var(--emerson-blue-dark);
+	color: var(--emerson-blue);
+	transform: scale(1.05);
 }
 
 .emerson-schedule__grid {
@@ -1253,11 +1334,14 @@ iframe.emerson-map {
 	font: inherit;
 	font-size: 20px;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
 }
 
 .emerson-serve-bulk button:hover,
 .emerson-serve-bulk button:focus-visible {
-	background: #e0e0e0;
+	background: #efefef;
+	color: #1e1e1e;
+	transform: scale(1.05);
 }
 
 .emerson-serve-roles {
@@ -1341,14 +1425,16 @@ iframe.emerson-map {
 	color: var(--emerson-blue);
 	font: inherit;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
 }
 
 .emerson-home-gallery blossom-prev button:hover,
 .emerson-home-gallery blossom-next button:hover,
 .emerson-home-gallery blossom-prev button:focus-visible,
 .emerson-home-gallery blossom-next button:focus-visible {
-	background: var(--emerson-blue);
-	color: #fff;
+	background: #fff;
+	color: var(--emerson-blue);
+	transform: scale(1.05);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1390,11 +1476,14 @@ iframe.emerson-map {
 	font: inherit;
 	font-size: 16px;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
 }
 
 #ca-first-step input[type="submit"]:hover,
 #ca-first-step input[type="submit"]:focus-visible {
-	background: #e0e0e0;
+	background: #efefef;
+	color: #1e1e1e;
+	transform: scale(1.05);
 }
 /** End Members page **/
 
@@ -1453,6 +1542,16 @@ h5,
 h6 {
 	text-wrap: balance;
 	overflow-wrap: break-word;
+}
+
+/* Page title: one line from tablet up; phone may still wrap to two */
+@media (min-width: 782px) {
+	.wp-block-post-title {
+		text-wrap: nowrap;
+		overflow-wrap: normal;
+		/* Slightly under the global H1 max so the full chapel name fits the content column */
+		font-size: clamp(1.75rem, 1.2rem + 1.4vw, 2.25rem);
+	}
 }
 
 p,
@@ -1663,12 +1762,14 @@ blockquote {
 	font: inherit;
 	font-weight: 600;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
 }
 
 .emerson-cookie-notice__ok:hover,
 .emerson-cookie-notice__ok:focus-visible {
-	background: #1e1e1e;
-	color: #fff;
+	background: #fff;
+	color: #1e1e1e;
+	transform: scale(1.05);
 }
 
 .emerson-cookie-pref {
@@ -1687,6 +1788,14 @@ blockquote {
 	color: var(--emerson-blue, #3f4fa0);
 	font: inherit;
 	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
+}
+
+.emerson-cookie-pref button:hover,
+.emerson-cookie-pref button:focus-visible {
+	background: #fff;
+	color: var(--emerson-blue, #3f4fa0);
+	transform: scale(1.05);
 }
 
 .emerson-cookie-pref__status {
@@ -1753,12 +1862,14 @@ blockquote {
 	font: inherit;
 	font-weight: 600;
 	cursor: pointer;
-	transition: background 0.2s ease-in-out;
+	transition: transform 0.3s ease-in-out;
 }
 
 .emerson-nl-form__submit:hover,
 .emerson-nl-form__submit:focus-visible {
-	background: var(--emerson-blue-dark);
+	background: var(--emerson-blue);
+	color: #fff;
+	transform: scale(1.05);
 }
 
 .emerson-nl-form__submit:disabled {
@@ -1974,14 +2085,15 @@ blockquote {
 	font-size: 0.875rem;
 	line-height: 1.3;
 	cursor: pointer;
-	transition: background 0.2s ease, color 0.2s ease;
+	transition: transform 0.3s ease-in-out;
 }
 
 .page-id-64 .aiovg-link-more:hover,
 .page-id-64 .aiovg-link-more:focus-visible,
 .page-id-64 .aiovg-link-more:active {
-	background: #1e1e1e;
-	color: #fff;
+	background: #e5e5e5;
+	color: #1e1e1e;
+	transform: scale(1.05);
 }
 
 /* While AIOVG fetches the next row, hide the pill so its background
@@ -2580,30 +2692,38 @@ html.emerson-foil-ready .emerson-foil__sheet {
 	position: absolute;
 	left: 0;
 	top: 0;
-	overflow: hidden;
+	overflow: visible;
 	opacity: var(--emerson-foil-shine-opacity, 0.25);
 	pointer-events: none;
 }
+/* Soft vertical band; --emerson-foil-shine-angle rotates the whole band (0 = upright, 45 = diagonal). */
 .emerson-foil__shine span {
 	position: absolute;
-	top: 0;
-	bottom: 0;
+	top: 50%;
 	left: 0;
 	width: 22%;
+	height: 220%;
+	margin-top: -110%;
 	background: linear-gradient(
-		100deg,
+		to right,
 		transparent 0%,
 		rgba(255, 255, 255, 0.95) 46%,
 		rgba(255, 248, 214, 0.95) 54%,
 		transparent 100%
 	);
+	transform: rotate(var(--emerson-foil-shine-angle, 0deg));
+	transform-origin: center center;
 }
 html.emerson-foil-ready .emerson-foil__shine span {
 	animation: var(--emerson-foil-shine-animation, emerson-foil-pan 3.2s linear infinite);
 }
 @keyframes emerson-foil-pan {
-	from { transform: translate3d(-120%, 0, 0); }
-	to { transform: translate3d(480%, 0, 0); }
+	from {
+		transform: translate3d(-120%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+	}
+	to {
+		transform: translate3d(480%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+	}
 }
 @keyframes emerson-foil-drift {
 	from { transform: translate3d(0, 0, 0); }

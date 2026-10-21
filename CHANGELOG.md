@@ -12,6 +12,34 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-21
 
+### Buttons grow on hover instead of changing colour
+- Site buttons keep their usual colours on hover and focus, and grow slightly (`scale(1.05)`), matching the calendar save button. That includes core block buttons (which used to flip to black/white from the theme) plus Zoom, recommit outline, login, newsletter, cookie, directory, and related custom buttons.
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `wp-content/themes/emerson-uuchapel/theme.json`.
+
+### Page background can randomize symbols on load
+- **Page background → Motion and elements** has **Randomize on load**. When on, the browser shuffles the symbol list once before painting the field, so each page load can show a different pattern without changing speeds, opacities, or which symbols are used.
+- **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`, `assets/js/custom.js`.
+
+### Sunday Location default asks before overwriting
+- **Update regular Sundays** has an **Overwrite custom Regular Sundays** checkbox. When it is ticked, the new default replaces saved custom Regular times and places from the apply-from date onward. When it is left unticked, a confirm box offers **Keep changes already made**, **Overwrite all Regular Sundays**, or **Cancel**. Moved and Cancelled stay as they are either way. Unsaved edits in the Sunday list still need **Save Sundays** first.
+- **File:** `wp-content/plugins/emerson-chapel/inc/sunday-location.php`.
+
+### Sunday Location time uses AM/PM
+- **Sunday Location** time fields show and accept 12-hour times (for example **7:00 PM**). Saving still stores the usual 24-hour value underneath. The homepage line was already “7 pm”; this matches the admin to that.
+- **File:** `wp-content/plugins/emerson-chapel/inc/sunday-location.php`.
+
+### Shine angle on the page background
+- **Page background → Motion and elements** has **Shine angle (degrees)** that rotates the whole light band (0 upright, 45 diagonal). The control rotates the band itself, not only the gradient inside it, so the tilt is visible.
+- **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`, `assets/css/custom.css`.
+
+### Log out returns to the Members page
+- Logging out sends people to `/members/`, where the site login form shows again, instead of the WordPress login screen. Staff can still open `/wp-admin` or `/wp-login.php` directly.
+- **File:** `wp-content/plugins/emerson-chapel/inc/members.php`.
+
+### Page title stays on one line from tablet up
+- The main page title (for example **Emerson Unitarian Universalist Chapel**) stays on one line from tablet width upward. On a phone it may still wrap to two lines.
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
 ### Custom dialogs on the Modals screen
 - **Modals** can add or edit extra dialogs: button text, optional heading, then either a Microsoft/Google form link or a Calculated Fields form. Each one gets a shortcode `[emerson_modal id="…"]` to place the button on a page. The built-in commitment, survey, and PayPal fee dialogs stay as they are.
 - **File:** `wp-content/plugins/emerson-chapel/inc/modals.php`, `assets/js/recommitment.js`, `assets/css/custom.css`.

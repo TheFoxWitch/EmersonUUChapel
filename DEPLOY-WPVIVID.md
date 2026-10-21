@@ -1,6 +1,6 @@
 # Deploying the local site with WPvivid
 
-Plan: make a WPvivid backup of the **local** site (http://localhost:8080), then restore it onto the live site (or a fresh WordPress install on new hosting). The backup carries every change in [`CHANGELOG.md`](CHANGELOG.md): the theme files, the mail-catcher plugin and all the database edits. Nothing has to be re-entered by hand.
+Plan: make a WPvivid backup of the **local** site (http://localhost:8080), then restore it onto the live site (or a fresh WordPress install on new hosting). The backup carries every change in [`CHANGELOG.md`](CHANGELOG.md): the child theme, the **Emerson Chapel** feature plugin (`wp-content/plugins/emerson-chapel/`), the mail-catcher mu-plugin, and all the database edits. Nothing has to be re-entered by hand. After restore, confirm **Plugins → Emerson Chapel** is active.
 
 Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 

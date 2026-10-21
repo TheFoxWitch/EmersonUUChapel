@@ -10,19 +10,19 @@
 declare( strict_types=1 );
 
 function emerson_site_icon_png_path(): string {
-	return get_stylesheet_directory() . '/assets/images/emerson-site-icon.png';
+	return emerson_chapel_path( 'assets/images/emerson-site-icon.png' );
 }
 
 function emerson_favicon_ico_path(): string {
-	return get_stylesheet_directory() . '/assets/images/favicon.ico';
+	return emerson_chapel_path( 'assets/images/favicon.ico' );
 }
 
 function emerson_favicon_32_path(): string {
-	return get_stylesheet_directory() . '/assets/images/emerson-favicon-32.png';
+	return emerson_chapel_path( 'assets/images/emerson-favicon-32.png' );
 }
 
 function emerson_apple_touch_path(): string {
-	return get_stylesheet_directory() . '/assets/images/apple-touch-icon.png';
+	return emerson_chapel_path( 'assets/images/apple-touch-icon.png' );
 }
 
 function emerson_favicon_version(): string {
@@ -37,8 +37,8 @@ function emerson_root_icon_map(): array {
 	$ico = emerson_favicon_ico_path();
 	$png = emerson_apple_touch_path();
 
-	$mask = get_stylesheet_directory() . '/assets/images/safari-pinned-tab.svg';
-	$svg  = get_stylesheet_directory() . '/assets/images/favicon.svg';
+	$mask = emerson_chapel_path( 'assets/images/safari-pinned-tab.svg' );
+	$svg  = emerson_chapel_path( 'assets/images/favicon.svg' );
 
 	return array(
 		'/favicon.ico'                      => array( 'path' => $ico, 'type' => 'image/x-icon' ),
@@ -134,10 +134,10 @@ add_filter(
 	static function ( $url, $size ) {
 		$ver = emerson_favicon_version();
 		if ( (int) $size <= 32 && is_readable( emerson_favicon_32_path() ) ) {
-			return add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-favicon-32.png' ) );
+			return add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-favicon-32.png' ) );
 		}
 		if ( is_readable( emerson_site_icon_png_path() ) ) {
-			return add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-site-icon.png' ) );
+			return add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-site-icon.png' ) );
 		}
 		return $url;
 	},
@@ -152,9 +152,9 @@ function emerson_site_icon_head_links(): void {
 	$ver   = emerson_favicon_version();
 	$ico   = add_query_arg( 'v', $ver, home_url( '/favicon.ico' ) );
 	$svg   = add_query_arg( 'v', $ver, home_url( '/favicon.svg' ) );
-	$png16 = add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-favicon-16.png' ) );
-	$png32 = add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-favicon-32.png' ) );
-	$png512 = add_query_arg( 'v', $ver, get_theme_file_uri( 'assets/images/emerson-site-icon.png' ) );
+	$png16 = add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-favicon-16.png' ) );
+	$png32 = add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-favicon-32.png' ) );
+	$png512 = add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-site-icon.png' ) );
 	$touch = add_query_arg( 'v', $ver, home_url( '/apple-touch-icon.png' ) );
 	$mask  = add_query_arg( 'v', $ver, home_url( '/safari-pinned-tab.svg' ) );
 

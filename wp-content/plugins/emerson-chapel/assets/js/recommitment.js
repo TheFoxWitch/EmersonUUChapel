@@ -539,6 +539,13 @@
 		bindIframeDialog(dialog, '[data-emerson-recommit]');
 	}
 	bindIframeDialog(document.getElementById('emerson-pledge'), '[data-emerson-pledge]');
+	document.querySelectorAll('dialog.emerson-modal[data-emerson-modal-id]').forEach(function (modalDialog) {
+		var modalId = modalDialog.getAttribute('data-emerson-modal-id');
+		if (!modalId) {
+			return;
+		}
+		bindIframeDialog(modalDialog, '[data-emerson-modal="' + modalId + '"]');
+	});
 	window.addEventListener('resize', function () {
 		fitSurveyForm(document.getElementById('emerson-recommit'));
 	});

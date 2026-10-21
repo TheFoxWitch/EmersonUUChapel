@@ -343,7 +343,7 @@ function emerson_schedule_detail_html( array $row, string $class = 'emerson-ca-s
 add_action(
 	'wp_enqueue_scripts',
 	static function (): void {
-		if ( ! wp_script_is( 'emerson-uuchapel-custom', 'enqueued' ) ) {
+		if ( ! wp_script_is( 'emerson-chapel', 'enqueued' ) ) {
 			return;
 		}
 		$data    = emerson_schedule_sheet_data();
@@ -377,7 +377,7 @@ add_action(
 			$sundays[ $ymd ] = $public;
 		}
 		wp_localize_script(
-			'emerson-uuchapel-custom',
+			'emerson-chapel',
 			'emersonScheduleSheet',
 			array(
 				'themes'        => $data['themes'],

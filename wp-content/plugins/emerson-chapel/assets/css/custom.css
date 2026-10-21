@@ -2523,6 +2523,21 @@ blockquote {
 }
 /** End Sunday Morning Schedule sheet **/
 
+/* Custom Modals shortcode buttons share the pledge / survey button look */
+.emerson-modal-button .wp-block-button__link,
+button.wp-block-button__link[data-emerson-modal] {
+	cursor: pointer;
+}
+.emerson-modal .emerson-modal__heading {
+	margin: 0 1rem 0.75rem;
+	font-size: 1.25rem;
+}
+.emerson-modal .emerson-modal__form {
+	padding: 0 1rem 1rem;
+	overflow: auto;
+	max-height: min(70vh, 36rem);
+}
+
 .emerson-foil-layer {
 	display: none;
 	position: fixed;
@@ -2530,7 +2545,7 @@ blockquote {
 	z-index: 0;
 	overflow: hidden;
 	pointer-events: none;
-	background: #f4f7f1;
+	background: var(--emerson-foil-layer-color, #f4f7f1);
 	contain: paint;
 	transform: translateZ(0);
 }
@@ -2546,29 +2561,27 @@ html.emerson-foil .wp-site-blocks {
 html.emerson-foil .wp-site-blocks {
 	position: relative;
 	z-index: 1;
-	text-shadow: 0 0 0.28em #fff, 0 0 0.28em #fff, 0 0 0.12em #fff;
+	text-shadow: var(--emerson-foil-glow, 0 0 0.28em #fff, 0 0 0.28em #fff, 0 0 0.12em #fff);
 }
-html.emerson-foil .wp-site-blocks :is(button, .wp-element-button, input, select, textarea, .wp-block-button__link, .wp-block-cover, .wp-block-columns, .emerson-welcome__rainbow) {
-	text-shadow: none;
-}
+/* Skip list is filled from Page background → Motion and elements */
 .emerson-foil__sheet {
 	position: relative;
 	width: max-content;
 	line-height: 1;
 }
 html.emerson-foil-ready .emerson-foil__sheet {
-	animation: emerson-foil-drift 36s linear infinite alternate;
+	animation: var(--emerson-foil-drift-animation, emerson-foil-drift 36s linear infinite alternate);
 }
 .emerson-foil__canvas {
 	display: block;
-	opacity: 0.25;
+	opacity: var(--emerson-foil-canvas-opacity, 0.25);
 }
 .emerson-foil__shine {
 	position: absolute;
 	left: 0;
 	top: 0;
 	overflow: hidden;
-	opacity: 0.25;
+	opacity: var(--emerson-foil-shine-opacity, 0.25);
 	pointer-events: none;
 }
 .emerson-foil__shine span {
@@ -2586,7 +2599,7 @@ html.emerson-foil-ready .emerson-foil__sheet {
 	);
 }
 html.emerson-foil-ready .emerson-foil__shine span {
-	animation: emerson-foil-pan 3.2s linear infinite;
+	animation: var(--emerson-foil-shine-animation, emerson-foil-pan 3.2s linear infinite);
 }
 @keyframes emerson-foil-pan {
 	from { transform: translate3d(-120%, 0, 0); }

@@ -330,7 +330,7 @@ add_action(
 		$problems = emerson_nl_newcomer_form_problems();
 		if ( $problems ) {
 			printf(
-				'<div class="notice notice-warning"><p><strong>Newsletter sign-up from the Newcomer form is not working:</strong> %s. Answering "Yes" will not send the confirmation email until this is fixed (see <code>inc/newsletter.php</code> in the emerson-uuchapel theme).</p></div>',
+				'<div class="notice notice-warning"><p><strong>Newsletter sign-up from the Newcomer form is not working:</strong> %s. Answering "Yes" will not send the confirmation email until this is fixed (see <code>inc/newsletter.php</code> in the Emerson Chapel plugin).</p></div>',
 				esc_html( implode( '; ', $problems ) )
 			);
 		}

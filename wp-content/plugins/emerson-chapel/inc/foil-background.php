@@ -1,0 +1,513 @@
+<?php
+/**
+ * Optional foil background: the chapel symbols, with a moving shine.
+ *
+ * A rainbow button in the corner turns it on. The choice stays in this browser.
+ * Symbols and motion settings are edited under Page background in the dashboard.
+ */
+
+declare( strict_types=1 );
+
+const EMERSON_FOIL_SYMBOLS_OPTION = 'emerson_foil_symbols';
+const EMERSON_FOIL_STYLE_OPTION   = 'emerson_foil_style';
+
+/**
+ * Symbols shipped with the plugin. Used until someone saves a list in the dashboard.
+ *
+ * @return list<string>
+ */
+function emerson_foil_default_symbols(): array {
+	return array(
+		'🏳️‍🌈',
+		'🍽️',
+		'🙏',
+		'🫶',
+		'🦋',
+		'☯️',
+		'☸️',
+		'🕊️',
+		'☮️',
+		'🐛',
+		'🪔',
+		'🕉️',
+		'✊',
+		'💗',
+		'♻️',
+		'🏳️‍⚧️',
+	);
+}
+
+/**
+ * Motion and element defaults for the foil background.
+ *
+ * @return array{
+ *   drift_seconds:float,
+ *   shine_seconds:float,
+ *   canvas_opacity:float,
+ *   shine_opacity:float,
+ *   drift_on:bool,
+ *   shine_on:bool,
+ *   glow_on:bool,
+ *   layer_color:string,
+ *   toggle_emoji:string,
+ *   glow_exclude:list<string>
+ * }
+ */
+function emerson_foil_style_defaults(): array {
+	return array(
+		'drift_seconds'  => 36.0,
+		'shine_seconds'  => 3.2,
+		'canvas_opacity' => 0.25,
+		'shine_opacity'  => 0.25,
+		'drift_on'       => true,
+		'shine_on'       => true,
+		'glow_on'        => true,
+		'layer_color'    => '#f4f7f1',
+		'toggle_emoji'   => '🌈',
+		'glow_exclude'   => array(
+			'button',
+			'.wp-element-button',
+			'input',
+			'select',
+			'textarea',
+			'.wp-block-button__link',
+			'.wp-block-cover',
+			'.wp-block-columns',
+			'.emerson-welcome__rainbow',
+		),
+	);
+}
+
+/**
+ * One stored symbol, trimmed. Empty strings are dropped by the caller.
+ */
+function emerson_foil_clean_symbol( string $symbol ): string {
+	$symbol = trim( wp_strip_all_tags( $symbol ) );
+	if ( $symbol === '' ) {
+		return '';
+	}
+	if ( function_exists( 'mb_substr' ) && mb_strlen( $symbol ) > 16 ) {
+		$symbol = mb_substr( $symbol, 0, 16 );
+	}
+	return $symbol;
+}
+
+/**
+ * Keep only plain CSS selectors (tags, classes, ids, simple combinators).
+ */
+function emerson_foil_clean_selector( string $selector ): string {
+	$selector = trim( wp_strip_all_tags( $selector ) );
+	if ( $selector === '' ) {
+		return '';
+	}
+	if ( ! preg_match( '/^[a-zA-Z0-9_\-.#:>+~\s\[\]="\',|*]+$/', $selector ) ) {
+		return '';
+	}
+	if ( preg_match( '/[{}<>]|url\s*\(|expression\s*\(/i', $selector ) ) {
+		return '';
+	}
+	if ( function_exists( 'mb_substr' ) && mb_strlen( $selector ) > 80 ) {
+		$selector = mb_substr( $selector, 0, 80 );
+	}
+	return $selector;
+}
+
+/**
+ * @param mixed $value
+ */
+function emerson_foil_clamp_float( $value, float $min, float $max, float $fallback ): float {
+	if ( ! is_numeric( $value ) ) {
+		return $fallback;
+	}
+	$number = (float) $value;
+	if ( $number < $min ) {
+		return $min;
+	}
+	if ( $number > $max ) {
+		return $max;
+	}
+	return $number;
+}
+
+/**
+ * The symbols painted on the optional page background.
+ *
+ * @return list<string>
+ */
+function emerson_foil_symbols(): array {
+	$stored = get_option( EMERSON_FOIL_SYMBOLS_OPTION, null );
+	if ( ! is_array( $stored ) ) {
+		return emerson_foil_default_symbols();
+	}
+	$clean = array();
+	foreach ( $stored as $symbol ) {
+		if ( ! is_string( $symbol ) ) {
+			continue;
+		}
+		$symbol = emerson_foil_clean_symbol( $symbol );
+		if ( $symbol === '' ) {
+			continue;
+		}
+		$clean[] = $symbol;
+		if ( count( $clean ) >= 32 ) {
+			break;
+		}
+	}
+	return $clean !== array() ? $clean : emerson_foil_default_symbols();
+}
+
+/**
+ * Saved motion and element settings, merged with defaults.
+ *
+ * @return array{
+ *   drift_seconds:float,
+ *   shine_seconds:float,
+ *   canvas_opacity:float,
+ *   shine_opacity:float,
+ *   drift_on:bool,
+ *   shine_on:bool,
+ *   glow_on:bool,
+ *   layer_color:string,
+ *   toggle_emoji:string,
+ *   glow_exclude:list<string>
+ * }
+ */
+function emerson_foil_style(): array {
+	$defaults = emerson_foil_style_defaults();
+	$stored   = get_option( EMERSON_FOIL_STYLE_OPTION, null );
+	if ( ! is_array( $stored ) ) {
+		return $defaults;
+	}
+
+	$color = sanitize_hex_color( (string) ( $stored['layer_color'] ?? '' ) );
+	if ( ! is_string( $color ) || $color === '' ) {
+		$color = $defaults['layer_color'];
+	}
+
+	$emoji = emerson_foil_clean_symbol( (string) ( $stored['toggle_emoji'] ?? '' ) );
+	if ( $emoji === '' ) {
+		$emoji = $defaults['toggle_emoji'];
+	}
+
+	$exclude = array();
+	$raw_exclude = $stored['glow_exclude'] ?? $defaults['glow_exclude'];
+	if ( is_string( $raw_exclude ) ) {
+		$raw_exclude = preg_split( '/[\r\n,]+/', $raw_exclude ) ?: array();
+	}
+	if ( is_array( $raw_exclude ) ) {
+		foreach ( $raw_exclude as $selector ) {
+			if ( ! is_string( $selector ) ) {
+				continue;
+			}
+			$selector = emerson_foil_clean_selector( $selector );
+			if ( $selector === '' ) {
+				continue;
+			}
+			$exclude[] = $selector;
+			if ( count( $exclude ) >= 40 ) {
+				break;
+			}
+		}
+	}
+	if ( $exclude === array() ) {
+		$exclude = $defaults['glow_exclude'];
+	}
+
+	return array(
+		'drift_seconds'  => emerson_foil_clamp_float( $stored['drift_seconds'] ?? null, 1.0, 120.0, $defaults['drift_seconds'] ),
+		'shine_seconds'  => emerson_foil_clamp_float( $stored['shine_seconds'] ?? null, 0.5, 30.0, $defaults['shine_seconds'] ),
+		'canvas_opacity' => emerson_foil_clamp_float( $stored['canvas_opacity'] ?? null, 0.05, 1.0, $defaults['canvas_opacity'] ),
+		'shine_opacity'  => emerson_foil_clamp_float( $stored['shine_opacity'] ?? null, 0.05, 1.0, $defaults['shine_opacity'] ),
+		'drift_on'       => array_key_exists( 'drift_on', $stored ) ? ! empty( $stored['drift_on'] ) : $defaults['drift_on'],
+		'shine_on'       => array_key_exists( 'shine_on', $stored ) ? ! empty( $stored['shine_on'] ) : $defaults['shine_on'],
+		'glow_on'        => array_key_exists( 'glow_on', $stored ) ? ! empty( $stored['glow_on'] ) : $defaults['glow_on'],
+		'layer_color'    => $color,
+		'toggle_emoji'   => $emoji,
+		'glow_exclude'   => $exclude,
+	);
+}
+
+add_action(
+	'wp_head',
+	static function (): void {
+		if ( is_admin() ) {
+			return;
+		}
+		echo "<script>try{if(localStorage.getItem('emerson-foil')==='1')document.documentElement.classList.add('emerson-foil');}catch(e){}</script>\n";
+	},
+	0
+);
+
+add_action(
+	'wp_enqueue_scripts',
+	static function (): void {
+		if ( is_admin() ) {
+			return;
+		}
+		$style       = emerson_foil_style();
+		$exclude_css = $style['glow_exclude'] !== array() ? implode( ', ', $style['glow_exclude'] ) : 'button';
+		$glow_shadow = $style['glow_on']
+			? '0 0 0.28em #fff, 0 0 0.28em #fff, 0 0 0.12em #fff'
+			: 'none';
+		$drift_anim  = $style['drift_on']
+			? 'emerson-foil-drift ' . $style['drift_seconds'] . 's linear infinite alternate'
+			: 'none';
+		$shine_anim  = $style['shine_on']
+			? 'emerson-foil-pan ' . $style['shine_seconds'] . 's linear infinite'
+			: 'none';
+
+		$css = ':root{'
+			. '--emerson-foil-layer-color:' . $style['layer_color'] . ';'
+			. '--emerson-foil-canvas-opacity:' . $style['canvas_opacity'] . ';'
+			. '--emerson-foil-shine-opacity:' . $style['shine_opacity'] . ';'
+			. '--emerson-foil-drift-animation:' . $drift_anim . ';'
+			. '--emerson-foil-shine-animation:' . $shine_anim . ';'
+			. '--emerson-foil-glow:' . $glow_shadow . ';'
+			. '}'
+			. 'html.emerson-foil .wp-site-blocks :is(' . $exclude_css . '){text-shadow:none;}';
+
+		wp_add_inline_style( 'emerson-chapel', $css );
+	},
+	20
+);
+
+add_action(
+	'wp_body_open',
+	static function (): void {
+		if ( is_admin() ) {
+			return;
+		}
+		$symbols = emerson_foil_symbols();
+		$style   = emerson_foil_style();
+		echo '<div class="emerson-foil-layer" aria-hidden="true">';
+		echo '<div class="emerson-foil__sheet">';
+		echo '<canvas class="emerson-foil__canvas" data-symbols="' . esc_attr( wp_json_encode( $symbols ) ) . '"></canvas>';
+		echo '<div class="emerson-foil__shine"><span></span></div>';
+		echo '</div></div>';
+		echo '<button type="button" class="emerson-foil-toggle wp-exclude-emoji" aria-pressed="false" aria-label="Switch the page background">'
+			. esc_html( $style['toggle_emoji'] )
+			. '</button>';
+	}
+);
+
+add_action(
+	'admin_menu',
+	static function (): void {
+		add_menu_page(
+			'Page background',
+			'Page background',
+			'edit_pages',
+			'emerson-foil',
+			'emerson_foil_admin_page',
+			'dashicons-art',
+			64
+		);
+	}
+);
+
+/**
+ * @return string|null Null when this request is not a save.
+ */
+function emerson_foil_admin_save(): ?string {
+	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_foil_save'] ) ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_foil_save' );
+	$posted = isset( $_POST['foil_symbols'] ) ? wp_unslash( $_POST['foil_symbols'] ) : array();
+	if ( ! is_array( $posted ) ) {
+		$posted = array();
+	}
+	$clean = array();
+	foreach ( $posted as $symbol ) {
+		if ( ! is_string( $symbol ) ) {
+			continue;
+		}
+		$symbol = emerson_foil_clean_symbol( $symbol );
+		if ( $symbol === '' ) {
+			continue;
+		}
+		$clean[] = $symbol;
+		if ( count( $clean ) >= 32 ) {
+			break;
+		}
+	}
+	if ( $clean === array() ) {
+		return 'Keep at least one symbol. Nothing was changed.';
+	}
+	update_option( EMERSON_FOIL_SYMBOLS_OPTION, $clean, false );
+	return 'Saved. The background repeats ' . ( count( $clean ) === 1 ? 'this symbol.' : 'these ' . count( $clean ) . ' symbols.' );
+}
+
+/**
+ * @return string|null Null when this request is not a save.
+ */
+function emerson_foil_style_save(): ?string {
+	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_foil_style_save'] ) ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_foil_style_save' );
+
+	$defaults = emerson_foil_style_defaults();
+	$color    = sanitize_hex_color( (string) ( wp_unslash( $_POST['foil_layer_color'] ?? '' ) ) );
+	if ( ! is_string( $color ) || $color === '' ) {
+		$color = $defaults['layer_color'];
+	}
+
+	$emoji = emerson_foil_clean_symbol( (string) ( wp_unslash( $_POST['foil_toggle_emoji'] ?? '' ) ) );
+	if ( $emoji === '' ) {
+		$emoji = $defaults['toggle_emoji'];
+	}
+
+	$exclude = array();
+	$raw     = (string) ( wp_unslash( $_POST['foil_glow_exclude'] ?? '' ) );
+	foreach ( preg_split( '/[\r\n,]+/', $raw ) ?: array() as $selector ) {
+		$selector = emerson_foil_clean_selector( $selector );
+		if ( $selector === '' ) {
+			continue;
+		}
+		$exclude[] = $selector;
+		if ( count( $exclude ) >= 40 ) {
+			break;
+		}
+	}
+	if ( $exclude === array() ) {
+		$exclude = $defaults['glow_exclude'];
+	}
+
+	$saved = array(
+		'drift_seconds'  => emerson_foil_clamp_float( wp_unslash( $_POST['foil_drift_seconds'] ?? null ), 1.0, 120.0, $defaults['drift_seconds'] ),
+		'shine_seconds'  => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_seconds'] ?? null ), 0.5, 30.0, $defaults['shine_seconds'] ),
+		'canvas_opacity' => emerson_foil_clamp_float( wp_unslash( $_POST['foil_canvas_opacity'] ?? null ), 5.0, 100.0, $defaults['canvas_opacity'] * 100 ) / 100,
+		'shine_opacity'  => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_opacity'] ?? null ), 5.0, 100.0, $defaults['shine_opacity'] * 100 ) / 100,
+		'drift_on'       => ! empty( $_POST['foil_drift_on'] ),
+		'shine_on'       => ! empty( $_POST['foil_shine_on'] ),
+		'glow_on'        => ! empty( $_POST['foil_glow_on'] ),
+		'layer_color'    => $color,
+		'toggle_emoji'   => $emoji,
+		'glow_exclude'   => $exclude,
+	);
+	update_option( EMERSON_FOIL_STYLE_OPTION, $saved, false );
+	return 'Saved motion and elements for the page background.';
+}
+
+function emerson_foil_admin_page(): void {
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		wp_die( esc_html__( 'You do not have permission to edit the page background.' ) );
+	}
+	$symbols_notice = emerson_foil_admin_save();
+	$style_notice   = emerson_foil_style_save();
+	$symbols        = emerson_foil_symbols();
+	$style          = emerson_foil_style();
+
+	echo '<div class="wrap">';
+	echo '<h1>Page background</h1>';
+	echo '<p>Visitors turn the optional background on with the corner button. Symbols fill the field. Motion and which elements keep a reading glow are set below.</p>';
+
+	foreach ( array( $symbols_notice, $style_notice ) as $notice ) {
+		if ( ! is_string( $notice ) ) {
+			continue;
+		}
+		$is_error = str_starts_with( $notice, 'Keep at least' );
+		echo '<div class="notice notice-' . ( $is_error ? 'error' : 'success' ) . '"><p>' . esc_html( $notice ) . '</p></div>';
+	}
+
+	echo '<style>
+		.emerson-foil-symbol{display:flex;align-items:center;gap:0.5rem;margin:0 0 0.5rem;}
+		.emerson-foil-symbol input{font-size:1.4rem;width:8rem;}
+		.emerson-foil-panel{margin:1.5rem 0;padding:1rem 1rem 0;background:#fff;border:1px solid #c3c4c7;max-width:46rem;}
+		.emerson-foil-panel textarea{width:100%;min-height:7rem;font-family:Menlo,Consolas,monospace;}
+		.emerson-foil-panel .form-table th{width:12rem;}
+	</style>';
+
+	echo '<form method="post" class="emerson-foil-panel">';
+	wp_nonce_field( 'emerson_foil_save' );
+	echo '<h2>Symbols</h2>';
+	echo '<p>These symbols repeat across the background. One symbol fills the field. Three symbols repeat those three. WordPress will not rewrite the toggle button emoji.</p>';
+	echo '<div class="emerson-foil-symbols">';
+	foreach ( $symbols as $symbol ) {
+		echo '<div class="emerson-foil-symbol">';
+		echo '<input type="text" name="foil_symbols[]" maxlength="16" value="' . esc_attr( $symbol ) . '" aria-label="Background symbol">';
+		echo '<button type="button" class="button emerson-foil-remove">Remove</button>';
+		echo '</div>';
+	}
+	echo '</div>';
+	echo '<p><button type="button" class="button emerson-foil-add">Add a symbol</button></p>';
+	echo '<p class="submit"><button type="submit" name="emerson_foil_save" value="1" class="button button-primary">Save symbols</button></p>';
+	echo '</form>';
+
+	echo '<form method="post" class="emerson-foil-panel">';
+	wp_nonce_field( 'emerson_foil_style_save' );
+	echo '<h2>Motion and elements</h2>';
+	echo '<p>Drift moves the whole field. Shine is the light band across the symbols. Prefer reduced motion still turns both animations off in that browser.</p>';
+	echo '<table class="form-table" role="presentation"><tbody>';
+
+	echo '<tr><th scope="row">Drift</th><td>';
+	echo '<label><input type="checkbox" name="foil_drift_on" value="1"' . checked( $style['drift_on'], true, false ) . '> Move the symbol field</label>';
+	echo '<p><label for="emerson-foil-drift-seconds">Seconds for one drift pass </label>';
+	echo '<input type="number" id="emerson-foil-drift-seconds" name="foil_drift_seconds" min="1" max="120" step="0.5" value="' . esc_attr( (string) $style['drift_seconds'] ) . '"></p>';
+	echo '</td></tr>';
+
+	echo '<tr><th scope="row">Shine</th><td>';
+	echo '<label><input type="checkbox" name="foil_shine_on" value="1"' . checked( $style['shine_on'], true, false ) . '> Show the moving shine</label>';
+	echo '<p><label for="emerson-foil-shine-seconds">Seconds for one shine pass </label>';
+	echo '<input type="number" id="emerson-foil-shine-seconds" name="foil_shine_seconds" min="0.5" max="30" step="0.1" value="' . esc_attr( (string) $style['shine_seconds'] ) . '"></p>';
+	echo '</td></tr>';
+
+	echo '<tr><th scope="row"><label for="emerson-foil-canvas-opacity">Symbol opacity</label></th><td>';
+	echo '<input type="number" id="emerson-foil-canvas-opacity" name="foil_canvas_opacity" min="5" max="100" step="1" value="' . esc_attr( (string) round( $style['canvas_opacity'] * 100 ) ) . '"> %';
+	echo '</td></tr>';
+
+	echo '<tr><th scope="row"><label for="emerson-foil-shine-opacity">Shine opacity</label></th><td>';
+	echo '<input type="number" id="emerson-foil-shine-opacity" name="foil_shine_opacity" min="5" max="100" step="1" value="' . esc_attr( (string) round( $style['shine_opacity'] * 100 ) ) . '"> %';
+	echo '</td></tr>';
+
+	echo '<tr><th scope="row"><label for="emerson-foil-layer-color">Background colour</label></th><td>';
+	echo '<input type="color" id="emerson-foil-layer-color" name="foil_layer_color" value="' . esc_attr( $style['layer_color'] ) . '">';
+	echo '</td></tr>';
+
+	echo '<tr><th scope="row"><label for="emerson-foil-toggle-emoji">Corner button</label></th><td>';
+	echo '<input type="text" class="emerson-foil-toggle-emoji" id="emerson-foil-toggle-emoji" name="foil_toggle_emoji" maxlength="16" value="' . esc_attr( $style['toggle_emoji'] ) . '">';
+	echo '<p class="description">Kept as a real emoji (<code>wp-exclude-emoji</code>), so WordPress does not replace it with an image.</p>';
+	echo '</td></tr>';
+
+	echo '<tr><th scope="row">Reading glow</th><td>';
+	echo '<label><input type="checkbox" name="foil_glow_on" value="1"' . checked( $style['glow_on'], true, false ) . '> Soft white glow on page text</label>';
+	echo '<p><label for="emerson-foil-glow-exclude">Skip glow on these elements (one CSS selector per line)</label></p>';
+	echo '<textarea id="emerson-foil-glow-exclude" name="foil_glow_exclude" rows="8">' . esc_textarea( implode( "\n", $style['glow_exclude'] ) ) . '</textarea>';
+	echo '<p class="description">Use this for banners, buttons, rainbow headings, or anything the emoji script wraps. Example: <code>.emerson-welcome__rainbow</code></p>';
+	echo '</td></tr>';
+
+	echo '</tbody></table>';
+	echo '<p class="submit"><button type="submit" name="emerson_foil_style_save" value="1" class="button button-primary">Save motion and elements</button></p>';
+	echo '</form></div>';
+
+	echo '<script>
+		(function () {
+			var list = document.querySelector(".emerson-foil-symbols");
+			var add = document.querySelector(".emerson-foil-add");
+			if (!list || !add) return;
+			function row(value) {
+				var line = document.createElement("div");
+				line.className = "emerson-foil-symbol";
+				line.innerHTML = "<input type=\\"text\\" name=\\"foil_symbols[]\\" maxlength=\\"16\\" aria-label=\\"Background symbol\\"> <button type=\\"button\\" class=\\"button emerson-foil-remove\\">Remove</button>";
+				line.querySelector("input").value = value;
+				return line;
+			}
+			add.addEventListener("click", function () {
+				list.appendChild(row(""));
+				list.lastElementChild.querySelector("input").focus();
+			});
+			list.addEventListener("click", function (event) {
+				var button = event.target.closest(".emerson-foil-remove");
+				if (!button) return;
+				var lines = list.querySelectorAll(".emerson-foil-symbol");
+				if (lines.length === 1) {
+					lines[0].querySelector("input").value = "";
+					lines[0].querySelector("input").focus();
+					return;
+				}
+				button.closest(".emerson-foil-symbol").remove();
+			});
+		})();
+	</script>';
+}

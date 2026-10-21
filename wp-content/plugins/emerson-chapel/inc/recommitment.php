@@ -98,10 +98,10 @@ function emerson_recommit_enqueue(): void {
 	if ( ! is_front_page() ) {
 		return;
 	}
-	$path = get_stylesheet_directory() . '/assets/js/recommitment.js';
+	$path = emerson_chapel_path( 'assets/js/recommitment.js' );
 	wp_enqueue_script(
 		'emerson-recommit',
-		get_stylesheet_directory_uri() . '/assets/js/recommitment.js',
+		emerson_chapel_url( 'assets/js/recommitment.js' ),
 		array(),
 		(string) filemtime( $path ),
 		true

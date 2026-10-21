@@ -527,7 +527,7 @@ function emerson_private_render_sheets( string $name, array $sheets, int $curren
 	echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">';
 	echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
 	echo '<title>' . esc_html( $label !== '' ? $label : $name ) . '</title>';
-	echo '<link rel="stylesheet" href="' . esc_url( get_stylesheet_directory_uri() . '/assets/css/custom.css' ) . '?v=' . (string) filemtime( get_stylesheet_directory() . '/assets/css/custom.css' ) . '">';
+	echo '<link rel="stylesheet" href="' . esc_url( emerson_chapel_url( 'assets/css/custom.css' ) ) . '?v=' . (string) filemtime( emerson_chapel_path( 'assets/css/custom.css' ) ) . '">';
 	echo '<style>html,body{background:#fff;color:#1e1e1e;}</style>';
 	echo '</head><body class="emerson-private-sheet-page">';
 	echo '<p class="emerson-private-sheet-nav"><a href="' . esc_url( $back ) . '">Back to Members</a>';

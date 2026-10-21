@@ -12,16 +12,20 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-20
 
+### Homepage Join on Zoom under the Sunday location
+- Under the rotating Sunday location line on the home page, a centred **Join on Zoom** button uses the same Zoom join link as Worship and the footer, so it opens the Zoom app the same way. The button is the purple from the faith symbols above it (`#9266CC`).
+- **File:** `inc/sunday-location.php`, `assets/css/custom.css`.
+
 ### Unsent mail must be cleared before launch
 - Mail caught or redirected locally may still be queued in WordPress. That queue has to be deleted before the redirect is turned off or this database is restored live, or the original recipients get a flood. `wp-content/local-mail/` is a record only and must not be resent.
 - **File:** `TEST-AND-LAUNCH-CHECKLIST.md`, `TROUBLESHOOTING.md`.
 
 ### Documents in three columns
-- The public Documents page shows Board, Congregational, and Other side by side. On a desktop the row is as wide as the calendar, 75% of the window, so the headings are not squeezed. A tablet shows two columns and a phone shows one. Each list keeps ten files in view, and the rest of that list scrolls on its own. A down chevron shows when more files are below, and an up chevron fades in once you have scrolled. Clicking one jumps to the bottom or the top of that list.
+- The public Documents page shows every category side by side, including ones added from the dashboard. On a desktop the row is as wide as the calendar, 75% of the window, so the headings are not squeezed. A tablet shows two columns and a phone shows one. Each list keeps ten files in view, and the rest of that list scrolls on its own. A down chevron and an up chevron sit together above a long list. At the top only the down chevron shows, so you can jump straight to the bottom. At the bottom only the up chevron shows. The dashboard Documents screen uses the same columns, ten-file window, and chevrons. A new category is added from the top of that screen, then files are uploaded into it. An empty category can be removed. A category that still has files cannot.
 - **File:** `inc/documents.php`, `assets/css/custom.css`, `assets/js/custom.js`.
 
 ### Optional foil background
-- A rainbow button in the bottom-right corner switches the white page background to a drifting field of the chapel symbols. The symbols keep their own colors, drawn at 25% opacity so they stay in the background. The symbols are painted once, at 25% opacity. The drift and the shine start after that picture is ready, including on a reload. The money bag in that set is the heart-hands symbol. The choice stays in that browser. Photos and colored sections stay as they are. The reading glow stays off section banners, column blocks, and the rainbow “You Are Welcome” heading.
+- A rainbow emoji in the bottom-right corner switches the white page background to a drifting field of the chapel symbols. The symbols keep their own colors, drawn at 25% opacity so they stay in the background. The symbols are painted once, at 25% opacity. The drift and the shine start after that picture is ready, including on a reload. The money bag in that set is the heart-hands symbol. The choice stays in that browser. Photos and colored sections stay as they are. The reading glow stays off section banners, column blocks, and the rainbow “You Are Welcome” heading.
 - **File:** `inc/foil-background.php`, `assets/css/custom.css`, `assets/js/custom.js`. The symbol list is edited under **Page background** in the dashboard. Until that list is saved, the theme’s built-in symbols are used.
 
 ### Survey dialog fits a phone and a tablet

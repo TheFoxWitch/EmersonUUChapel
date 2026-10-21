@@ -1,24 +1,72 @@
 <?php
 /**
- * Documents page: three lists of files from the Media Library.
+ * Documents page: file lists from the Media Library.
  *
- * Board minutes, congregational meetings, and other documents. The dashboard
- * screen uploads a file and puts it on a list. The page shortcodes draw the lists.
+ * The dashboard screen can add a category, then upload files onto it.
+ * The public page draws every category. A list longer than ten files scrolls
+ * inside its column.
  */
 
 declare( strict_types=1 );
 
 const EMERSON_DOCUMENTS_OPTION = 'emerson_documents';
+const EMERSON_DOCUMENT_LISTS_OPTION = 'emerson_document_lists';
 
 /**
+ * The three lists the site started with.
+ *
+ * @return array<string,string>
+ */
+function emerson_documents_default_lists(): array {
+	return array(
+		'board'          => 'Board of Trustees meetings',
+		'congregational' => 'Congregational Meetings',
+		'other'          => 'Other Documents',
+	);
+}
+
+/**
+ * Category id => heading, in display order.
+ *
  * @return array<string,string>
  */
 function emerson_documents_lists(): array {
-	return array(
-		'board'           => 'Board of Trustees meetings',
-		'congregational'  => 'Congregational Meetings',
-		'other'           => 'Other Documents',
-	);
+	$stored = get_option( EMERSON_DOCUMENT_LISTS_OPTION, null );
+	if ( ! is_array( $stored ) ) {
+		return emerson_documents_default_lists();
+	}
+	$out = array();
+	foreach ( $stored as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$id    = sanitize_key( (string) ( $row['id'] ?? '' ) );
+		$label = sanitize_text_field( (string) ( $row['label'] ?? '' ) );
+		if ( $id === '' || $label === '' ) {
+			continue;
+		}
+		$out[ $id ] = $label;
+	}
+	return $out !== array() ? $out : emerson_documents_default_lists();
+}
+
+/**
+ * @param array<string,string> $lists
+ */
+function emerson_documents_save_lists( array $lists ): void {
+	$rows = array();
+	foreach ( $lists as $id => $label ) {
+		$id    = sanitize_key( (string) $id );
+		$label = sanitize_text_field( (string) $label );
+		if ( $id === '' || $label === '' ) {
+			continue;
+		}
+		$rows[] = array(
+			'id'    => $id,
+			'label' => $label,
+		);
+	}
+	update_option( EMERSON_DOCUMENT_LISTS_OPTION, $rows, false );
 }
 
 /**
@@ -211,28 +259,34 @@ function emerson_documents_shortcode( $attributes = array() ): string {
 add_shortcode( 'emerson_documents', 'emerson_documents_shortcode' );
 
 /**
- * Three category columns on the public Documents page. Each list shows ten
- * files, and the rest scroll inside that column.
+ * Every category, in order. New categories added in the dashboard are included.
+ */
+function emerson_documents_public_markup(): string {
+	$html = '<div class="emerson-documents-board">';
+	foreach ( emerson_documents_lists() as $key => $title ) {
+		$html .= '<section class="emerson-documents-column">';
+		$html .= '<h2 class="wp-block-heading">' . esc_html( $title ) . '</h2>';
+		$html .= '<div class="emerson-documents-scroll">' . emerson_documents_shortcode( array( 'list' => $key ) ) . '</div>';
+		$html .= '</section>';
+	}
+	$html .= '</div>';
+	return $html;
+}
+
+/**
+ * Replace the page's original lists with every category, including ones added later.
  */
 function emerson_documents_public_layout( string $content ): string {
 	if ( is_admin() || ! is_page( 'documents' ) || str_contains( $content, 'emerson-documents-board' ) ) {
 		return $content;
 	}
-	$sections = '';
-	$rest     = preg_replace_callback(
+	$rest = preg_replace(
 		'/(<h[23]\b[^>]*>.*?<\/h[23]>\s*)(<(?:ul|p)\b[^>]*class="[^"]*emerson-documents[^"]*"[^>]*>.*?<\/(?:ul|p)>)/s',
-		static function ( array $match ) use ( &$sections ): string {
-			$sections .= '<section class="emerson-documents-column">' . $match[1]
-				. '<div class="emerson-documents-scroll">' . $match[2] . '</div></section>';
-			return '';
-		},
+		'',
 		$content
 	);
-	if ( ! is_string( $rest ) || $sections === '' ) {
-		return $content;
-	}
-	$board = '<div class="emerson-documents-board">' . $sections . '</div>';
-	if ( trim( wp_strip_all_tags( $rest ) ) === '' ) {
+	$board = emerson_documents_public_markup();
+	if ( ! is_string( $rest ) || trim( wp_strip_all_tags( $rest ) ) === '' ) {
 		return $board;
 	}
 	return $board . $rest;
@@ -266,6 +320,54 @@ function emerson_documents_take_upload( string $field ) {
 	require_once ABSPATH . 'wp-admin/includes/image.php';
 	$added = media_handle_upload( $field, 0 );
 	return is_wp_error( $added ) ? $added : (int) $added;
+}
+
+function emerson_documents_category_save(): ?string {
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		return null;
+	}
+	$adding   = ! empty( $_POST['emerson_documents_add_category'] );
+	$removing = ! empty( $_POST['emerson_documents_remove_category'] );
+	if ( ! $adding && ! $removing ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_documents_save' );
+	$lists = emerson_documents_lists();
+	if ( $removing ) {
+		$id = isset( $_POST['doc_list'] ) ? sanitize_key( wp_unslash( (string) $_POST['doc_list'] ) ) : '';
+		if ( ! isset( $lists[ $id ] ) ) {
+			return 'That category is not on the page.';
+		}
+		if ( count( $lists ) < 2 ) {
+			return 'Keep at least one category.';
+		}
+		foreach ( emerson_documents_all() as $doc ) {
+			if ( $doc['list'] === $id ) {
+				return 'Remove the files from ' . $lists[ $id ] . ' before removing the category.';
+			}
+		}
+		unset( $lists[ $id ] );
+		emerson_documents_save_lists( $lists );
+		return 'Saved. The category was removed.';
+	}
+	$name = isset( $_POST['new_category'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['new_category'] ) ) : '';
+	if ( $name === '' ) {
+		return 'Type a name for the new category.';
+	}
+	$id   = sanitize_title( $name );
+	$id   = $id !== '' ? sanitize_key( $id ) : '';
+	if ( $id === '' ) {
+		$id = 'list-' . strtolower( wp_generate_password( 6, false ) );
+	}
+	$base = $id;
+	$n    = 2;
+	while ( isset( $lists[ $id ] ) ) {
+		$id = $base . '-' . $n;
+		++$n;
+	}
+	$lists[ $id ] = $name;
+	emerson_documents_save_lists( $lists );
+	return 'Saved. ' . $name . ' is ready for files.';
 }
 
 function emerson_documents_admin_save(): ?string {
@@ -456,62 +558,88 @@ function emerson_documents_admin_page(): void {
 		wp_die( esc_html__( 'You do not have permission to edit documents.' ) );
 	}
 	$notice = emerson_documents_admin_save();
+	if ( null === $notice ) {
+		$notice = emerson_documents_category_save();
+	}
 	echo '<div class="wrap"><h1>Documents</h1>';
 	if ( $notice ) {
 		$bad = 0 !== strpos( $notice, 'Saved.' );
 		echo '<div class="notice ' . ( $bad ? 'notice-error' : 'notice-success' ) . ' is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
 	}
-	echo '<p>Files added here show on the public <a href="' . esc_url( home_url( '/documents/' ) ) . '">Documents</a> page. Upload the file, type the words for the link, and choose the list. The file is stored in the Media Library. Adding, moving, or removing stays on this list.</p>';
+	echo '<p>Files added here show on the public <a href="' . esc_url( home_url( '/documents/' ) ) . '">Documents</a> page. Add a category, then upload files into it. Each list shows ten files, and the rest scroll inside that column.</p>';
+	echo '<form method="post" class="emerson-documents-admin__new-category">';
+	wp_nonce_field( 'emerson_documents_save' );
+	echo '<label for="new-category">New category</label> ';
+	echo '<input name="new_category" id="new-category" type="text" maxlength="80" placeholder="Annual reports"> ';
+	echo '<button type="submit" name="emerson_documents_add_category" value="1" class="button">Add a category</button>';
+	echo '</form>';
 	echo '<style>
 		.emerson-doc-row{margin:0 0 1.25rem;padding-bottom:1rem;border-bottom:1px solid #dcdcde;}
-		.emerson-doc-rows.is-scroll{overflow-y:auto;padding-right:0.35rem;}
+		.emerson-doc-rows.is-scroll{overflow-x:hidden;overflow-y:auto;overflow-anchor:none;overscroll-behavior:none;padding-right:0.35rem;}
 		.emerson-documents-admin__status{min-height:1.4em;margin:0.25rem 0 1rem;}
 		.emerson-documents-admin__status.is-error{color:#b32d2e;}
 		.emerson-documents-admin__actions{display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;margin:0 0 1.5rem;}
-		.emerson-documents-admin__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem 2rem;align-items:start;}
-		.emerson-documents-admin__module--wide{grid-column:1 / -1;}
-		.emerson-documents-admin__module .form-table th{width:7rem;padding-left:0;}
-		@media (max-width:782px){.emerson-documents-admin__grid{grid-template-columns:1fr;}.emerson-documents-admin__module--wide{grid-column:auto;}}
-		.emerson-docs-top{position:fixed;z-index:100000;right:1.5rem;bottom:1.5rem;display:flex;align-items:center;justify-content:center;width:3.25rem;height:3.25rem;padding:0;border:0;border-radius:50%;cursor:pointer;background:conic-gradient(#e40303,#ff8c00,#ffed00,#008026,#24408e,#732982,#e40303);box-shadow:0 6px 18px rgba(20,24,50,.28);opacity:0;pointer-events:none;transition:opacity .25s ease;}
-		.emerson-docs-top[hidden]{display:none;}
-		.emerson-docs-top.is-visible{opacity:1;pointer-events:auto;}
-		.emerson-docs-top svg{display:block;width:1.45rem;height:1.45rem;fill:#fff;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45));}
+		.emerson-documents-admin__new-category{display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin:0 0 1.5rem;}
+		.emerson-documents-admin__new-category input{max-width:16rem;}
+		.emerson-documents-admin__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem 2rem;align-items:start;}
+		.emerson-documents-admin__module{min-width:0;}
+		.emerson-documents-admin__field{margin:0 0 0.9rem;}
+		.emerson-documents-admin__field label{display:block;font-weight:600;margin:0 0 0.25rem;}
+		.emerson-documents-admin__module input[type="text"],
+		.emerson-documents-admin__module input.regular-text,
+		.emerson-documents-admin__module input[type="file"]{display:block;width:100%;max-width:100%;box-sizing:border-box;}
+		.emerson-documents-admin__module .description{display:block;margin:0.35rem 0 0;}
+		.emerson-documents-admin__actions{flex-direction:column;align-items:stretch;}
+		.emerson-documents-admin__actions .button{width:100%;height:auto;white-space:normal;line-height:1.4;text-align:center;}
+		.emerson-documents-admin__module .emerson-doc-row__file{overflow-wrap:anywhere;}
+		.emerson-documents-chevrons{display:flex;align-items:center;justify-content:center;gap:0.75rem;width:100%;height:0;margin:0;overflow:hidden;}
+		.emerson-documents-chevrons:has(+ .emerson-doc-rows.is-scroll){height:1.65rem;}
+		.emerson-documents-chevron{display:flex;align-items:center;justify-content:center;width:1.65rem;height:1.65rem;margin:0;padding:0;border:0;background:transparent;color:#3f4fa0;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .25s ease;}
+		.emerson-documents-chevron.is-visible{opacity:1;pointer-events:auto;}
+		.emerson-documents-chevron svg{display:block;width:1.35rem;height:1.35rem;}
+		.emerson-documents-chevron--down svg{transform:rotate(180deg);}
+		@media (max-width:1000px){.emerson-documents-admin__grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+		@media (max-width:782px){.emerson-documents-admin__grid{grid-template-columns:1fr;}}
 	</style>';
 	$docs  = emerson_documents_all();
 	$lists = emerson_documents_lists();
-	$order = array( 'congregational', 'other', 'board' );
 	echo '<div class="emerson-documents-admin__grid">';
-	foreach ( $order as $key ) {
-		$title = $lists[ $key ];
-		$wide  = 'board' === $key ? ' emerson-documents-admin__module--wide' : '';
-		echo '<section class="emerson-documents-admin__module' . $wide . '">';
+	foreach ( $lists as $key => $title ) {
+		echo '<section class="emerson-documents-admin__module">';
 		echo '<h2 id="emerson-docs-' . esc_attr( $key ) . '">' . esc_html( $title ) . '</h2>';
-		echo '<form method="post" enctype="multipart/form-data" class="emerson-documents-admin__form" data-list="' . esc_attr( $key ) . '">';
-		wp_nonce_field( 'emerson_documents_save' );
-		echo '<input type="hidden" name="doc_list" value="' . esc_attr( $key ) . '">';
-		echo '<input type="hidden" name="action" value="emerson_documents_save">';
-		echo '<p class="emerson-documents-admin__status" role="status"></p>';
-		echo '<table class="form-table" role="presentation"><tr><th scope="row"><label for="new-label-' . esc_attr( $key ) . '">Link text</label></th><td>';
-		echo '<input name="new_label" id="new-label-' . esc_attr( $key ) . '" type="text" class="regular-text" maxlength="160" placeholder="March 18, 2026">';
-		echo '<p class="description">The words visitors click. For minutes, use the meeting date.</p>';
-		echo '</td></tr><tr><th scope="row"><label for="new-note-' . esc_attr( $key ) . '">Note</label></th><td>';
-		echo '<input name="new_note" id="new-note-' . esc_attr( $key ) . '" type="text" class="regular-text" maxlength="160" placeholder="Special Board Meeting">';
-		echo '<p class="description">Optional. Shown next to the link.</p>';
-		echo '</td></tr><tr><th scope="row"><label for="new-file-' . esc_attr( $key ) . '">File</label></th><td>';
-		echo '<input name="new_file" id="new-file-' . esc_attr( $key ) . '" type="file">';
-		echo '</td></tr></table>';
-		echo '<p class="emerson-documents-admin__actions">';
-		echo '<button type="submit" name="emerson_documents_save" value="add" class="button button-primary">Add to ' . esc_html( $title ) . '</button>';
-		echo '<button type="submit" name="emerson_documents_save" value="1" class="button">Save ' . esc_html( $title ) . '</button>';
-		echo '</p>';
-		echo '<h3>On this list</h3>';
-		echo '<div class="emerson-doc-rows">';
 		$mine = array();
 		foreach ( $docs as $doc ) {
 			if ( $doc['list'] === $key ) {
 				$mine[] = $doc;
 			}
 		}
+		if ( ! $mine && count( $lists ) > 1 ) {
+			echo '<form method="post" class="emerson-documents-admin__remove-category">';
+			wp_nonce_field( 'emerson_documents_save' );
+			echo '<input type="hidden" name="doc_list" value="' . esc_attr( $key ) . '">';
+			echo '<button type="submit" name="emerson_documents_remove_category" value="1" class="button-link">Remove this empty category</button>';
+			echo '</form>';
+		}
+		echo '<form method="post" enctype="multipart/form-data" class="emerson-documents-admin__form" data-list="' . esc_attr( $key ) . '">';
+		wp_nonce_field( 'emerson_documents_save' );
+		echo '<input type="hidden" name="doc_list" value="' . esc_attr( $key ) . '">';
+		echo '<input type="hidden" name="action" value="emerson_documents_save">';
+		echo '<p class="emerson-documents-admin__status" role="status"></p>';
+		echo '<p class="emerson-documents-admin__field"><label for="new-label-' . esc_attr( $key ) . '">Link text</label>';
+		echo '<input name="new_label" id="new-label-' . esc_attr( $key ) . '" type="text" maxlength="160" placeholder="March 18, 2026">';
+		echo '<span class="description">The words visitors click. For minutes, use the meeting date.</span></p>';
+		echo '<p class="emerson-documents-admin__field"><label for="new-note-' . esc_attr( $key ) . '">Note</label>';
+		echo '<input name="new_note" id="new-note-' . esc_attr( $key ) . '" type="text" maxlength="160" placeholder="Special Board Meeting">';
+		echo '<span class="description">Optional. Shown next to the link.</span></p>';
+		echo '<p class="emerson-documents-admin__field"><label for="new-file-' . esc_attr( $key ) . '">File</label>';
+		echo '<input name="new_file" id="new-file-' . esc_attr( $key ) . '" type="file">';
+		echo '</p>';
+		echo '<p class="emerson-documents-admin__actions">';
+		echo '<button type="submit" name="emerson_documents_save" value="add" class="button button-primary">Add to ' . esc_html( $title ) . '</button>';
+		echo '<button type="submit" name="emerson_documents_save" value="1" class="button">Save ' . esc_html( $title ) . '</button>';
+		echo '</p>';
+		echo '<h3>On this list</h3>';
+		echo '<div class="emerson-doc-rows">';
 		if ( ! $mine ) {
 			echo '<p class="emerson-doc-empty">Nothing is on this list yet.</p>';
 		}
@@ -523,8 +651,5 @@ function emerson_documents_admin_page(): void {
 		echo '</form></section>';
 	}
 	echo '</div>';
-	echo '<button type="button" class="emerson-docs-top" hidden aria-label="Back to top">';
-	echo '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.2 4.8 13.1a1.15 1.15 0 0 0 1.7 1.55L12 8.7l5.5 6a1.15 1.15 0 0 0 1.7-1.55L12 5.2z"/></svg>';
-	echo '</button>';
 	echo '</div>';
 }

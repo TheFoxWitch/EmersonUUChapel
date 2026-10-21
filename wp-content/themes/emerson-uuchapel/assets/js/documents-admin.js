@@ -5,39 +5,6 @@
 	'use strict';
 
 	var settings = window.emersonDocumentsAdmin || {};
-	var topButton = document.querySelector('.emerson-docs-top');
-	if (topButton) {
-		function scrollProgress() {
-			var scrolling = document.documentElement.scrollHeight - window.innerHeight;
-			return scrolling > 0 ? window.scrollY / scrolling : 0;
-		}
-		function updateTopButton() {
-			var show = scrollProgress() >= 0.25;
-			if (show) {
-				topButton.hidden = false;
-				window.requestAnimationFrame(function () {
-					topButton.classList.add('is-visible');
-				});
-				return;
-			}
-			topButton.classList.remove('is-visible');
-			window.setTimeout(function () {
-				if (!topButton.classList.contains('is-visible')) {
-					topButton.hidden = true;
-				}
-			}, 250);
-		}
-		window.addEventListener('scroll', updateTopButton, { passive: true });
-		window.addEventListener('resize', updateTopButton);
-		updateTopButton();
-		topButton.addEventListener('click', function () {
-			var behavior = reduceMotion() ? 'auto' : 'smooth';
-			window.scrollTo({ top: 0, behavior: behavior });
-		});
-	}
-	if (!settings.ajaxUrl) {
-		return;
-	}
 
 	function reduceMotion() {
 		return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -130,22 +97,50 @@
 		});
 	}
 
+	function chevron(direction) {
+		var button = document.createElement('button');
+		button.type = 'button';
+		button.className = 'emerson-documents-chevron emerson-documents-chevron--' + direction;
+		button.setAttribute('aria-label', direction === 'up' ? 'Scroll to the top of this list' : 'Scroll to the bottom of this list');
+		button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+		return button;
+	}
+
+	function updateChevrons(rows) {
+		var bar = rows.previousElementSibling;
+		if (!bar || !bar.classList.contains('emerson-documents-chevrons')) {
+			return;
+		}
+		var up = bar.querySelector('.emerson-documents-chevron--up');
+		var down = bar.querySelector('.emerson-documents-chevron--down');
+		if (!up || !down) {
+			return;
+		}
+		var overflow = rows.classList.contains('is-scroll') && rows.scrollHeight > rows.clientHeight + 2;
+		var atTop = rows.scrollTop <= 2;
+		var atBottom = rows.scrollTop + rows.clientHeight >= rows.scrollHeight - 2;
+		up.classList.toggle('is-visible', overflow && !atTop);
+		down.classList.toggle('is-visible', overflow && !atBottom);
+	}
+
 	function fitLists() {
 		document.querySelectorAll('.emerson-doc-rows').forEach(function (rows) {
 			var items = rows.querySelectorAll('.emerson-doc-row');
-			if (items.length <= 5) {
-				rows.style.maxHeight = '';
-				rows.classList.remove('is-scroll');
-				return;
+			var place = rows.scrollTop;
+			rows.style.maxHeight = '';
+			rows.classList.remove('is-scroll');
+			if (items.length > 10) {
+				rows.scrollTop = 0;
+				var height = 0;
+				for (var i = 0; i < 10; i++) {
+					var style = window.getComputedStyle(items[i]);
+					height += items[i].offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+				}
+				rows.style.maxHeight = height + 'px';
+				rows.classList.add('is-scroll');
+				rows.scrollTop = place;
 			}
-			var height = 0;
-			var count = 5;
-			for (var i = 0; i < count; i++) {
-				var style = window.getComputedStyle(items[i]);
-				height += items[i].offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-			}
-			rows.style.maxHeight = height + 'px';
-			rows.classList.add('is-scroll');
+			updateChevrons(rows);
 		});
 	}
 
@@ -260,5 +255,48 @@
 			});
 		});
 	});
+	document.querySelectorAll('.emerson-doc-rows').forEach(function (rows) {
+		var bar = document.createElement('div');
+		bar.className = 'emerson-documents-chevrons';
+		var up = chevron('up');
+		var down = chevron('down');
+		bar.appendChild(up);
+		bar.appendChild(down);
+		rows.parentElement.insertBefore(bar, rows);
+		up.addEventListener('click', function () {
+			rows.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
+		});
+		down.addEventListener('click', function () {
+			rows.scrollTo({ top: rows.scrollHeight, behavior: reduceMotion() ? 'auto' : 'smooth' });
+		});
+		rows.addEventListener('scroll', function () {
+			updateChevrons(rows);
+		});
+		rows.addEventListener('wheel', function (event) {
+			if (!rows.classList.contains('is-scroll') || event.deltaY === 0) {
+				return;
+			}
+			var delta = event.deltaY;
+			if (event.deltaMode === 1) {
+				delta *= 16;
+			} else if (event.deltaMode === 2) {
+				delta *= rows.clientHeight;
+			}
+			var max = rows.scrollHeight - rows.clientHeight;
+			var next = rows.scrollTop + delta;
+			event.preventDefault();
+			if (next < 0 || next > max) {
+				rows.scrollTop = Math.max(0, Math.min(max, next));
+				window.scrollBy(0, delta);
+				return;
+			}
+			rows.scrollTop = next;
+		}, { passive: false });
+	});
 	fitLists();
+	var fitTimer = 0;
+	window.addEventListener('resize', function () {
+		window.clearTimeout(fitTimer);
+		fitTimer = window.setTimeout(fitLists, 80);
+	});
 }());

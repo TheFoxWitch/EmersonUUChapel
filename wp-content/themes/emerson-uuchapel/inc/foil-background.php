@@ -99,9 +99,7 @@ add_action(
 		echo '<canvas class="emerson-foil__canvas" data-symbols="' . esc_attr( wp_json_encode( $symbols ) ) . '"></canvas>';
 		echo '<div class="emerson-foil__shine"><span></span></div>';
 		echo '</div></div>';
-		echo '<button type="button" class="emerson-foil-toggle" aria-pressed="false" aria-label="Switch the page background">';
-		echo '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.6 4.9 4.9 1.6-4.9 1.6L12 15.5l-1.6-4.9L5.5 9l4.9-1.6L12 2.5zm6.2 10.2l.8 2.3 2.3.8-2.3.8-.8 2.3-.8-2.3-2.3-.8 2.3-.8.8-2.3zM6.2 14.2l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7.7-2z"/></svg>';
-		echo '</button>';
+		echo '<button type="button" class="emerson-foil-toggle wp-exclude-emoji" aria-pressed="false" aria-label="Switch the page background">🌈</button>';
 	}
 );
 

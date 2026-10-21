@@ -12,6 +12,10 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-20
 
+### Sunday Location default applies from a chosen date
+- **Regular Sunday default** at the top of **Sunday Location** has Date (date picker), Status (Regular only), Time, At the, Located at, and Note. Save applies that place to every **Regular** Sunday from the chosen date onward, including future Sundays. Regular Sundays before that date keep the previous place. **Moved** and **Cancelled** stay as they are. Updating the default does not send email.
+- **File:** `inc/sunday-location.php`.
+
 ### Homepage Join on Zoom under the Sunday location
 - Under the rotating Sunday location line on the home page, a centred **Join on Zoom** button uses the same Zoom join link as Worship and the footer, so it opens the Zoom app the same way. The button is the purple from the faith symbols above it (`#9266CC`).
 - **File:** `inc/sunday-location.php`, `assets/css/custom.css`.

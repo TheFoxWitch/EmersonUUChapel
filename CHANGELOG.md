@@ -12,6 +12,10 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-21
 
+### Mobile menu morph, close polish, and larger header mark
+- The three-line open icon and the close control morph into each other (☰↔X). Both sit in the same top-right slot above About. The exit ghost keeps a solid cover for the whole slide, stays under the WordPress admin bar, and only then lets the foil emoji and hamburger fade back in (0.5s delay, then 0.9s opacity). On phones the logo and social icons are 25% larger.
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `assets/js/custom.js`.
+
 ### Mobile menu slides in and uses a three-line icon
 - On a phone, the main menu slides in from the right. The open control is three lines (not WordPress’s two). WordPress still owns open/close; after it closes, a short non-interactive copy of the panel slides out to the right (core has no close-animation hook yet).
 - **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `assets/js/custom.js`.

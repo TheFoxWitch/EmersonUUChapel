@@ -10,6 +10,12 @@
 	--emerson-blue: #3f4fa0;
 	--emerson-blue-dark: #2e3a78;
 	--emerson-h1-size: clamp(1.875rem, 1.35rem + 2.2vw, 2.75rem);
+	/* Below #wpadminbar (99999) so the overlay never covers the WP admin banner. */
+	--emerson-nav-overlay-z: 99990;
+	--emerson-nav-motion: 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+	--emerson-nav-reveal-duration: 0.9s;
+	--emerson-nav-reveal-delay: 0.5s;
+	--emerson-nav-reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Links site-wide: Emerson blue (logo / social icons). TT3 paints
@@ -76,6 +82,25 @@ body a:where(:not(.wp-element-button)):active,
 	width: 2.5rem;
 	height: 2.5rem;
 }
+/* Mobile: logo + social icons 25% larger. */
+@media (max-width: 599px) {
+	.emerson-header-logo img {
+		width: 300px;
+	}
+	.emerson-header-social {
+		gap: 0.9375rem;
+		top: -22.21px;
+		margin: 9.71px 0 0;
+	}
+	.emerson-header-social a {
+		width: 1.875rem;
+		height: 1.875rem;
+	}
+	.emerson-header-social svg {
+		width: 3.125rem;
+		height: 3.125rem;
+	}
+}
 /** End Logo **/
 
 /* Header menu drop-downs open to the right. The menu is right-justified, so WordPress opens them leftward;
@@ -93,43 +118,130 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 
 /* Mobile overlay menu: three-line icon + slide in from the right.
    WordPress owns open/close. On close we paint a non-interactive “ghost” that slides
-   out (core still has no close-animation hook — Gutenberg #47078). */
+   out (core still has no close-animation hook — Gutenberg #47078).
+   Burger↔X uses transform/opacity on spans (not SVG) for Chrome/Firefox/Safari parity.
+   Both icons share a top-right slot above the About row. */
 @media (max-width: 599px) {
+	:root {
+		--emerson-nav-icon-top: max(0.75rem, env(safe-area-inset-top, 0px));
+		--emerson-nav-icon-right: max(1rem, env(safe-area-inset-right, 0px));
+		--emerson-nav-icon-size: 2.75rem;
+	}
+	body.admin-bar {
+		--emerson-nav-icon-top: calc(46px + 0.75rem);
+	}
 	header .wp-block-navigation__responsive-container.is-menu-open {
 		animation: emerson-nav-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
-	header .wp-block-navigation__responsive-container-open svg {
+	header .wp-block-navigation__responsive-container-open svg,
+	header .wp-block-navigation__responsive-container-close svg,
+	.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-close svg {
 		display: none;
 	}
-	header .wp-block-navigation__responsive-container-open.emerson-nav-burger {
-		width: 2.75rem;
-		height: 2.75rem;
+	header .emerson-nav-burger,
+	.emerson-nav-exit-ghost .emerson-nav-burger {
+		width: var(--emerson-nav-icon-size);
+		height: var(--emerson-nav-icon-size);
+		padding: 0;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		background: transparent;
+		border: 0;
+		color: inherit;
 	}
-	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box {
+	/* Shared top-right slot for ☰ and X (above About, below the top edge). */
+	header .wp-block-navigation__responsive-container-open.emerson-nav-burger,
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-close.emerson-nav-burger {
+		position: fixed;
+		top: var(--emerson-nav-icon-top);
+		right: var(--emerson-nav-icon-right);
+		left: auto;
+		bottom: auto;
+		margin: 0;
+	}
+	header .wp-block-navigation__responsive-container-open.emerson-nav-burger {
+		z-index: var(--emerson-nav-overlay-z);
+		opacity: 1;
+		visibility: visible;
+		/* Fade in after close: 0.5s delay, then 0.9s opacity. */
+		transition:
+			opacity var(--emerson-nav-reveal-duration) var(--emerson-nav-reveal-ease) var(--emerson-nav-reveal-delay),
+			visibility var(--emerson-nav-reveal-duration) linear var(--emerson-nav-reveal-delay);
+	}
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-close.emerson-nav-burger {
+		z-index: calc(var(--emerson-nav-overlay-z) + 1);
+	}
+	/* Exit ghost: absolute (not fixed) so the icon rides the same layer as the panel bg. */
+	.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-close.emerson-nav-burger {
+		position: absolute;
+		top: var(--emerson-nav-icon-top);
+		right: var(--emerson-nav-icon-right);
+		left: auto;
+		bottom: auto;
+		margin: 0;
+		z-index: 2;
+	}
+	/* Keep About (and the rest) below the icon. */
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content,
+	.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-content {
+		padding-top: calc(var(--emerson-nav-icon-top) + var(--emerson-nav-icon-size) + 0.75rem);
+	}
+	header .emerson-nav-burger__box,
+	.emerson-nav-exit-ghost .emerson-nav-burger__box {
 		position: relative;
 		display: block;
 		width: 1.5rem;
 		height: 1.125rem;
 	}
-	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box span {
+	header .emerson-nav-burger__box span,
+	.emerson-nav-exit-ghost .emerson-nav-burger__box span {
 		position: absolute;
 		left: 0;
 		right: 0;
 		height: 2px;
 		border-radius: 1px;
 		background: currentColor;
+		transform: translateY(0) rotate(0deg);
+		transform-origin: 50% 50%;
+		transition:
+			transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+			opacity 0.28s ease;
 	}
-	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box span:nth-child(1) {
+	header .emerson-nav-burger__box span:nth-child(1),
+	.emerson-nav-exit-ghost .emerson-nav-burger__box span:nth-child(1) {
 		top: 0;
 	}
-	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box span:nth-child(2) {
+	header .emerson-nav-burger__box span:nth-child(2),
+	.emerson-nav-exit-ghost .emerson-nav-burger__box span:nth-child(2) {
 		top: 0.5rem;
 	}
-	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box span:nth-child(3) {
+	header .emerson-nav-burger__box span:nth-child(3),
+	.emerson-nav-exit-ghost .emerson-nav-burger__box span:nth-child(3) {
 		top: 1rem;
+	}
+	/* X state via .is-x (toggled after first paint so the morph runs). */
+	header .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(1),
+	.emerson-nav-exit-ghost .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(1) {
+		transform: translateY(0.5rem) rotate(45deg);
+	}
+	header .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(2),
+	.emerson-nav-exit-ghost .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(2) {
+		opacity: 0;
+	}
+	header .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(3),
+	.emerson-nav-exit-ghost .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(3) {
+		transform: translateY(-0.5rem) rotate(-45deg);
+	}
+	/* Close sits in the shared slot; fade the burger out so only one icon shows. */
+	header:has(.wp-block-navigation__responsive-container.is-menu-open) .wp-block-navigation__responsive-container-open {
+		opacity: 0;
+		visibility: hidden;
+		pointer-events: none;
+		/* Hide with the nav motion (no reveal delay). */
+		transition:
+			opacity var(--emerson-nav-motion),
+			visibility 0s linear var(--emerson-nav-motion);
 	}
 }
 .emerson-nav-exit-ghost {
@@ -137,15 +249,31 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	flex-direction: column;
 	position: fixed !important;
 	inset: 0;
-	z-index: 100050;
+	z-index: var(--emerson-nav-overlay-z);
 	margin: 0;
 	overflow: hidden !important;
 	pointer-events: none !important;
-	background-color: #fff;
+	background: #fff;
 	color: #000;
 	transform: translate3d(0, 0, 0);
-	transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+	/* Match open slide timing/easing exactly. */
+	transition: transform var(--emerson-nav-motion);
 	animation: none !important;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+/* Opaque fill on its own layer so the white cover can’t drop out mid-transform. */
+.emerson-nav-exit-ghost::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: #fff;
+	z-index: 0;
+}
+.emerson-nav-exit-ghost .wp-block-navigation__responsive-close {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
 }
 /* Keep admin-bar offset even after WordPress removes html.has-modal-open (prevents the link jump). */
 body.admin-bar .emerson-nav-exit-ghost .wp-block-navigation__responsive-dialog {
@@ -156,28 +284,37 @@ body.admin-bar .emerson-nav-exit-ghost .wp-block-navigation__responsive-dialog {
 		margin-top: 32px;
 	}
 }
-.emerson-nav-exit-ghost .wp-block-navigation__responsive-close,
-.emerson-nav-exit-ghost .wp-block-navigation__responsive-dialog,
-.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-content {
-	transition: opacity 0.28s ease;
-	opacity: 1;
-}
 .emerson-nav-exit-ghost.is-leaving {
 	transform: translate3d(100%, 0, 0);
 }
-.emerson-nav-exit-ghost.is-leaving .wp-block-navigation__responsive-close,
-.emerson-nav-exit-ghost.is-leaving .wp-block-navigation__responsive-dialog,
-.emerson-nav-exit-ghost.is-leaving .wp-block-navigation__responsive-container-content {
-	opacity: 0;
+/* Exit: X morphs back to ☰ while the panel slides. */
+.emerson-nav-exit-ghost.is-leaving .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(1),
+.emerson-nav-exit-ghost.is-leaving .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(3) {
+	transform: translateY(0) rotate(0deg);
+}
+.emerson-nav-exit-ghost.is-leaving .emerson-nav-burger.is-x .emerson-nav-burger__box span:nth-child(2) {
+	opacity: 1;
 }
 /* Ghost keeps overlay structure; never show the open-menu control inside it. */
 .emerson-nav-exit-ghost .wp-block-navigation__responsive-container-open {
 	display: none !important;
 }
-/* While the exit ghost is on screen, keep the real nav from flashing into the header. */
+/* While exiting, keep the real nav / burger / foil emoji from flashing back in. */
+html.emerson-nav-exiting header .wp-block-navigation__responsive-container:not(.emerson-nav-exit-ghost),
 body:has(.emerson-nav-exit-ghost) header .wp-block-navigation__responsive-container:not(.emerson-nav-exit-ghost) {
 	display: none !important;
 	visibility: hidden !important;
+}
+/* Keep real burger hidden for the whole exit (including slide) so it doesn’t
+   interrupt the ghost’s X→☰ morph; it fades in when exiting ends. */
+html.emerson-nav-exiting header .wp-block-navigation__responsive-container-open,
+body:has(.emerson-nav-exit-ghost) header .wp-block-navigation__responsive-container-open {
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition:
+		opacity var(--emerson-nav-motion),
+		visibility 0s linear var(--emerson-nav-motion);
 }
 @keyframes emerson-nav-slide-in {
 	from {
@@ -191,10 +328,11 @@ body:has(.emerson-nav-exit-ghost) header .wp-block-navigation__responsive-contai
 	header .wp-block-navigation__responsive-container.is-menu-open {
 		animation: none;
 	}
+	header .emerson-nav-burger__box span,
+	header .wp-block-navigation__responsive-container-open.emerson-nav-burger,
+	.emerson-nav-exit-ghost .emerson-nav-burger__box span,
 	.emerson-nav-exit-ghost,
-	.emerson-nav-exit-ghost .wp-block-navigation__responsive-close,
-	.emerson-nav-exit-ghost .wp-block-navigation__responsive-dialog,
-	.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-content {
+	.emerson-foil-toggle {
 		transition: none;
 	}
 }
@@ -2860,20 +2998,33 @@ html.emerson-foil-ready .emerson-foil__shine span {
 	cursor: pointer;
 	box-shadow: none;
 	outline: none;
+	opacity: 1;
+	visibility: visible;
+	/* Fade in after close: 0.5s delay, then 0.9s opacity fill. */
+	transition:
+		opacity var(--emerson-nav-reveal-duration) var(--emerson-nav-reveal-ease) var(--emerson-nav-reveal-delay),
+		visibility var(--emerson-nav-reveal-duration) linear var(--emerson-nav-reveal-delay);
 }
 /* With foil on, .wp-site-blocks is z-index 1 so content sits above the background layer,
    but the corner emoji is a sibling at z-index 40 — so it painted over the open mobile menu.
-   Hide the emoji and lift the whole site while the overlay menu is open. */
-body:has(.wp-block-navigation__responsive-container.is-menu-open) .emerson-foil-toggle {
+   Fade the emoji out while the menu is open; reveal waits for exit + delay, then 0.9s fade. */
+body:has(.wp-block-navigation__responsive-container.is-menu-open) .emerson-foil-toggle,
+html.emerson-nav-exiting:not(:has(.emerson-nav-exit-ghost.is-leaving)) .emerson-foil-toggle {
+	opacity: 0;
 	visibility: hidden;
 	pointer-events: none;
 	z-index: 0;
+	transition:
+		opacity var(--emerson-nav-motion),
+		visibility 0s linear var(--emerson-nav-motion);
 }
-body:has(.wp-block-navigation__responsive-container.is-menu-open) .wp-site-blocks {
+body:has(.wp-block-navigation__responsive-container.is-menu-open) .wp-site-blocks,
+html.emerson-nav-exiting .wp-site-blocks {
 	z-index: 50;
 }
 .wp-block-navigation__responsive-container.is-menu-open {
-	z-index: 100050;
+	/* Stay under #wpadminbar (99999). */
+	z-index: var(--emerson-nav-overlay-z);
 }
 .emerson-foil-toggle:focus,
 .emerson-foil-toggle:focus-visible,
@@ -2887,6 +3038,9 @@ body:has(.wp-block-navigation__responsive-container.is-menu-open) .wp-site-block
 	html.emerson-foil-ready .emerson-foil__sheet,
 	html.emerson-foil-ready .emerson-foil__shine span {
 		animation: none;
+	}
+	.emerson-foil-toggle {
+		transition: none;
 	}
 }
 

@@ -11,12 +11,44 @@ declare( strict_types=1 );
 
 const EMERSON_PRIVATE_CAP = 'emerson_view_spreadsheets';
 
+/**
+ * Directory for finance spreadsheets. Prefer a path outside the web root.
+ * Optional wp-config.php: define( 'EMERSON_PRIVATE_DIR', '/home/ACCOUNT/emerson-private' );
+ */
 function emerson_private_files_dir(): string {
-	$outside = '/var/emerson-private';
-	if ( is_dir( $outside ) ) {
-		return $outside;
+	if ( defined( 'EMERSON_PRIVATE_DIR' ) && is_string( EMERSON_PRIVATE_DIR ) && EMERSON_PRIVATE_DIR !== '' ) {
+		$dir = EMERSON_PRIVATE_DIR;
+	} elseif ( is_dir( '/var/emerson-private' ) ) {
+		$dir = '/var/emerson-private';
+	} else {
+		$dir = WP_CONTENT_DIR . '/emerson-private';
 	}
-	return WP_CONTENT_DIR . '/emerson-private';
+	$real = realpath( $dir );
+	return false !== $real ? $real : $dir;
+}
+
+/**
+ * Resolve a listed filename to a real path that must stay under the private directory.
+ */
+function emerson_private_resolved_path( string $name ): ?string {
+	if ( ! emerson_private_file_is_allowed( $name ) ) {
+		return null;
+	}
+	$dir = emerson_private_files_dir();
+	$candidate = $dir . DIRECTORY_SEPARATOR . $name;
+	$real      = realpath( $candidate );
+	if ( false === $real ) {
+		return null;
+	}
+	$dir_real = realpath( $dir );
+	if ( false === $dir_real ) {
+		return null;
+	}
+	$prefix = $dir_real . DIRECTORY_SEPARATOR;
+	if ( $real !== $dir_real && ! str_starts_with( $real, $prefix ) ) {
+		return null;
+	}
+	return $real;
 }
 
 function emerson_can_view_private_files( ?int $user_id = null ): bool {
@@ -109,8 +141,8 @@ function emerson_private_file_list(): array {
 		if ( ! emerson_private_file_is_allowed( $name ) ) {
 			continue;
 		}
-		$path = $dir . '/' . $name;
-		if ( is_file( $path ) || ( is_dir( $path ) && str_ends_with( strtolower( $name ), '.numbers' ) ) ) {
+		$path = emerson_private_resolved_path( $name );
+		if ( null !== $path && ( is_file( $path ) || ( is_dir( $path ) && str_ends_with( strtolower( $name ), '.numbers' ) ) ) ) {
 			$names[] = $name;
 		}
 	}
@@ -163,10 +195,10 @@ add_action(
 		}
 		check_admin_referer( 'emerson_private_file' );
 		$name = sanitize_file_name( (string) wp_unslash( $_GET['file'] ?? '' ) );
-		if ( ! emerson_private_file_is_allowed( $name ) ) {
+		$path = emerson_private_resolved_path( $name );
+		if ( null === $path ) {
 			wp_die( 'That file is not available.', 'Not found', array( 'response' => 404 ) );
 		}
-		$path     = emerson_private_files_dir() . '/' . $name;
 		$download = '1' === (string) ( $_GET['download'] ?? '' );
 		if ( is_dir( $path ) && str_ends_with( strtolower( $name ), '.numbers' ) ) {
 			emerson_private_stream_numbers_zip( $path, $name );

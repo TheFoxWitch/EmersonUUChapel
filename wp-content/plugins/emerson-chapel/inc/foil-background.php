@@ -241,6 +241,27 @@ add_action(
 		if ( is_admin() ) {
 			return;
 		}
+		$style = emerson_foil_style();
+		/*
+		 * Critical foil CSS before the body: without position:fixed in time, the huge
+		 * symbol canvas sits in normal flow, the document height collapses when CSS
+		 * arrives, and the browser clamps scroll to the top on back-navigation.
+		 */
+		/* Wash on immediately; keep the icon sheet masked shut until custom.css wipe runs. */
+		$wash = esc_attr( $style['layer_color'] );
+		echo '<style id="emerson-foil-critical">'
+			. '.emerson-foil-layer{position:fixed!important;inset:0!important;z-index:0;overflow:hidden!important;pointer-events:none;contain:paint;transform:translateZ(0);background:' . $wash . ';opacity:0;visibility:hidden}'
+			/* Layer stays hidden on bare emerson-foil; wipe/ready classes reveal it. */
+			. 'html.emerson-foil.emerson-foil-ready .emerson-foil-layer,html.emerson-foil.emerson-foil-wiping-in .emerson-foil-layer,html.emerson-foil.emerson-foil-wiping-out .emerson-foil-layer{opacity:1;visibility:visible}'
+			. 'html.emerson-foil.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in),html.emerson-foil.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in) body{background-color:' . $wash . '!important;background-image:none!important}'
+			. 'html.emerson-foil .wp-site-blocks{background-color:transparent!important;background-image:none!important;position:relative;z-index:1}'
+			. '.emerson-foil__sheet{position:relative;width:max-content;line-height:1;'
+			. '-webkit-mask-image:linear-gradient(90deg,#000 0%,#000 38%,transparent 52%,transparent 100%);mask-image:linear-gradient(90deg,#000 0%,#000 38%,transparent 52%,transparent 100%);'
+			. '-webkit-mask-size:280% 280%;mask-size:280% 280%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;'
+			. '-webkit-mask-position:100% 50%;mask-position:100% 50%}'
+			. '.emerson-foil-toggle{position:fixed!important;z-index:40;right:1.5rem;bottom:1.5rem}'
+			. "</style>\n";
+		/* Let the browser own back/forward scroll again — manual restore was leaving people at the top. */
 		echo "<script>try{if(localStorage.getItem('emerson-foil')==='1')document.documentElement.classList.add('emerson-foil');}catch(e){}</script>\n";
 	},
 	0
@@ -258,7 +279,7 @@ add_action(
 			? '0 0 0.28em #fff, 0 0 0.28em #fff, 0 0 0.12em #fff'
 			: 'none';
 		$drift_anim  = $style['drift_on']
-			? 'emerson-foil-drift ' . $style['drift_seconds'] . 's linear infinite alternate'
+			? 'emerson-foil-drift ' . $style['drift_seconds'] . 's ease-in-out infinite alternate'
 			: 'none';
 		$shine_anim  = $style['shine_on']
 			? 'emerson-foil-pan ' . $style['shine_seconds'] . 's linear infinite'
@@ -269,9 +290,14 @@ add_action(
 			. '--emerson-foil-canvas-opacity:' . $style['canvas_opacity'] . ';'
 			. '--emerson-foil-shine-opacity:' . $style['shine_opacity'] . ';'
 			. '--emerson-foil-shine-angle:' . $style['shine_angle'] . 'deg;'
+			. '--emerson-foil-drift-seconds:' . $style['drift_seconds'] . ';'
+			. '--emerson-foil-shine-seconds:' . $style['shine_seconds'] . ';'
 			. '--emerson-foil-drift-animation:' . $drift_anim . ';'
 			. '--emerson-foil-shine-animation:' . $shine_anim . ';'
 			. '--emerson-foil-glow:' . $glow_shadow . ';'
+			/* Wipe axis defaults (shine 0°); JS updates for other angles. */
+			. '--emerson-foil-wipe-closed:100% 50%;'
+			. '--emerson-foil-wipe-open:0% 50%;'
 			. '}'
 			. 'html.emerson-foil .wp-site-blocks :is(' . $exclude_css . '){text-shadow:none;}';
 
@@ -288,14 +314,15 @@ add_action(
 		}
 		$symbols = emerson_foil_symbols();
 		$style   = emerson_foil_style();
-		echo '<div class="emerson-foil-layer" aria-hidden="true">';
+		/* Inline fixed box so a deferred stylesheet cannot leave this in normal flow. */
+		echo '<div class="emerson-foil-layer" aria-hidden="true" style="position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none">';
 		echo '<div class="emerson-foil__sheet">';
 		echo '<canvas class="emerson-foil__canvas" data-symbols="' . esc_attr( wp_json_encode( $symbols ) ) . '"'
 			. ( ! empty( $style['randomize_on_load'] ) ? ' data-randomize="1"' : '' )
 			. '></canvas>';
 		echo '<div class="emerson-foil__shine"><span></span></div>';
 		echo '</div></div>';
-		echo '<button type="button" class="emerson-foil-toggle wp-exclude-emoji" aria-pressed="false" aria-label="Switch the page background">'
+		echo '<button type="button" class="emerson-foil-toggle wp-exclude-emoji" aria-pressed="false" aria-label="Switch the page background" style="position:fixed;z-index:40;right:1.5rem;bottom:1.5rem">'
 			. esc_html( $style['toggle_emoji'] )
 			. '</button>';
 	}
@@ -462,7 +489,7 @@ function emerson_foil_admin_page(): void {
 
 	echo '<tr><th scope="row">Pattern</th><td>';
 	echo '<label><input type="checkbox" name="foil_randomize_on_load" value="1"' . checked( $style['randomize_on_load'], true, false ) . '> Randomize on load</label>';
-	echo '<p class="description">Shuffles the symbol order once when the page loads, so each visit can show a different pattern. Same symbols, speeds, and opacities.</p>';
+	echo '<p class="description">Shuffles the symbol order each time the page loads and when the corner button turns the background on. Icons wipe in and out with the shine band (not a flat fade). Same symbols, speeds, and opacities.</p>';
 	echo '</td></tr>';
 
 	echo '<tr><th scope="row">Shine</th><td>';

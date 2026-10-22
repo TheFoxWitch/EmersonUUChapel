@@ -818,6 +818,25 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	height: auto !important;
 	min-height: 0 !important;
 }
+
+/* Survey thanks: no corner X; Emerson JS hides it after 2s and closes the dialog at 4s. */
+#emerson-recommit .cff-thanks-message {
+	pointer-events: none;
+	cursor: default;
+	z-index: 100000;
+}
+#emerson-recommit .cff-thanks-message::before {
+	content: none !important;
+	display: none !important;
+}
+#emerson-recommit.emerson-recommit--sent .cpefb_error {
+	display: none !important;
+}
+
+#emerson-recommit .emerson-survey-phone input {
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.02em;
+}
 @media (max-width: 1000px) {
 	#emerson-recommit.emerson-recommit--form {
 		height: calc(100dvh - 1rem);
@@ -2530,6 +2549,9 @@ blockquote {
 
 .church-admin-calendar .ca-sidebar-list > li > p {
 	font-size: 1.25em;
+	/* Church Admin sets border-left from the event colour inline; drop it on both backgrounds. */
+	border-left: none !important;
+	padding-left: 0 !important;
 }
 
 .church-admin-calendar .ca-sidebar-list .emerson-ca-service {
@@ -2901,38 +2923,175 @@ button.wp-block-button__link[data-emerson-modal] {
 }
 
 .emerson-foil-layer {
-	display: none;
 	position: fixed;
 	inset: 0;
 	z-index: 0;
 	overflow: hidden;
 	pointer-events: none;
 	background: var(--emerson-foil-layer-color, #f4f7f1);
-	contain: paint;
+	/* contain:paint broke CSS mask clipping — wipe ran but showed everything. */
 	transform: translateZ(0);
+	opacity: 0;
+	visibility: hidden;
+	transition:
+		opacity 0.5s ease,
+		visibility 0s linear 0.5s;
 }
-html.emerson-foil .emerson-foil-layer {
-	display: block;
+/*
+ * Layer only visible once a wipe/ready class is on. Bare html.emerson-foil used to
+ * paint the full wash before wipe-in started.
+ */
+html.emerson-foil.emerson-foil-ready:not(.emerson-foil-fading-out) .emerson-foil-layer,
+html.emerson-foil.emerson-foil-wiping-in .emerson-foil-layer,
+html.emerson-foil.emerson-foil-wiping-out .emerson-foil-layer {
+	opacity: 1;
+	visibility: visible;
+	transition:
+		opacity 0.5s ease,
+		visibility 0s;
 }
-html.emerson-foil,
-html.emerson-foil body,
-html.emerson-foil .wp-site-blocks {
-	background-color: transparent !important;
+/* Wipe reveals/covers via mask — never also fade the whole layer. */
+html.emerson-foil.emerson-foil-wiping-in .emerson-foil-layer,
+html.emerson-foil.emerson-foil-wiping-out .emerson-foil-layer {
+	transition: none;
+}
+html.emerson-foil.emerson-foil-fading-out .emerson-foil-layer {
+	opacity: 0;
+	visibility: hidden;
+	transition:
+		opacity 0.5s ease,
+		visibility 0s linear 0.5s;
+}
+/*
+ * Wash on html/body only when fully ready — never during wipe-in.
+ * Applying it at wipe start flashed the tan page behind transparent content
+ * before the masked layer had anything to show.
+ */
+html.emerson-foil.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in):not(.emerson-foil-fading-out),
+html.emerson-foil.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in):not(.emerson-foil-fading-out) body {
+	background-color: var(--emerson-foil-layer-color, #f4f7f1) !important;
 	background-image: none !important;
+}
+/* Hide: real page colour under the wiping layer. */
+html.emerson-foil.emerson-foil-wiping-out,
+html.emerson-foil.emerson-foil-wiping-out body,
+html.emerson-foil.emerson-foil-fading-out,
+html.emerson-foil.emerson-foil-fading-out body {
+	background-color: revert !important;
+	background-image: revert !important;
 }
 html.emerson-foil .wp-site-blocks {
 	position: relative;
 	z-index: 1;
+	background-color: transparent !important;
+	background-image: none !important;
+	text-shadow: none;
+	transition: text-shadow calc(var(--emerson-foil-shine-seconds, 3.2) * 0.45s) ease;
+}
+html.emerson-foil.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in) .wp-site-blocks {
 	text-shadow: var(--emerson-foil-glow, 0 0 0.28em #fff, 0 0 0.28em #fff, 0 0 0.12em #fff);
 }
-/* Skip list is filled from Page background → Motion and elements */
+html.emerson-foil-wiping-in .wp-site-blocks,
+html.emerson-foil-wiping-out .wp-site-blocks,
+html.emerson-foil-fading-out .wp-site-blocks {
+	text-shadow: none;
+}
+/* Skip list is filled from Page background → Motion and elements.
+   Icons wipe with the shine (mask), never a full-sheet opacity fade (that muddied the page). */
 .emerson-foil__sheet {
 	position: relative;
 	width: max-content;
 	line-height: 1;
+	opacity: 1;
+	-webkit-mask-image: linear-gradient(
+		calc(90deg + var(--emerson-foil-shine-angle, 0deg)),
+		#000 0%,
+		#000 38%,
+		transparent 52%,
+		transparent 100%
+	);
+	mask-image: linear-gradient(
+		calc(90deg + var(--emerson-foil-shine-angle, 0deg)),
+		#000 0%,
+		#000 38%,
+		transparent 52%,
+		transparent 100%
+	);
+	-webkit-mask-size: 280% 280%;
+	mask-size: 280% 280%;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: 100% 50%;
+	mask-position: 100% 50%;
 }
-html.emerson-foil-ready .emerson-foil__sheet {
-	animation: var(--emerson-foil-drift-animation, emerson-foil-drift 36s linear infinite alternate);
+/*
+ * Sheet stays fully open for ready + wipe + drift. Dropping back to the default
+ * closed sheet mask when wiping-in ended (before drift) was the end jump.
+ */
+html.emerson-foil-ready:not(.emerson-foil-wiping-out) .emerson-foil__sheet,
+html.emerson-foil-wiping-in .emerson-foil__sheet,
+html.emerson-foil-wiping-out .emerson-foil__sheet {
+	-webkit-mask-image: linear-gradient(#000, #000);
+	mask-image: linear-gradient(#000, #000);
+	-webkit-mask-size: 100% 100%;
+	mask-size: 100% 100%;
+	-webkit-mask-position: 0 0;
+	mask-position: 0 0;
+	animation: none;
+}
+/* Promote early so the first drift frame does not hitch on layer creation. */
+html.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in) .emerson-foil__sheet {
+	will-change: transform;
+}
+html.emerson-foil-drifting:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in) .emerson-foil__sheet {
+	/* ease-in-out: linear used to kick at full speed on the first frame. */
+	animation: var(--emerson-foil-drift-animation, emerson-foil-drift 36s ease-in-out infinite alternate);
+	animation-delay: var(--emerson-foil-drift-delay, 0s);
+}
+/*
+ * Same wipe mask on wipe-in, wipe-out, AND ready. 300% size parks the soft edge
+ * off-screen at 0% and 100% so handoffs do not leave a fringe jump.
+ */
+html.emerson-foil-wiping-in .emerson-foil-layer,
+html.emerson-foil-wiping-out .emerson-foil-layer,
+html.emerson-foil-ready:not(.emerson-foil-wiping-out) .emerson-foil-layer {
+	-webkit-mask-image: linear-gradient(
+		calc(90deg + var(--emerson-foil-shine-angle, 0deg)),
+		#000 0%,
+		#000 42%,
+		transparent 58%,
+		transparent 100%
+	);
+	mask-image: linear-gradient(
+		calc(90deg + var(--emerson-foil-shine-angle, 0deg)),
+		#000 0%,
+		#000 42%,
+		transparent 58%,
+		transparent 100%
+	);
+	-webkit-mask-size: 300% 300%;
+	mask-size: 300% 300%;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+}
+/*
+ * Wipe travel follows --emerson-foil-wipe-closed/open (set from shine angle in JS).
+ * Defaults match shine 0° (horizontal). Shine 90° needs a vertical axis — X-only broke.
+ */
+html.emerson-foil-ready:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping-out) .emerson-foil-layer {
+	-webkit-mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+	mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+	animation: none;
+}
+html.emerson-foil-wiping-in .emerson-foil-layer {
+	-webkit-mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
+	mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
+	animation: emerson-foil-wipe-in calc(var(--emerson-foil-shine-seconds, 3.2) * 1s) linear both;
+}
+html.emerson-foil-wiping-out .emerson-foil-layer {
+	-webkit-mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+	mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+	animation: emerson-foil-wipe-out calc(var(--emerson-foil-shine-seconds, 3.2) * 1s) linear both;
 }
 .emerson-foil__canvas {
 	display: block;
@@ -2940,39 +3099,78 @@ html.emerson-foil-ready .emerson-foil__sheet {
 }
 .emerson-foil__shine {
 	position: absolute;
-	left: 0;
-	top: 0;
-	overflow: visible;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden; /* clip rotated band — was flashing white at the bottom */
 	opacity: var(--emerson-foil-shine-opacity, 0.25);
 	pointer-events: none;
 }
-/* Soft vertical band; --emerson-foil-shine-angle rotates the whole band (0 = upright, 45 = diagonal). */
 .emerson-foil__shine span {
 	position: absolute;
 	top: 50%;
 	left: 0;
-	width: 22%;
-	height: 220%;
-	margin-top: -110%;
+	width: 16%;
+	height: 140%;
+	margin-top: -70%;
 	background: linear-gradient(
 		to right,
 		transparent 0%,
-		rgba(255, 255, 255, 0.95) 46%,
-		rgba(255, 248, 214, 0.95) 54%,
+		rgba(255, 255, 255, 0.55) 46%,
+		rgba(255, 248, 214, 0.55) 54%,
 		transparent 100%
 	);
-	transform: rotate(var(--emerson-foil-shine-angle, 0deg));
+	transform: translate3d(-130%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
 	transform-origin: center center;
+	opacity: 0;
+	will-change: transform, opacity;
 }
-html.emerson-foil-ready .emerson-foil__shine span {
-	animation: var(--emerson-foil-shine-animation, emerson-foil-pan 3.2s linear infinite);
+html.emerson-foil-wiping-in .emerson-foil__shine span {
+	animation: emerson-foil-pan calc(var(--emerson-foil-shine-seconds, 3.2) * 1s) linear both;
 }
-@keyframes emerson-foil-pan {
+html.emerson-foil-wiping-out .emerson-foil__shine span {
+	animation: emerson-foil-pan calc(var(--emerson-foil-shine-seconds, 3.2) * 1s) linear reverse both;
+}
+/* No ambient shine restart after reveal — that white flash at the bottom. */
+html.emerson-foil-ready:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping-out) .emerson-foil__shine span {
+	opacity: 0;
+	animation: none;
+	transform: translate3d(200%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+}
+@keyframes emerson-foil-wipe-in {
 	from {
-		transform: translate3d(-120%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+		-webkit-mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
+		mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
 	}
 	to {
-		transform: translate3d(480%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+		-webkit-mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+		mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+	}
+}
+@keyframes emerson-foil-wipe-out {
+	from {
+		-webkit-mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+		mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+	}
+	to {
+		-webkit-mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
+		mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
+	}
+}
+@keyframes emerson-foil-pan {
+	0% {
+		transform: translate3d(-130%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+		opacity: 0;
+	}
+	8% {
+		opacity: 1;
+	}
+	55% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate3d(200%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+		opacity: 0;
 	}
 }
 @keyframes emerson-foil-drift {
@@ -3036,9 +3234,24 @@ html.emerson-nav-exiting .wp-site-blocks {
 }
 @media (prefers-reduced-motion: reduce) {
 	html.emerson-foil-ready .emerson-foil__sheet,
-	html.emerson-foil-ready .emerson-foil__shine span {
+	html.emerson-foil-wiping-in .emerson-foil-layer,
+	html.emerson-foil-wiping-out .emerson-foil-layer,
+	html.emerson-foil-ready .emerson-foil__shine span,
+	html.emerson-foil-wiping-in .emerson-foil__shine span,
+	html.emerson-foil-wiping-out .emerson-foil__shine span {
 		animation: none;
 	}
+	html.emerson-foil-ready .emerson-foil__sheet,
+	html.emerson-foil-wiping-in .emerson-foil-layer {
+		-webkit-mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+		mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+	}
+	html.emerson-foil-wiping-out .emerson-foil-layer {
+		-webkit-mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
+		mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
+	}
+	.emerson-foil-layer,
+	html.emerson-foil .wp-site-blocks,
 	.emerson-foil-toggle {
 		transition: none;
 	}

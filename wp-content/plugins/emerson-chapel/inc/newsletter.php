@@ -48,6 +48,7 @@ function emerson_nl_form_html( string $source ): string {
 	?>
 	<form class="emerson-nl-form" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" novalidate>
 		<input type="hidden" name="action" value="emerson_newsletter_signup" />
+		<?php wp_nonce_field( 'emerson_newsletter_signup', 'emerson_nl_nonce' ); ?>
 		<input type="hidden" name="source" value="<?php echo esc_attr( $source ); ?>" />
 		<input type="hidden" name="return" value="<?php echo esc_url( (string) $return ); ?>" />
 		<input type="hidden" name="ts" value="<?php echo esc_attr( (string) time() ); ?>" />
@@ -155,6 +156,15 @@ function emerson_nl_process_signup( array $input ): array {
 		'message' => emerson_nl_message( 'sent' ),
 		'status'  => 200,
 	);
+
+	$nonce = isset( $input['emerson_nl_nonce'] ) ? (string) $input['emerson_nl_nonce'] : '';
+	if ( ! $nonce || ! wp_verify_nonce( $nonce, 'emerson_newsletter_signup' ) ) {
+		return array(
+			'code'    => 'invalid',
+			'message' => __( 'The form expired. Reload the page and try again.' ),
+			'status'  => 403,
+		);
+	}
 
 	// Bots: filled the hidden field or submitted faster than a person can type. Pretend it worked.
 	$rendered = (int) ( $input['ts'] ?? 0 );

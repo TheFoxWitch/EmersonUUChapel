@@ -59,14 +59,12 @@ function emerson_schedule_sheet_parse_url( string $url ): ?array {
 }
 
 function emerson_schedule_sheet_export_url( string $url = '' ): string {
-	$url = $url !== '' ? $url : emerson_schedule_sheet_url();
-	if ( preg_match( '/[?&]format=csv\b/', $url ) || preg_match( '/[?&]output=csv\b/', $url ) ) {
-		return $url;
-	}
+	$url    = $url !== '' ? $url : emerson_schedule_sheet_url();
 	$parsed = emerson_schedule_sheet_parse_url( $url );
 	if ( ! $parsed ) {
 		return '';
 	}
+	// Always rebuild the Google export URL — never fetch an arbitrary pasted CSV link (SSRF).
 	return 'https://docs.google.com/spreadsheets/d/' . $parsed['id'] . '/export?format=csv&gid=' . $parsed['gid'];
 }
 
@@ -100,11 +98,12 @@ function emerson_schedule_sheet_data( bool $refresh = false ): array {
 		return $empty;
 	}
 
+	// Follow Google's own redirects only; $export is always a rebuilt docs.google.com URL.
 	$response = wp_remote_get(
 		$export,
 		array(
-			'timeout'    => 15,
-			'user-agent' => 'EmersonUUChapel/1.0 (WordPress calendar)',
+			'timeout'     => 15,
+			'user-agent'  => 'EmersonUUChapel/1.0 (WordPress calendar)',
 			'redirection' => 5,
 		)
 	);
@@ -302,9 +301,6 @@ function emerson_schedule_sunday( string $ymd ): ?array {
 }
 
 function emerson_schedule_planning_link_html(): string {
-	if ( ! emerson_schedule_can_view_roster() ) {
-		return '';
-	}
 	$url = emerson_schedule_sheet_url();
 	if ( $url === '' ) {
 		return '';
@@ -742,7 +738,7 @@ function emerson_schedule_admin_save(): ?string {
 	}
 	check_admin_referer( 'emerson_schedule_save' );
 	$url = isset( $_POST['sheet_url'] ) ? esc_url_raw( wp_unslash( (string) $_POST['sheet_url'] ) ) : '';
-	if ( ! emerson_schedule_sheet_parse_url( $url ) && ! preg_match( '/[?&](format|output)=csv\b/', $url ) ) {
+	if ( ! emerson_schedule_sheet_parse_url( $url ) ) {
 		return 'That does not look like a Google Sheet link. Paste the address from the browser while the Sunday Morning Schedule tab is open.';
 	}
 	update_option( EMERSON_SCHEDULE_SHEET_OPTION, $url, false );

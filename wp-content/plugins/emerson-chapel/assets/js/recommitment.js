@@ -77,6 +77,22 @@
 		var drawing = false;
 		var ink = false;
 
+		function signatureInput() {
+			var input = form.querySelector('[name="emerson_signature"]');
+			if (!input) {
+				input = document.createElement('input');
+				input.type = 'hidden';
+				input.name = 'emerson_signature';
+				form.appendChild(input);
+			}
+			return input;
+		}
+
+		/** Keep the field filled — Calculated Fields submits via nativeSubmit(), which skips the submit event. */
+		function syncSignatureField() {
+			signatureInput().value = ink ? canvas.toDataURL('image/png') : '';
+		}
+
 		function sizeCanvas() {
 			var rect = canvas.getBoundingClientRect();
 			var ratio = window.devicePixelRatio || 1;
@@ -94,10 +110,12 @@
 				var image = new Image();
 				image.onload = function () {
 					ctx.drawImage(image, 0, 0, rect.width, rect.height);
+					syncSignatureField();
 				};
 				image.src = previous;
 			} else {
 				ink = false;
+				syncSignatureField();
 			}
 		}
 
@@ -132,6 +150,7 @@
 		});
 		function stopDraw() {
 			drawing = false;
+			syncSignatureField();
 		}
 		canvas.addEventListener('pointerup', stopDraw);
 		canvas.addEventListener('pointercancel', stopDraw);
@@ -148,28 +167,179 @@
 				status.classList.add('is-error');
 				return;
 			}
-			var input = form.querySelector('[name="emerson_signature"]');
-			if (!input) {
-				input = document.createElement('input');
-				input.type = 'hidden';
-				input.name = 'emerson_signature';
-				form.appendChild(input);
-			}
-			input.value = canvas.toDataURL('image/png');
+			syncSignatureField();
 			status.textContent = '';
 			status.classList.remove('is-error');
 		}, true);
+		if (window.jQuery && window.jQuery.fbuilder) {
+			window.jQuery.fbuilder.extra_validations = window.jQuery.fbuilder.extra_validations || {};
+			window.jQuery.fbuilder.extra_validations.emersonSignature = function (cffForm) {
+				var el = cffForm && cffForm.jquery ? cffForm[0] : cffForm;
+				if (!el || !dialog.contains(el)) {
+					return true;
+				}
+				if (!ink) {
+					status.textContent = 'Draw your signature.';
+					status.classList.add('is-error');
+					return false;
+				}
+				syncSignatureField();
+				status.textContent = '';
+				status.classList.remove('is-error');
+				return true;
+			};
+		}
 		window.requestAnimationFrame(function () {
 			sizeCanvas();
 			fitSurveyForm(dialog);
 		});
 	}
 
+	function digitsOnlyPhone(value) {
+		return String(value || '').replace(/\D/g, '').slice(0, 10);
+	}
+
+	/** Display as (123)456-7891 from up to 10 digits. */
+	function formatSurveyPhone(digits) {
+		digits = digitsOnlyPhone(digits);
+		if (digits.length === 0) {
+			return '';
+		}
+		if (digits.length <= 3) {
+			return '(' + digits;
+		}
+		if (digits.length <= 6) {
+			return '(' + digits.slice(0, 3) + ')' + digits.slice(3);
+		}
+		return '(' + digits.slice(0, 3) + ')' + digits.slice(3, 6) + '-' + digits.slice(6);
+	}
+
+	function installSurveyPhone(dialog) {
+		if (!dialog || dialog.id !== 'emerson-recommit') {
+			return;
+		}
+		var input = dialog.querySelector(
+			'.emerson-survey-phone input[type="text"], .fields[class*="fieldname5_"] input[type="text"], input[name^="fieldname5"]'
+		);
+		if (!input || input.dataset.emersonPhone === '1') {
+			return;
+		}
+		input.dataset.emersonPhone = '1';
+		input.setAttribute('inputmode', 'numeric');
+		input.setAttribute('autocomplete', 'tel');
+		input.setAttribute('maxlength', '13');
+		input.setAttribute('placeholder', '(123)456-7891');
+		if (input.value) {
+			input.value = formatSurveyPhone(input.value);
+		}
+		input.addEventListener('input', function () {
+			var start = input.selectionStart;
+			var before = input.value.length;
+			input.value = formatSurveyPhone(input.value);
+			var after = input.value.length;
+			if (typeof start === 'number') {
+				input.setSelectionRange(Math.max(0, start + (after - before)), Math.max(0, start + (after - before)));
+			}
+		});
+		input.addEventListener('blur', function () {
+			input.value = formatSurveyPhone(input.value);
+		});
+		var form = dialog.querySelector('form');
+		if (form) {
+			form.addEventListener(
+				'submit',
+				function (event) {
+					var digits = digitsOnlyPhone(input.value);
+					input.value = formatSurveyPhone(digits);
+					if (digits.length !== 10) {
+						event.preventDefault();
+						event.stopPropagation();
+						input.focus();
+						if (typeof input.reportValidity === 'function') {
+							input.setCustomValidity('Enter a 10-digit phone number.');
+							input.reportValidity();
+							input.setCustomValidity('');
+						}
+					}
+				},
+				true
+			);
+		}
+	}
+
 	function finishSurveyLayout(dialog) {
 		installSurveySignature(dialog);
+		installSurveyPhone(dialog);
 		window.requestAnimationFrame(function () {
 			fitSurveyForm(dialog);
 		});
+	}
+
+	function clearSurveyValidation(dialog) {
+		if (!dialog) {
+			return;
+		}
+		dialog.querySelectorAll('.cpefb_error').forEach(function (node) {
+			node.remove();
+		});
+		dialog.querySelectorAll('.error, .cff-error').forEach(function (node) {
+			node.classList.remove('error', 'cff-error');
+		});
+		dialog.querySelectorAll('[aria-invalid="true"]').forEach(function (node) {
+			node.removeAttribute('aria-invalid');
+		});
+	}
+
+	/**
+	 * After a real Calculated Fields success: thanks for 2s (no X), then close the modal at 4s.
+	 */
+	function watchSurveyThanks(dialog, closeDialog) {
+		if (!dialog || dialog.dataset.emersonThanksWatch === '1') {
+			return;
+		}
+		dialog.dataset.emersonThanksWatch = '1';
+		var thanksTimer = null;
+		var closeTimer = null;
+
+		function onSuccess() {
+			clearSurveyValidation(dialog);
+			dialog.classList.add('emerson-recommit--sent');
+			var thanks = dialog.querySelector('.cff-thanks-message');
+			if (thanks) {
+				thanks.style.display = 'block';
+			}
+			window.clearTimeout(thanksTimer);
+			window.clearTimeout(closeTimer);
+			thanksTimer = window.setTimeout(function () {
+				if (thanks) {
+					thanks.style.display = 'none';
+				}
+			}, 2000);
+			closeTimer = window.setTimeout(function () {
+				closeDialog();
+			}, 4000);
+		}
+
+		if (window.jQuery) {
+			window.jQuery(document).on('cff-form-submitted.emersonSurvey', function (_event, form) {
+				var el = form && form.jquery ? form[0] : form;
+				if (el && el.nodeType === 1 && !dialog.contains(el)) {
+					return;
+				}
+				onSuccess();
+			});
+		}
+
+		var thanksNode = dialog.querySelector('.cff-thanks-message');
+		if (thanksNode) {
+			var watch = new MutationObserver(function () {
+				var shown = window.getComputedStyle(thanksNode).display !== 'none';
+				if (shown && !dialog.classList.contains('emerson-recommit--sent')) {
+					onSuccess();
+				}
+			});
+			watch.observe(thanksNode, { attributes: true, attributeFilter: ['style', 'class'] });
+		}
 	}
 
 	function bindIframeDialog(dialog, openerSelector) {
@@ -190,6 +360,8 @@
 			if (dialog.open || dialog.classList.contains('is-closing')) {
 				return;
 			}
+			dialog.classList.remove('emerson-recommit--sent');
+			clearSurveyValidation(dialog);
 			if (frame && !frame.getAttribute('src')) {
 				frame.setAttribute('src', frame.getAttribute('data-src'));
 			}
@@ -250,6 +422,10 @@
 			}
 			dialog.addEventListener('transitionend', done);
 			window.setTimeout(done, 500);
+		}
+
+		if (dialog.id === 'emerson-recommit' && dialog.classList.contains('emerson-recommit--form')) {
+			watchSurveyThanks(dialog, closeDialog);
 		}
 
 		document.addEventListener('click', function (event) {

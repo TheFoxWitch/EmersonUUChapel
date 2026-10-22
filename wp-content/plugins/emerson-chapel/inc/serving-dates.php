@@ -310,6 +310,12 @@ add_filter(
 		if ( 'church_admin' !== $tag || 'not-available' !== ( $attr['type'] ?? '' ) || empty( $_POST['not-available'] ) || ! is_user_logged_in() || ! emerson_serving_ready() ) {
 			return $return;
 		}
+		$nonce = isset( $_POST['emerson_serving_nonce'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['emerson_serving_nonce'] ) ) : '';
+		if ( ! $nonce || ! wp_verify_nonce( $nonce, 'emerson_serving_save' ) ) {
+			unset( $_POST['not-available'], $_POST['dates'], $_POST['can_serve'] );
+			$GLOBALS['emerson_serving_nonce_failed'] = true;
+			return $return;
+		}
 		$person = emerson_serving_person();
 		if ( ! $person ) {
 			return $return;
@@ -365,7 +371,8 @@ add_filter(
 
 		$output = str_replace(
 			'<form action="" method="POST">',
-			'<form action="' . esc_url( get_permalink() . '#dates-unavailable' ) . '" method="POST">',
+			'<form action="' . esc_url( get_permalink() . '#dates-unavailable' ) . '" method="POST">'
+			. wp_nonce_field( 'emerson_serving_save', 'emerson_serving_nonce', true, false ),
 			$output
 		);
 		$output = str_replace(
@@ -373,6 +380,11 @@ add_filter(
 			array( '<h2 id="dates-unavailable">Serving dates</h2>', '<h2 id="dates-unavailable">Your serving dates are saved</h2>', '<h3>Tick the dates you can serve</h3>' ),
 			$output
 		);
+		if ( ! empty( $GLOBALS['emerson_serving_nonce_failed'] ) ) {
+			unset( $GLOBALS['emerson_serving_nonce_failed'] );
+			$notice = '<div class="emerson-serving-notice" role="alert"><p>Your serving dates were not saved. Reload the page and try again.</p></div>';
+			$output = preg_replace( '#<h2 id="dates-unavailable">#', $notice . '<h2 id="dates-unavailable">', $output, 1 ) ?? $output;
+		}
 		if ( '' !== $name ) {
 			$output = preg_replace( '#<h3>Set non availability for (.*?)</h3>#', '<h3>Tick the dates ' . $name . ' can serve</h3>', $output );
 		} else {

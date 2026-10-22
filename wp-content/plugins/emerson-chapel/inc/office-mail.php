@@ -160,13 +160,17 @@ function emerson_office_mail_filter( array $atts ): array {
 }
 add_filter( 'wp_mail', 'emerson_office_mail_filter', 10 );
 
+function emerson_office_mail_can_manage(): bool {
+	return current_user_can( 'manage_options' );
+}
+
 add_action(
 	'admin_menu',
 	static function (): void {
 		add_menu_page(
 			'Office mail',
 			'Office mail',
-			'edit_pages',
+			'manage_options',
 			'emerson-office-mail',
 			'emerson_office_mail_admin_page',
 			'dashicons-email-alt',
@@ -176,7 +180,7 @@ add_action(
 );
 
 function emerson_office_mail_admin_save(): ?string {
-	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_office_mail_save'] ) ) {
+	if ( ! emerson_office_mail_can_manage() || empty( $_POST['emerson_office_mail_save'] ) ) {
 		return null;
 	}
 	check_admin_referer( 'emerson_office_mail_save' );
@@ -194,7 +198,7 @@ function emerson_office_mail_admin_save(): ?string {
 }
 
 function emerson_office_mail_admin_page(): void {
-	if ( ! current_user_can( 'edit_pages' ) ) {
+	if ( ! emerson_office_mail_can_manage() ) {
 		wp_die( esc_html__( 'You do not have permission to edit the office mail list.' ) );
 	}
 	$notice = emerson_office_mail_admin_save();
@@ -204,7 +208,7 @@ function emerson_office_mail_admin_page(): void {
 		echo '<div class="notice ' . ( $bad ? 'notice-error' : 'notice-success' ) . ' is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
 	}
 	echo '<p>When the site emails <strong>' . esc_html( EMERSON_OFFICE_MAIL_ADDRESS ) . '</strong>, the people below receive a copy. The office address still receives it. A message sent only to a member is not copied.</p>';
-	echo '<p>One person per line: <code>Name &lt;email@example.com&gt;</code>. An address on its own is fine. Administrators and Editors can add or remove people, then click <strong>Save</strong>.</p>';
+	echo '<p>One person per line: <code>Name &lt;email@example.com&gt;</code>. An address on its own is fine. Only administrators can add or remove people, then click <strong>Save</strong>.</p>';
 	echo '<form method="post">';
 	wp_nonce_field( 'emerson_office_mail_save' );
 	echo '<textarea name="recipients" id="emerson-office-mail" class="large-text code" rows="12" cols="60">' . esc_textarea( emerson_office_mail_text( emerson_office_mail_people() ) ) . '</textarea>';

@@ -10,6 +10,60 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-22
+
+### Back-navigation: foil stays fixed; browser owns scroll again
+- The foil canvas must stay `position: fixed` from the first paint (critical CSS + inline) so it never inflates then collapses page height. Manual `scrollRestoration` was leaving people stuck at the top on back, so the browser handles scroll again. Wash colour shows immediately; symbols fade in after paint.
+- Foil reveal is one pipeline (wipe out → force mask shut → paint once → wipe in → shine mask next frame) with a sequence token so load/toggle cannot overlap. Shuffle once per reveal; `toDataURL` no longer blocks the wipe. Ready keeps the open mask (no `mask:none` flash). Critical CSS masks the sheet shut before the main stylesheet loads.
+- End-of-reveal “new arrangement” jump was drift starting mid-cycle (negative delay), not a second shuffle — drift now starts at origin; shine stays off-screen after the reveal pass. Hide wipe mirrors reveal (0%→100% + reversed shine) and freezes drift so turning off is not a rough side scrape.
+- Hide no longer snaps the wash off after the wipe (that was two end flashes from tearing down animation-fill, then dropping `emerson-foil`). Icons wipe, then the overlay fades out before classes are cleared.
+- Wipe-out masks the whole foil layer (wash + icons) and drops the html/body wash as soon as it starts, so the real page background is revealed by the wipe edge — not popped in at the end.
+- End-of-hide flash was dropping `wiping-out` (unmasking) while the layer was still opacity 1; opacity now snaps to 0 under the closed mask before classes clear.
+- End-of-reveal flash was dropping `wiping-in` back to the sheet’s default closed mask before `ready`; hold open through the handoff. Shine mask builds before wipe-in so it does not pop on at the end.
+- Reveal no longer paints the full wash before the wipe: layer stays hidden until `wiping-in`, and wipe-in masks the whole layer (wash + icons) like wipe-out.
+- Wipe-in end hiccup (pause at the corner, then motion again): drift stays on across the ready handoff; shine is parked at the end of its pass so ready does not restart the band.
+- Corner flash on turn-on: sheet no longer remasks at ready; shine uses a stable `shining` class through the handoff; layer mask stays held open until the next frame.
+- Reveal shine is one-shot then parked (infinite no longer loops at the viewport edge); pan travels further off-screen. Lion toggle: one in-flight animation + at most one queued on/off (latest click wins, no stack).
+- Shine fades in/out along the plugin shine-angle direction on reveal and hide (reverse), instead of cutting off at full strength when the pass ends.
+- Reveal end catch: dropped the park/mask-clear handoff (forced layout); wipe eases out past fully open; ambient shine starts only after a short settle.
+- Reveal start jerk: ease-in-out (not ease-out), drift only after ready. End white-from-left: wipe stops at 0% (no overshoot gap); ambient shine waits a full pass so it does not sweep in as the wipe ends.
+- Reveal flash-after-wipe: sheet was still mask-closed during wipe-in (only layer wiped), so icons appeared only at ready — sheet is unmasked during wipe-in like hide.
+- Reveal shine “flash out”: linear pan so opacity fades along the shine-angle path (ease was compressing the fade); softer wipe mask edge; hold faded shine after reveal; glow eases in on ready.
+- End jerk on reveal/hide: not clip-path — CSS mask soft edge was still on-screen when the mask was dropped. Wipe overshoots past open/closed; wash stays under wipe-in so overshoot is invisible; then mask is cleared.
+- Reveal showed everything then drifted after the wipe timer: `contain:paint` + sheet `mask-image:none` broke parent layer masking. Removed contain; sheet uses an opaque mask during wipe; sharper wipe edge; no overshoot (white block).
+- Wipe start/end jumps: dropped JS mask hold/reflow; CSS `animation-fill: both`; ready before removing wiping-in. Shine clipped inside the layer (no bottom white flash); no ambient shine restart after reveal; shorter/dimmer band.
+- Begin/end jumps: ready keeps the same wipe mask at 0% (mask never drops on handoff); hide adds wiping-out before removing ready; drift starts after reveal settles.
+- Sheet stayed open on ready (was snapping shut when wiping-in ended); soft edge parked off-screen (300% mask); hold-open across class handoffs; snap layer hidden before forceMaskClosed.
+- Wipe-in start wash flash: html/body wash only when ready (not during wipe-in); hold mask shut before revealing the layer, then start the wipe on the next frame.
+- Drift start hitch: ease-in-out instead of linear; delay scroll until wipe handoff settles; park at 0,0 then hand off; will-change on ready sheet.
+- Wipe follows shine angle (not X-only): shine 90° is vertical; closed/open mask-position derived from angle so the wash no longer flashes.
+- **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`, `assets/css/custom.css`, `assets/js/custom.js`, `assets/js/newsletter.js`.
+
+### Planning Calendar link is public again
+- **Planning Calendar** under the month grid on `/calendar/` shows for everyone, logged in or not. Roster click-through for serving roles stays limited to designated people.
+- **File:** `wp-content/plugins/emerson-chapel/inc/sunday-schedule-sheet.php`, `TEST-AND-LAUNCH-CHECKLIST.md`.
+
+### Calendar event detail drops the left colour bar
+- The sidebar “event information” lines no longer show Church Admin’s 5px coloured left border (inline style).
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
+### Foil background soft-fades in
+- Turning foil on (or reloading with it on) fades the colour wash first, then the symbols, instead of popping in after a long wait. Shine/drift still pick up mid-cycle. The expensive shine mask builds after the symbols are already visible; no font-wait delay.
+- **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+
+### Emerson Community Survey: email and post-submit UI
+- The signature’s base64 was left in `$_POST`, which slowed Calculated Fields past its 3-second AJAX timeout so the green “thanks” could appear without an email, then the form reset and showed “This field is required.” The signature is stripped before CFF runs (still attached to the office email). Thanks has no X, shows for 2 seconds, and the modal closes at 4 seconds. The form is no longer wiped on success.
+- Calculated Fields submits with `nativeSubmit()` (no `submit` event), so the signature field never left the browser and the server answered “Draw your signature.” The pad now keeps a hidden field in sync and registers a CFF extra validation. Separately, CFF’s Akismet subject filter typed the second argument as an array but receives a submission id; that TypeError aborted `wp_mail`. Emerson removes that filter so the office notification sends (local redirect still applies).
+- **File:** `wp-content/plugins/emerson-chapel/inc/recommitment.php`, `assets/js/recommitment.js`, `assets/css/custom.css`.
+
+### Emerson Community Survey phone is 10 digits
+- The Phone field no longer uses Calculated Fields’ `###-###-####` mask (that counted dashes as digits and wanted 12). It is a normal text box: type numbers only; the field shows `(123)456-7891` and requires 10 digits.
+- **File:** `wp-content/plugins/emerson-chapel/inc/recommitment.php`, `assets/js/recommitment.js`, `assets/css/custom.css`. Local DB form structure for the survey form.
+
+### Emerson Chapel security hardening
+- Sunday Schedule only fetches rebuilt Google Sheet export URLs (no arbitrary CSV URL / SSRF). Serving dates and newsletter sign-up use Emerson nonces. Re-commitment checks same-site Origin/Referer and rate-limits by email as well as IP. Private files resolve with `realpath` under the private directory and support `EMERSON_PRIVATE_DIR` in `wp-config.php`. Office mail list is Administrators only. Monthly calendar PDFs keep public links but are rate-limited and year-bounded.
+- **File:** `wp-content/plugins/emerson-chapel/inc/sunday-schedule-sheet.php`, `serving-dates.php`, `newsletter.php`, `recommitment.php`, `private-files.php`, `office-mail.php`, `calendar-pdfs.php`, `TEST-AND-LAUNCH-CHECKLIST.md`.
+
 ## 2026-10-21
 
 ### Calendar “today” stays in Emerson (Central / site timezone)

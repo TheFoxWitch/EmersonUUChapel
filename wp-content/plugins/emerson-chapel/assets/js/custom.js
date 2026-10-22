@@ -1468,82 +1468,631 @@
 	})();
 
 	var foilButton = document.querySelector('.emerson-foil-toggle');
-	if (foilButton) {
-		function setFoil(on) {
-			document.documentElement.classList.toggle('emerson-foil', on);
-			foilButton.setAttribute('aria-pressed', on ? 'true' : 'false');
+	var foilCanvas = document.querySelector('.emerson-foil__canvas');
+	var foilHideTimer = 0;
+	var foilSeq = 0;
+	var foilOrder = null;
+	var foilReveal = null;
+	var foilHide = null;
+	/* At most one in-flight animation + one pending toggle (latest click wins). */
+	var foilBusy = false;
+	var foilPending = null;
+
+	function foilRoot() {
+		return document.documentElement;
+	}
+	function foilSheetEl() {
+		return document.querySelector('.emerson-foil__sheet');
+	}
+	function foilLayerEl() {
+		return document.querySelector('.emerson-foil-layer');
+	}
+	function foilShineSeconds() {
+		var raw = parseFloat(
+			window.getComputedStyle(foilRoot()).getPropertyValue('--emerson-foil-shine-seconds')
+		);
+		return raw > 0 ? raw : 3.2;
+	}
+	function foilShineAngleDeg() {
+		var raw = parseFloat(
+			window.getComputedStyle(foilRoot()).getPropertyValue('--emerson-foil-shine-angle')
+		);
+		return window.isFinite(raw) ? raw : 0;
+	}
+	/**
+	 * Wipe mask-position must travel along the shine gradient, not always on X.
+	 * Shine 90° → gradient 180° (vertical); X-only animation used to flash the wash.
+	 */
+	function foilSyncWipeAxis() {
+		var root = foilRoot();
+		var theta = ((90 + foilShineAngleDeg()) * Math.PI) / 180;
+		var sin = Math.sin(theta);
+		var cos = Math.cos(theta);
+		var closed =
+			(50 + 50 * sin).toFixed(3) + '% ' + (50 - 50 * cos).toFixed(3) + '%';
+		var open =
+			(50 - 50 * sin).toFixed(3) + '% ' + (50 + 50 * cos).toFixed(3) + '%';
+		root.style.setProperty('--emerson-foil-wipe-closed', closed);
+		root.style.setProperty('--emerson-foil-wipe-open', open);
+		return { closed: closed, open: open };
+	}
+	function foilReduceMotion() {
+		return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	}
+	function foilRandomizeOn() {
+		return !!(foilCanvas && foilCanvas.getAttribute('data-randomize') === '1');
+	}
+	function foilBumpSeq() {
+		foilSeq += 1;
+		return foilSeq;
+	}
+	function foilStill(seq) {
+		return seq === foilSeq;
+	}
+	function foilClearMotionClasses() {
+		foilRoot().classList.remove(
+			'emerson-foil-ready',
+			'emerson-foil-wiping-in',
+			'emerson-foil-wiping-out',
+			'emerson-foil-drifting',
+			'emerson-foil-shining',
+			'emerson-foil-fading-out',
+			'emerson-foil-hiding'
+		);
+	}
+	function foilEffectiveOn() {
+		var root = foilRoot();
+		return (
+			root.classList.contains('emerson-foil') &&
+			!root.classList.contains('emerson-foil-wiping-out')
+		);
+	}
+	/** Same gradient the CSS wipe uses — keep holds visually identical to the animation. */
+	function foilWipeMaskImage() {
+		return (
+			'linear-gradient(calc(90deg + var(--emerson-foil-shine-angle, 0deg)),' +
+			'#000 0%,#000 42%,transparent 58%,transparent 100%)'
+		);
+	}
+	function foilApplyWipeMaskHold(el, position) {
+		if (!el) {
+			return;
 		}
-		setFoil(document.documentElement.classList.contains('emerson-foil'));
-		foilButton.addEventListener('click', function () {
-			var on = !document.documentElement.classList.contains('emerson-foil');
-			setFoil(on);
-			try {
-				localStorage.setItem('emerson-foil', on ? '1' : '0');
-			} catch (error) {}
+		var img = foilWipeMaskImage();
+		el.style.setProperty('-webkit-mask-image', img);
+		el.style.setProperty('mask-image', img);
+		el.style.setProperty('-webkit-mask-size', '300% 300%');
+		el.style.setProperty('mask-size', '300% 300%');
+		el.style.setProperty('-webkit-mask-repeat', 'no-repeat');
+		el.style.setProperty('mask-repeat', 'no-repeat');
+		el.style.setProperty('-webkit-mask-position', position);
+		el.style.setProperty('mask-position', position);
+		el.style.setProperty('animation', 'none');
+	}
+	/** Hold mask fully closed (wipe-out end / wipe-in start). */
+	function foilHoldMaskClosed(el) {
+		foilApplyWipeMaskHold(el, foilSyncWipeAxis().closed);
+	}
+	/** Hold mask fully open before dropping wiping-in. */
+	function foilHoldMaskOpen(el) {
+		foilApplyWipeMaskHold(el, foilSyncWipeAxis().open);
+	}
+	function foilClearMaskHold(el) {
+		if (!el) {
+			return;
+		}
+		el.style.removeProperty('animation');
+		el.style.removeProperty('-webkit-mask-position');
+		el.style.removeProperty('mask-position');
+		el.style.removeProperty('-webkit-mask-image');
+		el.style.removeProperty('mask-image');
+		el.style.removeProperty('-webkit-mask-size');
+		el.style.removeProperty('mask-size');
+		el.style.removeProperty('-webkit-mask-repeat');
+		el.style.removeProperty('mask-repeat');
+	}
+	/** Hide layer with no opacity transition — call while wipe mask is still shut. */
+	function foilSnapLayerHidden(layer) {
+		if (!layer) {
+			return;
+		}
+		layer.style.setProperty('transition', 'none');
+		layer.style.setProperty('opacity', '0');
+		layer.style.setProperty('visibility', 'hidden');
+		void layer.offsetWidth;
+	}
+	function foilClearLayerSnap(layer) {
+		if (!layer) {
+			return;
+		}
+		layer.style.removeProperty('transition');
+		layer.style.removeProperty('opacity');
+		layer.style.removeProperty('visibility');
+	}
+	/** Full reset used before a fresh paint, not mid-hide. */
+	function foilForceMaskClosed() {
+		var sheet = foilSheetEl();
+		var layer = foilLayerEl();
+		/* Hide first — clearing wiping-out used to flash a full unmasked frame. */
+		foilSnapLayerHidden(layer);
+		foilClearMotionClasses();
+		foilClearSheetTransform(sheet);
+		foilHoldMaskClosed(sheet);
+		foilHoldMaskClosed(layer);
+		if (sheet) {
+			void sheet.offsetWidth;
+		}
+		if (layer) {
+			void layer.offsetWidth;
+		}
+		foilClearMaskHold(sheet);
+		foilClearMaskHold(layer);
+		/* Leave layer snapped shut; wipe-in clears the snap when it starts. */
+		if (sheet) {
+			void sheet.offsetWidth;
+		}
+	}
+	function foilFreezeSheetTransform(sheet) {
+		if (!sheet) {
+			return;
+		}
+		var transform = window.getComputedStyle(sheet).transform;
+		sheet.style.transform = transform && transform !== 'none' ? transform : 'translate3d(0, 0, 0)';
+	}
+	function foilClearSheetTransform(sheet) {
+		if (!sheet) {
+			return;
+		}
+		sheet.style.removeProperty('transform');
+	}
+	function foilShuffle(symbols) {
+		var list = symbols.slice();
+		var i;
+		var j;
+		var swap;
+		for (i = list.length - 1; i > 0; i--) {
+			j = Math.floor(Math.random() * (i + 1));
+			swap = list[i];
+			list[i] = list[j];
+			list[j] = swap;
+		}
+		return list;
+	}
+	function foilApplyShineMask(shine, width, height, dataUrl) {
+		if (!shine || !dataUrl) {
+			return;
+		}
+		shine.style.width = width + 'px';
+		shine.style.height = height + 'px';
+		shine.style.maskImage = 'url("' + dataUrl + '")';
+		shine.style.webkitMaskImage = 'url("' + dataUrl + '")';
+		shine.style.maskSize = width + 'px ' + height + 'px';
+		shine.style.webkitMaskSize = width + 'px ' + height + 'px';
+		shine.style.maskRepeat = 'no-repeat';
+		shine.style.webkitMaskRepeat = 'no-repeat';
+	}
+	/**
+	 * Draw icons only (no toDataURL). Must run while the wipe mask is shut.
+	 * reshuffle=true picks a new order when Randomize is on; otherwise reuse foilOrder.
+	 * Returns {width,height} for a later shine-mask build, or null.
+	 */
+	function foilPaint(symbolsSource, reshuffle) {
+		if (!foilCanvas || !symbolsSource.length) {
+			return null;
+		}
+		if (reshuffle || !foilOrder || foilOrder.length !== symbolsSource.length) {
+			foilOrder = foilRandomizeOn() ? foilShuffle(symbolsSource) : symbolsSource.slice();
+		}
+		var symbols = foilOrder;
+		var cols = 36;
+		var rows = 24;
+		var cell = 88;
+		var gap = 6;
+		var width = cols * cell + (cols - 1) * gap;
+		var height = rows * cell + (rows - 1) * gap;
+		var layer = foilCanvas.closest('.emerson-foil-layer');
+		if (layer) {
+			layer.style.position = 'fixed';
+			layer.style.inset = '0';
+			layer.style.overflow = 'hidden';
+			layer.style.pointerEvents = 'none';
+			layer.style.zIndex = '0';
+		}
+		foilCanvas.width = width;
+		foilCanvas.height = height;
+		var ctx = foilCanvas.getContext('2d');
+		ctx.font = '67px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		var index = 0;
+		var row;
+		var col;
+		for (row = 0; row < rows; row++) {
+			for (col = 0; col < cols; col++) {
+				ctx.fillText(
+					symbols[index % symbols.length],
+					col * (cell + gap) + cell / 2,
+					row * (cell + gap) + cell / 2
+				);
+				index++;
+			}
+		}
+		foilCanvas.dataset.emersonDrawn = '1';
+		var root = foilRoot();
+		/*
+		 * Drift must start at translate(0,0). A negative phase delay used to jump the
+		 * whole field at wipe-in end — looked like a new random arrangement.
+		 * Shine delay parks the band off-screen after the reveal pass.
+		 */
+		root.style.setProperty('--emerson-foil-drift-delay', '0s');
+		root.style.setProperty(
+			'--emerson-foil-shine-delay',
+			(-foilShineSeconds()).toFixed(3) + 's'
+		);
+		foilSyncWipeAxis();
+		return { width: width, height: height };
+	}
+	/**
+	 * Build the shine mask, then start wipe-in.
+	 * Applying the mask mid-wipe flashed a full band at the end of reveal.
+	 */
+	function foilShineThenWipeIn(seq, size, done) {
+		function startIn() {
+			if (!foilStill(seq)) {
+				return;
+			}
+			foilStartWipeIn(seq, done);
+		}
+		if (!size || !foilCanvas) {
+			startIn();
+			return;
+		}
+		window.requestAnimationFrame(function () {
+			if (!foilStill(seq) || !foilCanvas) {
+				return;
+			}
+			foilApplyShineMask(
+				document.querySelector('.emerson-foil__shine'),
+				size.width,
+				size.height,
+				foilCanvas.toDataURL('image/png')
+			);
+			startIn();
 		});
 	}
-	var foilCanvas = document.querySelector('.emerson-foil__canvas');
-	if (foilCanvas && !foilCanvas.dataset.emersonDrawn) {
+	function foilWaitWipe(el, seq, done) {
+		var finished = false;
+		var ms = foilReduceMotion() ? 0 : Math.round(foilShineSeconds() * 1000) + 100;
+		function finish() {
+			if (finished || !foilStill(seq)) {
+				return;
+			}
+			finished = true;
+			if (el) {
+				el.removeEventListener('animationend', onEnd);
+			}
+			window.clearTimeout(timer);
+			done();
+		}
+		function onEnd(event) {
+			if (!el || event.target !== el) {
+				return;
+			}
+			if (String(event.animationName || '').indexOf('emerson-foil-wipe') === -1) {
+				return;
+			}
+			finish();
+		}
+		if (el) {
+			el.addEventListener('animationend', onEnd);
+		}
+		var timer = window.setTimeout(finish, ms);
+	}
+	function foilStartWipeIn(seq, done) {
+		var root = foilRoot();
+		var sheet = foilSheetEl();
+		var layer = foilLayerEl();
+		foilClearMotionClasses();
+		/* Clear leftover freeze only while hidden — not mid-visible (that jumped). */
+		foilClearSheetTransform(sheet);
+		if (foilReduceMotion() || !layer) {
+			foilClearLayerSnap(layer);
+			root.classList.add('emerson-foil-ready');
+			if (typeof done === 'function') {
+				done();
+			}
+			return;
+		}
+		/*
+		 * Mask shut BEFORE the layer is shown. Clearing snap then adding wiping-in
+		 * used to paint one full wash frame before the animation-fill kicked in.
+		 */
+		foilSyncWipeAxis();
+		foilHoldMaskClosed(layer);
+		root.classList.add('emerson-foil-wiping-in');
+		foilClearLayerSnap(layer);
+		void layer.offsetWidth;
+		window.requestAnimationFrame(function () {
+			if (!foilStill(seq)) {
+				return;
+			}
+			foilClearMaskHold(layer);
+			foilWaitWipe(layer, seq, function () {
+				if (!foilStill(seq)) {
+					return;
+				}
+				foilHoldMaskOpen(layer);
+				/* Ready first — drift waits so scroll does not kick on the wipe handoff. */
+				root.classList.add('emerson-foil-ready');
+				root.classList.remove('emerson-foil-wiping-in');
+				foilClearSheetTransform(sheet);
+				if (sheet) {
+					sheet.style.transform = 'translate3d(0, 0, 0)';
+				}
+				window.requestAnimationFrame(function () {
+					if (!foilStill(seq)) {
+						return;
+					}
+					foilClearMaskHold(layer);
+					if (typeof done === 'function') {
+						done();
+					}
+					window.setTimeout(function () {
+						if (!foilStill(seq) || !root.classList.contains('emerson-foil-ready')) {
+							return;
+						}
+						root.classList.add('emerson-foil-drifting');
+						window.requestAnimationFrame(function () {
+							if (!foilStill(seq) || !sheet) {
+								return;
+							}
+							/* Hand off to the CSS animation from the matching 0,0 park. */
+							sheet.style.removeProperty('transform');
+						});
+					}, 280);
+				});
+			});
+		});
+	}
+	function foilStartWipeOut(seq, done) {
+		var root = foilRoot();
+		var sheet = foilSheetEl();
+		var layer = foilLayerEl();
+		if (foilReduceMotion() || !layer) {
+			foilHoldMaskClosed(layer || sheet);
+			root.classList.remove('emerson-foil-ready', 'emerson-foil-wiping-in', 'emerson-foil-wiping-out', 'emerson-foil-drifting', 'emerson-foil-shining');
+			if (typeof done === 'function') {
+				done();
+			}
+			return;
+		}
+		function afterOut() {
+			if (!foilStill(seq)) {
+				return;
+			}
+			foilHoldMaskClosed(layer);
+			if (typeof done === 'function') {
+				done();
+			}
+		}
+		if (root.classList.contains('emerson-foil-wiping-out')) {
+			foilWaitWipe(layer, seq, afterOut);
+			return;
+		}
+		/* Freeze drift; hold open → wiping-out → drop ready (same open mask). */
+		foilSyncWipeAxis();
+		foilFreezeSheetTransform(sheet);
+		foilHoldMaskOpen(layer);
+		root.classList.add('emerson-foil-wiping-out');
+		root.classList.remove('emerson-foil-ready', 'emerson-foil-drifting', 'emerson-foil-shining', 'emerson-foil-wiping-in');
+		window.requestAnimationFrame(function () {
+			if (!foilStill(seq)) {
+				return;
+			}
+			foilClearMaskHold(layer);
+			foilWaitWipe(layer, seq, afterOut);
+		});
+	}
+	/**
+	 * Strict order (one flight at a time via foilSeq):
+	 * 1) if icons are visible / mid-wipe → wipe out to shut
+	 * 2) force mask closed
+	 * 3) paint exactly once (optional reshuffle)
+	 * 4) shine mask
+	 * 5) wipe in
+	 * 6) hold mask open → ready (no shut-frame flash)
+	 */
+	foilReveal = function (options) {
+		options = options || {};
+		var symbols = options.symbols || [];
+		var reshuffle = !!options.reshuffle;
+		var onComplete = typeof options.onComplete === 'function' ? options.onComplete : null;
+		var seq = foilBumpSeq();
+		var root = foilRoot();
+		window.clearTimeout(foilHideTimer);
+		root.classList.remove('emerson-foil-fading-out');
+
+		function finishReveal() {
+			if (!foilStill(seq)) {
+				return;
+			}
+			if (onComplete) {
+				onComplete();
+			}
+		}
+
+		function paintThenIn() {
+			if (!foilStill(seq)) {
+				return;
+			}
+			foilForceMaskClosed();
+			var size = foilPaint(symbols, reshuffle);
+			foilShineThenWipeIn(seq, size, finishReveal);
+		}
+
+		if (!symbols.length) {
+			finishReveal();
+			return;
+		}
+		/*
+		 * ready → animated wipe out, then paint.
+		 * wiping-out → wait for shut, then paint.
+		 * else → already shut; paint.
+		 */
+		if (root.classList.contains('emerson-foil-ready')) {
+			foilStartWipeOut(seq, paintThenIn);
+		} else if (root.classList.contains('emerson-foil-wiping-out')) {
+			foilStartWipeOut(seq, paintThenIn);
+		} else {
+			paintThenIn();
+		}
+	};
+	foilHide = function (done) {
+		var seq = foilBumpSeq();
+		var finished = false;
+		window.clearTimeout(foilHideTimer);
+
+		function finishOff() {
+			if (finished || !foilStill(seq)) {
+				return;
+			}
+			finished = true;
+			window.clearTimeout(foilHideTimer);
+			var root = foilRoot();
+			var layer = foilLayerEl();
+			/* Mask still shut from afterOut; ensure opacity is 0 before unmasking. */
+			foilHoldMaskClosed(layer);
+			foilSnapLayerHidden(layer);
+			root.classList.remove(
+				'emerson-foil',
+				'emerson-foil-fading-out',
+				'emerson-foil-ready',
+				'emerson-foil-wiping-in',
+				'emerson-foil-wiping-out',
+				'emerson-foil-drifting',
+				'emerson-foil-shining'
+			);
+			/* Clear mask/holds on the next frame while layer stays opacity 0. */
+			window.requestAnimationFrame(function () {
+				if (!foilStill(seq)) {
+					return;
+				}
+				foilForceMaskClosed();
+				if (typeof done === 'function') {
+					done();
+				}
+			});
+		}
+
+		foilStartWipeOut(seq, finishOff);
+		foilHideTimer = window.setTimeout(
+			finishOff,
+			Math.round(foilShineSeconds() * 1000) + 200
+		);
+	};
+
+	function foilFlightDone() {
+		foilBusy = false;
+		if (foilPending === null) {
+			return;
+		}
+		var wantOn = foilPending;
+		foilPending = null;
+		if (wantOn === foilEffectiveOn()) {
+			if (foilButton) {
+				foilButton.setAttribute('aria-pressed', wantOn ? 'true' : 'false');
+			}
+			return;
+		}
+		foilStartToward(wantOn);
+	}
+
+	function foilStartToward(wantOn) {
+		foilBusy = true;
+		foilPending = null;
+		var root = foilRoot();
+		if (foilButton) {
+			foilButton.setAttribute('aria-pressed', wantOn ? 'true' : 'false');
+		}
+		try {
+			localStorage.setItem('emerson-foil', wantOn ? '1' : '0');
+		} catch (error) {}
+
+		if (wantOn) {
+			root.classList.add('emerson-foil');
+			if (typeof foilReveal === 'function' && foilCanvas) {
+				var symbols = [];
+				try {
+					symbols = JSON.parse(foilCanvas.getAttribute('data-symbols') || '[]');
+				} catch (error) {}
+				if (symbols.length) {
+					foilReveal({
+						symbols: symbols,
+						reshuffle: foilRandomizeOn(),
+						onComplete: foilFlightDone
+					});
+					return;
+				}
+			}
+			foilForceMaskClosed();
+			root.classList.add('emerson-foil-ready', 'emerson-foil-drifting');
+			foilFlightDone();
+			return;
+		}
+
+		if (typeof foilHide === 'function') {
+			foilHide(foilFlightDone);
+			return;
+		}
+		foilForceMaskClosed();
+		root.classList.remove('emerson-foil');
+		foilFlightDone();
+	}
+
+	if (foilCanvas) {
 		var foilSymbols = [];
 		try {
 			foilSymbols = JSON.parse(foilCanvas.getAttribute('data-symbols') || '[]');
 		} catch (error) {}
 		if (foilSymbols.length) {
-			if (foilCanvas.getAttribute('data-randomize') === '1' && foilSymbols.length > 1) {
-				var foilShuffle = foilSymbols.slice();
-				var foilSwap;
-				var foilI;
-				var foilJ;
-				for (foilI = foilShuffle.length - 1; foilI > 0; foilI--) {
-					foilJ = Math.floor(Math.random() * (foilI + 1));
-					foilSwap = foilShuffle[foilI];
-					foilShuffle[foilI] = foilShuffle[foilJ];
-					foilShuffle[foilJ] = foilSwap;
+			try {
+				sessionStorage.removeItem('emersonFoilOrder');
+			} catch (error) {}
+			window.requestAnimationFrame(function () {
+				if (!foilRoot().classList.contains('emerson-foil')) {
+					/* Prefetch icons while masked shut; shine waits until a real reveal. */
+					foilForceMaskClosed();
+					foilPaint(foilSymbols, true);
+					return;
 				}
-				foilSymbols = foilShuffle;
-			}
-			var foilCols = 36;
-			var foilRows = 24;
-			var foilCell = 88;
-			var foilGap = 6;
-			var foilWidth = foilCols * foilCell + (foilCols - 1) * foilGap;
-			var foilHeight = foilRows * foilCell + (foilRows - 1) * foilGap;
-			foilCanvas.width = foilWidth;
-			foilCanvas.height = foilHeight;
-			var foilContext = foilCanvas.getContext('2d');
-			foilContext.font = '67px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
-			foilContext.textAlign = 'center';
-			foilContext.textBaseline = 'middle';
-			var foilIndex = 0;
-			var foilRow;
-			var foilCol;
-			for (foilRow = 0; foilRow < foilRows; foilRow++) {
-				for (foilCol = 0; foilCol < foilCols; foilCol++) {
-					foilContext.fillText(
-						foilSymbols[foilIndex % foilSymbols.length],
-						foilCol * (foilCell + foilGap) + foilCell / 2,
-						foilRow * (foilCell + foilGap) + foilCell / 2
-					);
-					foilIndex++;
-				}
-			}
-			foilCanvas.dataset.emersonDrawn = '1';
-			var foilShine = document.querySelector('.emerson-foil__shine');
-			if (foilShine) {
-				var foilMask = 'url("' + foilCanvas.toDataURL('image/png') + '")';
-				foilShine.style.width = foilWidth + 'px';
-				foilShine.style.height = foilHeight + 'px';
-				foilShine.style.maskImage = foilMask;
-				foilShine.style.webkitMaskImage = foilMask;
-				foilShine.style.maskSize = foilWidth + 'px ' + foilHeight + 'px';
-				foilShine.style.webkitMaskSize = foilWidth + 'px ' + foilHeight + 'px';
-				foilShine.style.maskRepeat = 'no-repeat';
-				foilShine.style.webkitMaskRepeat = 'no-repeat';
-			}
-			document.documentElement.classList.remove('emerson-foil-ready');
-			void document.documentElement.offsetWidth;
-			document.documentElement.classList.add('emerson-foil-ready');
+				foilBusy = true;
+				foilReveal({
+					symbols: foilSymbols,
+					reshuffle: true,
+					onComplete: foilFlightDone
+				});
+			});
 		}
+	}
+
+	if (foilButton) {
+		foilButton.setAttribute(
+			'aria-pressed',
+			foilRoot().classList.contains('emerson-foil') ? 'true' : 'false'
+		);
+		foilButton.addEventListener('click', function () {
+			var wantOn = foilButton.getAttribute('aria-pressed') !== 'true';
+			foilButton.setAttribute('aria-pressed', wantOn ? 'true' : 'false');
+			try {
+				localStorage.setItem('emerson-foil', wantOn ? '1' : '0');
+			} catch (error) {}
+			if (foilBusy) {
+				/* One pending only — latest click replaces it; no stack. */
+				foilPending = wantOn;
+				return;
+			}
+			foilStartToward(wantOn);
+		});
 	}
 })();
 

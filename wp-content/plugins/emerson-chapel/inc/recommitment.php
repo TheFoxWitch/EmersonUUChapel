@@ -217,14 +217,14 @@ function emerson_survey_ensure_form(): void {
 		$field(
 			array(
 				'name'            => 'fieldname5',
-				'ftype'           => 'fPhone',
+				'ftype'           => 'ftext',
 				'title'           => 'Phone',
 				'required'        => true,
 				'size'            => 'medium',
-				'dformat'           => '###-###-####',
-				'predefined'        => '',
-				'predefinedClick'   => false,
-				'showFormatAsHint'  => false,
+				'predefined'      => '',
+				'predefinedClick' => false,
+				'userhelp'        => '10-digit number, for example (636)757-3633',
+				'csslayout'       => 'emerson-survey-phone',
 			),
 			5
 		),
@@ -257,7 +257,7 @@ function emerson_survey_ensure_form(): void {
 	$form->save_settings(
 		array(
 			'form_structure'         => wp_json_encode( $settings ),
-			'fp_from_email'          => EMERSON_RECOMMIT_OFFICE,
+			'fp_from_email'          => '',
 			'fp_destination_emails'  => EMERSON_RECOMMIT_OFFICE,
 			'fp_subject'             => 'Commitment form',
 			'fp_message'             => "A commitment form was submitted.\n\n<%INFO%>\n",
@@ -265,7 +265,7 @@ function emerson_survey_ensure_form(): void {
 			'fp_inc_additional_info' => 'false',
 			'fp_reply_to_emails'     => '<%fieldname6%>',
 			'fp_ajax'                => 1,
-			'fp_ajax_reset_form'     => 1,
+			'fp_ajax_reset_form'     => 0,
 			'fp_thanks_mssg'         => 'Sent. Thank you for your commitment.',
 			'enable_submit'          => '',
 			'vs_text_submitbtn'      => 'Submit',
@@ -276,6 +276,21 @@ function emerson_survey_ensure_form(): void {
 	update_option( 'emerson_survey_cff_id', $form->get_id(), false );
 }
 add_action( 'init', 'emerson_survey_ensure_form', 20 );
+
+/**
+ * Do not wipe the form after AJAX success — that emptied required fields and showed “This field is required.”
+ */
+add_filter(
+	'cpcff_get_option',
+	static function ( $value, $option, $form_id ) {
+		if ( 'fp_ajax_reset_form' === $option && (int) $form_id === emerson_survey_form_id() ) {
+			return 0;
+		}
+		return $value;
+	},
+	10,
+	3
+);
 
 function emerson_survey_editor_url(): string {
 	$id = emerson_survey_form_id();
@@ -400,6 +415,9 @@ function emerson_survey_require_signature(): void {
 		return;
 	}
 	$png = emerson_survey_signature_png();
+	// Drop the base64 from $_POST before Calculated Fields runs — it bloated the save and made
+	// the AJAX iframe hang past CFF’s 3s timeout, which showed a fake “thanks” with no email.
+	unset( $_POST['emerson_signature'], $_REQUEST['emerson_signature'] );
 	if ( $png === '' ) {
 		echo 'Draw your signature.';
 		exit;
@@ -413,6 +431,20 @@ function emerson_survey_require_signature(): void {
 }
 add_action( 'init', 'emerson_survey_require_signature', 98 );
 
+/**
+ * Keep the huge signature string out of the submission record if it slipped through.
+ *
+ * @param array<string,mixed> $params Submission payload.
+ * @param string              $buffer Summary text.
+ */
+function emerson_survey_strip_signature_from_params( &$params, &$buffer = null ): void {
+	unset( $params['emerson_signature'] );
+	if ( is_string( $buffer ) && str_contains( $buffer, 'emerson_signature' ) ) {
+		$buffer = (string) preg_replace( '/^.*emerson_signature.*$/mi', '', $buffer );
+	}
+}
+add_action( 'cpcff_free_process_data_before_insert', 'emerson_survey_strip_signature_from_params', 1, 2 );
+
 function emerson_survey_attach_signature( $phpmailer ): void {
 	$file = $GLOBALS['emerson_survey_signature_file'] ?? '';
 	if ( ! is_string( $file ) || $file === '' || ! is_readable( $file ) ) {
@@ -421,6 +453,18 @@ function emerson_survey_attach_signature( $phpmailer ): void {
 	$phpmailer->addAttachment( $file, 'signature.png' );
 }
 add_action( 'phpmailer_init', 'emerson_survey_attach_signature' );
+
+/**
+ * Calculated Fields Form registers an Akismet subject filter typed as (string, array),
+ * but passes the submission id (int). PHP 8 throws; CFF catches it and skips wp_mail.
+ */
+function emerson_survey_fix_cff_akismet_mail_filter(): void {
+	if ( ! class_exists( 'CPCFF_Akismet' ) ) {
+		return;
+	}
+	remove_filter( 'cpcff_notification_email_subject', array( CPCFF_Akismet::get_instance(), 'mark_email_as_spam' ), 10 );
+}
+add_action( 'init', 'emerson_survey_fix_cff_akismet_mail_filter', 5 );
 
 function emerson_survey_delete_signature_file(): void {
 	$file = $GLOBALS['emerson_survey_signature_file'] ?? '';
@@ -457,14 +501,32 @@ function emerson_recommit_date( string $raw ): string {
 	return wp_date( 'n/j/y', $dt->getTimestamp() );
 }
 
-function emerson_recommit_limited(): bool {
+function emerson_recommit_limited( string $bucket = '' ): bool {
 	$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
-	$key = 'emerson_recommit_' . md5( $ip );
+	$key = 'emerson_recommit_' . md5( $bucket !== '' ? $bucket : $ip );
 	$n   = (int) get_transient( $key );
 	if ( $n >= EMERSON_RECOMMIT_MAX_PER_HOUR ) {
 		return true;
 	}
 	set_transient( $key, $n + 1, HOUR_IN_SECONDS );
+	return false;
+}
+
+/** Same-site Origin or Referer (blocks cross-site use of a scraped homepage nonce). */
+function emerson_recommit_from_this_site(): bool {
+	$home = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+	if ( ! is_string( $home ) || $home === '' ) {
+		return false;
+	}
+	foreach ( array( 'HTTP_ORIGIN', 'HTTP_REFERER' ) as $header ) {
+		if ( empty( $_SERVER[ $header ] ) ) {
+			continue;
+		}
+		$host = wp_parse_url( (string) wp_unslash( $_SERVER[ $header ] ), PHP_URL_HOST );
+		if ( is_string( $host ) && strcasecmp( $host, $home ) === 0 ) {
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -500,6 +562,9 @@ function emerson_recommit_has_ink( string $png ): bool {
 
 function emerson_recommit_submit(): void {
 	if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'emerson_recommit' ) ) {
+		wp_send_json_error( array( 'message' => 'The form expired. Reload the page and try again.' ), 403 );
+	}
+	if ( ! emerson_recommit_from_this_site() ) {
 		wp_send_json_error( array( 'message' => 'The form expired. Reload the page and try again.' ), 403 );
 	}
 	if ( emerson_recommit_limited() ) {
@@ -540,6 +605,9 @@ function emerson_recommit_submit(): void {
 	$email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
 	if ( ! is_email( $email ) ) {
 		wp_send_json_error( array( 'message' => 'Enter a valid email address.' ) );
+	}
+	if ( emerson_recommit_limited( 'email:' . strtolower( $email ) ) ) {
+		wp_send_json_error( array( 'message' => 'Too many submissions for this email. Please try again in an hour, or email the office.' ), 429 );
 	}
 
 	$signed_on = emerson_recommit_date( isset( $_POST['signed_on'] ) ? (string) wp_unslash( $_POST['signed_on'] ) : '' );

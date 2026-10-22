@@ -13,6 +13,20 @@
 
 declare( strict_types=1 );
 
+/**
+ * Light per-IP cap on public monthly PDF builds (year planner already uses Church Admin's nonce).
+ */
+function emerson_calendar_pdf_rate_limited(): bool {
+	$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
+	$key = 'emerson_cal_pdf_' . md5( $ip );
+	$n   = (int) get_transient( $key );
+	if ( $n >= 60 ) {
+		return true;
+	}
+	set_transient( $key, $n + 1, HOUR_IN_SECONDS );
+	return false;
+}
+
 add_action(
 	'init',
 	static function (): void {
@@ -35,10 +49,20 @@ add_action(
 			emerson_year_planner_pdf( $year >= 2000 && $year <= 2100 ? $year : (int) current_time( 'Y' ) );
 		}
 
+		// Monthly PDF stays public (same as Church Admin's link) but capped and date-bounded.
+		if ( emerson_calendar_pdf_rate_limited() ) {
+			status_header( 429 );
+			nocache_headers();
+			wp_die( esc_html__( 'Too many calendar PDF requests. Please try again in an hour.' ), esc_html__( 'Too many requests' ), array( 'response' => 429 ) );
+		}
+
 		$start = isset( $_GET['start_date'] ) ? sanitize_text_field( wp_unslash( $_GET['start_date'] ) ) : '';
 		$month = preg_match( '/^(\d{4})-(\d{1,2})/', $start, $m ) && (int) $m[2] >= 1 && (int) $m[2] <= 12
 			? array( (int) $m[1], (int) $m[2] )
 			: array( (int) current_time( 'Y' ), (int) current_time( 'n' ) );
+		if ( $month[0] < 2000 || $month[0] > 2100 ) {
+			$month = array( (int) current_time( 'Y' ), (int) current_time( 'n' ) );
+		}
 		emerson_monthly_calendar_pdf( $month[0], $month[1] );
 	},
 	5

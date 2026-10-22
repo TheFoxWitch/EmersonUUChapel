@@ -122,8 +122,16 @@
 
 		var opened = false;
 		var timer;
+		/* Browser back restores scroll after first paint and fires scroll events — ignore those. */
+		var scrollOpenReady = false;
+		window.setTimeout(function () {
+			scrollOpenReady = true;
+		}, 750);
 
 		function onScroll() {
+			if (!scrollOpenReady) {
+				return;
+			}
 			var scrollable = document.documentElement.scrollHeight - window.innerHeight;
 			if (scrollable > 0 && window.scrollY / scrollable >= OPEN_AT_SCROLL) {
 				open();

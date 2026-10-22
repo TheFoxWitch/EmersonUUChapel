@@ -258,7 +258,7 @@ Tick **Remove from this list**, then **Save**. The link leaves the Documents pag
 
 When the site emails `office@emersonuuchapel.org` (a form notification, a Sunday change, a new newsletter subscriber), the people on this list also receive that message. The office address still receives it. Mail sent only to a member, such as a password reset or a service notice to the person serving, is not copied.
 
-**Who can do this:** anyone who can edit pages (Administrator or Editor).
+**Who can do this:** Administrators only (not Editors).
 
 **Where:** WordPress admin (the left-hand menu) → **Office mail**. It is an envelope icon, just under **Modals**.
 
@@ -291,7 +291,7 @@ A new file (or a different tab) has a different address. The old URL will keep s
 5. Click **Save URL**.
 6. Confirm **Last fetch** shows a time, a row count, and no error. October should list **Courage** if that is still the October theme.
 
-The sheet must be shared so **anyone with the link can view**. Editor access is not required for the site to read it. **Planning Calendar** on `/calendar/` is only shown to Administrators, Editors, and the designated Sunday Schedule list. Visitors do not get the spreadsheet URL.
+The sheet must be shared so **anyone with the link can view**. Editor access is not required for the site to read it. **Planning Calendar** on `/calendar/` is shown to everyone (logged in or not).
 
 Serving-role columns (liturgist, greeter, and so on) stay off the public calendar on purpose. The month PDF is **This calendar PDF** at the top of the Calendar page, not under the month name.
 
@@ -376,6 +376,7 @@ So: Harlan's backup is a **diff of church activity since 24 Sept**. Your serving
 - [ ] **Serving dates still work after the restore.** Logged in as a member, "Dates I can serve" shows their ticks. In `wp eval`, `wp_next_scheduled('emerson_serving_daily_sync')` returns a time (the daily job that keeps unanswered dates blocked for auto-fill). The `wp_emerson_serving_answers` table travels with the WPvivid database backup.
 - [ ] **Calendar PDFs** (in Firefox or Safari; Cursor's browser doesn't show PDFs): **Yearly Planner PDFs** for 2026, 2027, or 2028 opens a 12-page calendar for that year. Logged out, October 2026 shows title and speaker (The Main Thing / Rex Loy), not only Sunday Service, plus Womyn's Web / Men's Night / Board Meeting. Logged in as someone serving that day, their role appears. Weekday ticks print **You can serve**. Logged in as an elevated person, the full sheet row appears. Months the sheet has not filled in yet still say Sunday Service. **This calendar PDF** is the current month.
 - [ ] **Calendar → "This calendar PDF"** downloads a PDF.
+- [ ] **Private spreadsheets folder is outside the public site.** Confirm with Harlan that the finance files are in the folder **next to** `public_html` (not in Media / `uploads` / `wp-content` unless that folder is blocked from the web). Admins and Finance can open them from Members; a normal member cannot. See **Finance / private spreadsheets folder** in section 4.
 
 ## 4. Questions for the church
 
@@ -414,9 +415,11 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
   - **Ask:** who needs to see them? View only, or editing too? What information is in them (giving by person, pledge totals, budget, attendance)? How often is it updated?
   - Church Admin **Giving** stays separate (`/giving/`, Church Admin permissions).
   - Apple Numbers is not Excel. Export to `.xlsx` or PDF from Numbers if people need to open the file without Numbers.
-- [ ] **Spreadsheets on the live site.** The WPvivid restore carries the **code** and the Members shortcode. It does **not** carry the Excel files, and Docker's `private-files/` mount does not exist on the host. **Ask Harlan** to make a folder **next to** `public_html`, not inside it (for example `/home/ACCOUNT/emerson-private`), that PHP can read. Then copy the `.xlsx` files there (FTP or File Manager). Do **not** use Media or `uploads/` — those are public if someone has the URL.
+- [ ] **Finance / private spreadsheets folder — tell the church (and Harlan).** These files must **not** live inside the public website tree (`public_html`, `wp-content`, Media, or `uploads/`). Anyone who guessed a URL could open them there. On this Mac they sit in the project’s `private-files/` folder, which Docker mounts **outside** the web root. Live needs the same idea.
+  - **What to say:** “Please keep the finance spreadsheets in a private server folder **next to** the site (for example beside `public_html`), not inside it. WordPress will show them only to administrators and the Finance role on the Members page. Do not upload them through Media.”
+  - **Ask Harlan** to create a folder PHP can read, for example `/home/ACCOUNT/emerson-private` (name can vary), **outside** `public_html`. Copy the `.xlsx` / PDF files there (FTP or File Manager). The WPvivid restore carries the **code** and the Members shortcode; it does **not** carry those Excel files, and Docker’s `private-files/` mount does not exist on the host.
   - **Who sees them (unchanged):** WordPress **administrators**, and anyone given the **Finance** role (**Users →** that person → **Role: Finance**). Finance currently has nobody assigned. Set it after the church confirms who, either locally before the backup (it then travels in the database) or on live after the restore.
-  - The live PHP looks first for `/var/emerson-private` (the local Docker path; it will not be there), then `wp-content/emerson-private`. That `wp-content` fallback is only safe with an `.htaccess` that denies web access. Prefer Harlan's folder outside the web root, plus one line in `wp-config.php` pointing at it (WPvivid does not overwrite `wp-config.php`). Add that constant to the theme before launch if Harlan's path is known.
+  - **Wiring the path:** the plugin looks first for `EMERSON_PRIVATE_DIR` in `wp-config.php` (WPvivid does not overwrite that file), then `/var/emerson-private` (local Docker only), then falls back to `wp-content/emerson-private`. That fallback is **not** safe unless the host blocks web access to it. Prefer Harlan’s outside folder plus `define( 'EMERSON_PRIVATE_DIR', '/home/ACCOUNT/emerson-private' );` in `wp-config.php` before launch.
   - Skip putting personal test files (for example Magazines) on live unless the church wants them there.
   - **After restore:** log in as an admin, open Members, open a sheet. Log in as a normal member and confirm Spreadsheets is missing. Check **Tools → Site Health** that PHP's zip extension is on, so Excel preview still works. No extra WordPress page per file: drop files in that server folder and they appear on Members for Finance and admins.
 - [ ] **Broken links from the 2026-09-30 scan**

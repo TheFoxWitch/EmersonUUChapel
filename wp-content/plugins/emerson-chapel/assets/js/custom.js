@@ -1292,6 +1292,77 @@
 		window.setInterval(wave, 5000);
 	})();
 
+	(function emersonMobileNavAnimate() {
+		var openBtn = document.querySelector('header .wp-block-navigation__responsive-container-open');
+		var panel = document.querySelector('header .wp-block-navigation__responsive-container');
+		if (!openBtn || !panel) {
+			return;
+		}
+		openBtn.classList.add('emerson-nav-burger');
+		openBtn.innerHTML =
+			'<span class="emerson-nav-burger__box" aria-hidden="true">' +
+			'<span></span><span></span><span></span>' +
+			'</span>';
+
+		var mobileQuery = window.matchMedia('(max-width: 599px)');
+		var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+		var wasOpen = panel.classList.contains('is-menu-open');
+
+		function clearStuckModalLock() {
+			if (panel.classList.contains('is-menu-open')) {
+				return;
+			}
+			document.documentElement.classList.remove('has-modal-open');
+			document.body.classList.remove('has-modal-open');
+		}
+
+		function playExitSlide() {
+			if (!mobileQuery.matches || reduceMotion.matches) {
+				return;
+			}
+			document.querySelectorAll('.emerson-nav-exit-ghost').forEach(function (node) {
+				node.remove();
+			});
+			var ghost = panel.cloneNode(true);
+			ghost.removeAttribute('id');
+			// Keep is-menu-open so WordPress overlay layout (column links) still applies.
+			ghost.classList.remove('has-modal-open');
+			ghost.classList.add('is-menu-open', 'emerson-nav-exit-ghost');
+			ghost.setAttribute('aria-hidden', 'true');
+			ghost.querySelectorAll('[id]').forEach(function (node) {
+				node.removeAttribute('id');
+			});
+			document.body.appendChild(ghost);
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(function () {
+					ghost.classList.add('is-leaving');
+				});
+			});
+			window.setTimeout(function () {
+				if (ghost.parentNode) {
+					ghost.remove();
+				}
+			}, 450);
+			ghost.addEventListener('transitionend', function (event) {
+				if (event.target === ghost && (!event.propertyName || event.propertyName === 'transform')) {
+					ghost.remove();
+				}
+			});
+		}
+
+		new MutationObserver(function () {
+			var isOpen = panel.classList.contains('is-menu-open');
+			if (wasOpen && !isOpen) {
+				playExitSlide();
+				clearStuckModalLock();
+			}
+			wasOpen = isOpen;
+		}).observe(panel, { attributes: true, attributeFilter: ['class'] });
+
+		clearStuckModalLock();
+		window.addEventListener('resize', clearStuckModalLock);
+	})();
+
 	var foilButton = document.querySelector('.emerson-foil-toggle');
 	if (foilButton) {
 		function setFoil(on) {

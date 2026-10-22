@@ -12,6 +12,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-21
 
+### Mobile menu slides in and uses a three-line icon
+- On a phone, the main menu slides in from the right. The open control is three lines (not WordPress’s two). WordPress still owns open/close; after it closes, a short non-interactive copy of the panel slides out to the right (core has no close-animation hook yet).
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `assets/js/custom.js`.
+
+### Mobile menu sits above the background emoji
+- When the main mobile menu is open, the corner foil emoji is hidden and the page content stacks above it. (With the background on, the emoji lived outside the page’s stacking context at a higher z-index, so it covered the menu even when the menu itself had a large z-index.)
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
 ### Buttons grow on hover instead of changing colour
 - Site buttons keep their usual colours on hover and focus, and grow slightly (`scale(1.05)`), matching the calendar save button. That includes core block buttons (which used to flip to black/white from the theme) plus Zoom, recommit outline, login, newsletter, cookie, directory, and related custom buttons.
 - **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `wp-content/themes/emerson-uuchapel/theme.json`.

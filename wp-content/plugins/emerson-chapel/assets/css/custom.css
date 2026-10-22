@@ -91,6 +91,118 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	text-decoration: none;
 }
 
+/* Mobile overlay menu: three-line icon + slide in from the right.
+   WordPress owns open/close. On close we paint a non-interactive “ghost” that slides
+   out (core still has no close-animation hook — Gutenberg #47078). */
+@media (max-width: 599px) {
+	header .wp-block-navigation__responsive-container.is-menu-open {
+		animation: emerson-nav-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+	header .wp-block-navigation__responsive-container-open svg {
+		display: none;
+	}
+	header .wp-block-navigation__responsive-container-open.emerson-nav-burger {
+		width: 2.75rem;
+		height: 2.75rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box {
+		position: relative;
+		display: block;
+		width: 1.5rem;
+		height: 1.125rem;
+	}
+	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box span {
+		position: absolute;
+		left: 0;
+		right: 0;
+		height: 2px;
+		border-radius: 1px;
+		background: currentColor;
+	}
+	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box span:nth-child(1) {
+		top: 0;
+	}
+	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box span:nth-child(2) {
+		top: 0.5rem;
+	}
+	header .wp-block-navigation__responsive-container-open .emerson-nav-burger__box span:nth-child(3) {
+		top: 1rem;
+	}
+}
+.emerson-nav-exit-ghost {
+	display: flex !important;
+	flex-direction: column;
+	position: fixed !important;
+	inset: 0;
+	z-index: 100050;
+	margin: 0;
+	overflow: hidden !important;
+	pointer-events: none !important;
+	background-color: #fff;
+	color: #000;
+	transform: translate3d(0, 0, 0);
+	transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+	animation: none !important;
+}
+/* Keep admin-bar offset even after WordPress removes html.has-modal-open (prevents the link jump). */
+body.admin-bar .emerson-nav-exit-ghost .wp-block-navigation__responsive-dialog {
+	margin-top: 46px;
+}
+@media (min-width: 782px) {
+	body.admin-bar .emerson-nav-exit-ghost .wp-block-navigation__responsive-dialog {
+		margin-top: 32px;
+	}
+}
+.emerson-nav-exit-ghost .wp-block-navigation__responsive-close,
+.emerson-nav-exit-ghost .wp-block-navigation__responsive-dialog,
+.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-content {
+	transition: opacity 0.28s ease;
+	opacity: 1;
+}
+.emerson-nav-exit-ghost.is-leaving {
+	transform: translate3d(100%, 0, 0);
+}
+.emerson-nav-exit-ghost.is-leaving .wp-block-navigation__responsive-close,
+.emerson-nav-exit-ghost.is-leaving .wp-block-navigation__responsive-dialog,
+.emerson-nav-exit-ghost.is-leaving .wp-block-navigation__responsive-container-content {
+	opacity: 0;
+}
+/* Ghost keeps overlay structure; never show the open-menu control inside it. */
+.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-open {
+	display: none !important;
+}
+/* While the exit ghost is on screen, keep the real nav from flashing into the header. */
+body:has(.emerson-nav-exit-ghost) header .wp-block-navigation__responsive-container:not(.emerson-nav-exit-ghost) {
+	display: none !important;
+	visibility: hidden !important;
+}
+@keyframes emerson-nav-slide-in {
+	from {
+		transform: translate3d(100%, 0, 0);
+	}
+	to {
+		transform: translate3d(0, 0, 0);
+	}
+}
+@media (max-width: 599px) and (prefers-reduced-motion: reduce) {
+	header .wp-block-navigation__responsive-container.is-menu-open {
+		animation: none;
+	}
+	.emerson-nav-exit-ghost,
+	.emerson-nav-exit-ghost .wp-block-navigation__responsive-close,
+	.emerson-nav-exit-ghost .wp-block-navigation__responsive-dialog,
+	.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-content {
+		transition: none;
+	}
+}
+/* If a prior menu bug left the page locked, unlock when no menu is open. */
+html.has-modal-open:not(:has(.wp-block-navigation__responsive-container.is-menu-open)) {
+	overflow: visible;
+}
+
 /* All pages: centre page titles and content headings; paragraphs stay left-aligned */
 .wp-block-post-title,
 .wp-block-post-content :is(h1, h2, h3, h4, h5, h6) {
@@ -2748,6 +2860,20 @@ html.emerson-foil-ready .emerson-foil__shine span {
 	cursor: pointer;
 	box-shadow: none;
 	outline: none;
+}
+/* With foil on, .wp-site-blocks is z-index 1 so content sits above the background layer,
+   but the corner emoji is a sibling at z-index 40 — so it painted over the open mobile menu.
+   Hide the emoji and lift the whole site while the overlay menu is open. */
+body:has(.wp-block-navigation__responsive-container.is-menu-open) .emerson-foil-toggle {
+	visibility: hidden;
+	pointer-events: none;
+	z-index: 0;
+}
+body:has(.wp-block-navigation__responsive-container.is-menu-open) .wp-site-blocks {
+	z-index: 50;
+}
+.wp-block-navigation__responsive-container.is-menu-open {
+	z-index: 100050;
 }
 .emerson-foil-toggle:focus,
 .emerson-foil-toggle:focus-visible,

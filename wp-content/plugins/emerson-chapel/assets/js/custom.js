@@ -1298,15 +1298,34 @@
 		if (!openBtn || !panel) {
 			return;
 		}
-		openBtn.classList.add('emerson-nav-burger');
-		openBtn.innerHTML =
+		var closeBtn = panel.querySelector('.wp-block-navigation__responsive-container-close');
+		var burgerMarkup =
 			'<span class="emerson-nav-burger__box" aria-hidden="true">' +
 			'<span></span><span></span><span></span>' +
 			'</span>';
 
+		function paintBurger(btn) {
+			if (!btn) {
+				return;
+			}
+			btn.classList.add('emerson-nav-burger');
+			btn.innerHTML = burgerMarkup;
+		}
+
+		paintBurger(openBtn);
+		paintBurger(closeBtn);
+
 		var mobileQuery = window.matchMedia('(max-width: 599px)');
 		var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 		var wasOpen = panel.classList.contains('is-menu-open');
+		var openLayout = null;
+
+		function setIconOpen(isOpen) {
+			openBtn.classList.toggle('is-x', isOpen);
+			if (closeBtn) {
+				closeBtn.classList.toggle('is-x', isOpen);
+			}
+		}
 
 		function clearStuckModalLock() {
 			if (panel.classList.contains('is-menu-open')) {
@@ -1316,14 +1335,35 @@
 			document.body.classList.remove('has-modal-open');
 		}
 
+		function cacheOpenLayout() {
+			var dialog = panel.querySelector('.wp-block-navigation__responsive-dialog');
+			var content = panel.querySelector('.wp-block-navigation__responsive-container-content');
+			var closeWrap = panel.querySelector('.wp-block-navigation__responsive-close');
+			openLayout = {
+				dialogMarginTop: dialog ? window.getComputedStyle(dialog).marginTop : '',
+				contentPaddingTop: content ? window.getComputedStyle(content).paddingTop : '',
+				closePaddingTop: closeWrap ? window.getComputedStyle(closeWrap).paddingTop : '',
+				panelPadding:
+					window.getComputedStyle(panel).paddingTop +
+					' ' +
+					window.getComputedStyle(panel).paddingRight +
+					' ' +
+					window.getComputedStyle(panel).paddingBottom +
+					' ' +
+					window.getComputedStyle(panel).paddingLeft
+			};
+		}
+
 		function playExitSlide() {
 			if (!mobileQuery.matches || reduceMotion.matches) {
+				document.documentElement.classList.remove('emerson-nav-exiting');
 				return;
 			}
 			document.querySelectorAll('.emerson-nav-exit-ghost').forEach(function (node) {
 				node.remove();
 			});
 			var ghost = panel.cloneNode(true);
+			var exitDone = false;
 			ghost.removeAttribute('id');
 			// Keep is-menu-open so WordPress overlay layout (column links) still applies.
 			ghost.classList.remove('has-modal-open');
@@ -1332,33 +1372,79 @@
 			ghost.querySelectorAll('[id]').forEach(function (node) {
 				node.removeAttribute('id');
 			});
-			document.body.appendChild(ghost);
-			window.requestAnimationFrame(function () {
-				window.requestAnimationFrame(function () {
-					ghost.classList.add('is-leaving');
-				});
-			});
-			window.setTimeout(function () {
+			// Apply spacing captured while open so Chrome’s first paint doesn’t jump
+			// after html.has-modal-open (admin-bar offset) is already gone.
+			if (openLayout) {
+				ghost.style.padding = openLayout.panelPadding;
+				var ghostDialog = ghost.querySelector('.wp-block-navigation__responsive-dialog');
+				var ghostContent = ghost.querySelector('.wp-block-navigation__responsive-container-content');
+				var ghostClose = ghost.querySelector('.wp-block-navigation__responsive-close');
+				if (ghostDialog && openLayout.dialogMarginTop) {
+					ghostDialog.style.marginTop = openLayout.dialogMarginTop;
+				}
+				if (ghostContent && openLayout.contentPaddingTop) {
+					ghostContent.style.paddingTop = openLayout.contentPaddingTop;
+				}
+				if (ghostClose && openLayout.closePaddingTop) {
+					ghostClose.style.paddingTop = openLayout.closePaddingTop;
+				}
+			}
+			function endExitSlide() {
+				if (exitDone) {
+					return;
+				}
+				exitDone = true;
 				if (ghost.parentNode) {
 					ghost.remove();
 				}
-			}, 450);
+				// Reveal the real burger only after the ghost (and X→☰ morph) is gone.
+				document.documentElement.classList.remove('emerson-nav-exiting');
+			}
+			// Cover immediately — never append hidden (that flashes the page underneath).
+			document.body.appendChild(ghost);
+			void ghost.offsetHeight;
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(function () {
+					ghost.classList.add('is-leaving');
+					// Fallback only after the 0.4s slide can finish (started on this frame).
+					window.setTimeout(endExitSlide, 500);
+				});
+			});
 			ghost.addEventListener('transitionend', function (event) {
-				if (event.target === ghost && (!event.propertyName || event.propertyName === 'transform')) {
-					ghost.remove();
+				if (event.target !== ghost || event.propertyName !== 'transform') {
+					return;
 				}
+				endExitSlide();
 			});
 		}
 
 		new MutationObserver(function () {
 			var isOpen = panel.classList.contains('is-menu-open');
+			if (!wasOpen && isOpen) {
+				document.documentElement.classList.remove('emerson-nav-exiting');
+				// Paint ☰ first, then morph to X with the slide (avoids instant X).
+				setIconOpen(false);
+				window.requestAnimationFrame(function () {
+					setIconOpen(true);
+				});
+				cacheOpenLayout();
+				window.requestAnimationFrame(cacheOpenLayout);
+			}
 			if (wasOpen && !isOpen) {
+				// Hold the “menu open” cover before WP’s closed panel can flash the page.
+				document.documentElement.classList.add('emerson-nav-exiting');
 				playExitSlide();
+				setIconOpen(false);
 				clearStuckModalLock();
+				openLayout = null;
 			}
 			wasOpen = isOpen;
 		}).observe(panel, { attributes: true, attributeFilter: ['class'] });
 
+		setIconOpen(wasOpen);
+		if (wasOpen) {
+			cacheOpenLayout();
+		}
 		clearStuckModalLock();
 		window.addEventListener('resize', clearStuckModalLock);
 	})();

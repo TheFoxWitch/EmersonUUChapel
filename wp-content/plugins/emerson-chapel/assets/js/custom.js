@@ -772,6 +772,24 @@
 			return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate());
 		}
 
+		// Site timezone (WP Settings / emersonChapel). Avoid UTC “tomorrow” after evening Central.
+		function todayYmd() {
+			if (window.emersonChapel && emersonChapel.today) {
+				return String(emersonChapel.today);
+			}
+			var tz = (window.emersonChapel && emersonChapel.timezone) || 'America/Chicago';
+			try {
+				return new Intl.DateTimeFormat('en-CA', {
+					timeZone: tz,
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit'
+				}).format(new Date());
+			} catch (error) {
+				return formatYmd(new Date());
+			}
+		}
+
 		function parseYmd(ymd) {
 			var parts = String(ymd).split('-');
 			return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
@@ -840,7 +858,7 @@
 		}
 
 		function shiftCompactWeek(delta) {
-			var start = weekStartYmd || sundayOf(formatYmd(new Date()));
+			var start = weekStartYmd || sundayOf(todayYmd());
 			var next = addDays(start, delta * 7);
 			var found = false;
 			for (var i = 0; i < 7; i++) {
@@ -894,11 +912,11 @@
 				weekStartYmd = '';
 			}
 			lastHeadingMonth = headingMonth;
-			var todayYmd = formatYmd(new Date());
+			var today = todayYmd();
 			var current = document.querySelector('.ca-day.ca-current[data-date]:not(.ca-inactive)');
 			if (!weekStartYmd) {
-				if (hasDatedDay(todayYmd)) {
-					weekStartYmd = sundayOf(todayYmd);
+				if (hasDatedDay(today)) {
+					weekStartYmd = sundayOf(today);
 				} else if (current) {
 					weekStartYmd = sundayOf(current.getAttribute('data-date'));
 				} else {
@@ -983,7 +1001,7 @@
 					return;
 				}
 				if (button.classList.contains('btn-warning') || /today/i.test(button.textContent || '')) {
-					weekStartYmd = sundayOf(formatYmd(new Date()));
+					weekStartYmd = sundayOf(todayYmd());
 					pendingWeekStart = weekStartYmd;
 					return;
 				}

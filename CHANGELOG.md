@@ -12,6 +12,10 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-21
 
+### Calendar “today” stays in Emerson (Central / site timezone)
+- Church Admin’s month calendar used UTC for the first load (`Date.toJSON()`), so after evening Central it looked like the next day. The fix lives in the Emerson Chapel plugin (Today button `data-date`, init AJAX date, and `ca-today` highlight), not in Church Admin Premium, so a vendor update will not wipe it. Stored event dates and times are unchanged.
+- **File:** `wp-content/plugins/emerson-chapel/inc/calendar-timezone.php`, `assets/js/calendar-timezone.js`, `assets/js/custom.js`.
+
 ### Mobile menu morph, close polish, and larger header mark
 - The three-line open icon and the close control morph into each other (☰↔X). Both sit in the same top-right slot above About. The exit ghost keeps a solid cover for the whole slide, stays under the WordPress admin bar, and only then lets the foil emoji and hamburger fade back in (0.5s delay, then 0.9s opacity). On phones the logo and social icons are 25% larger.
 - **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `assets/js/custom.js`.

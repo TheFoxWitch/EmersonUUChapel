@@ -80,6 +80,7 @@ $emerson_chapel_modules = array(
 	'members.php',
 	'serving-dates.php',
 	'calendar-listed-events.php',
+	'calendar-timezone.php',
 	'calendar-pdfs.php',
 	'sunday-location.php',
 	'board-location.php',

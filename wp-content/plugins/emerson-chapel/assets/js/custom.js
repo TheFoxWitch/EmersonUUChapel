@@ -2058,20 +2058,23 @@
 			try {
 				sessionStorage.removeItem('emersonFoilOrder');
 			} catch (error) {}
-			window.requestAnimationFrame(function () {
-				if (!foilRoot().classList.contains('emerson-foil')) {
-					/* Prefetch icons while masked shut; shine waits until a real reveal. */
-					foilForceMaskClosed();
-					foilPaint(foilSymbols, true);
-					return;
-				}
-				foilBusy = true;
-				foilReveal({
-					symbols: foilSymbols,
-					reshuffle: true,
-					onComplete: foilFlightDone
+			/*
+			 * Lazy paint: skip the big canvas draw on cold loads when foil is off.
+			 * First lion click (or a saved-on session) paints then reveals.
+			 */
+			if (foilRoot().classList.contains('emerson-foil')) {
+				window.requestAnimationFrame(function () {
+					if (!foilRoot().classList.contains('emerson-foil')) {
+						return;
+					}
+					foilBusy = true;
+					foilReveal({
+						symbols: foilSymbols,
+						reshuffle: true,
+						onComplete: foilFlightDone
+					});
 				});
-			});
+			}
 		}
 	}
 

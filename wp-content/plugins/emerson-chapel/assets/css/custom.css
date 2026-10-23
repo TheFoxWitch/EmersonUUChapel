@@ -698,6 +698,12 @@ button.wp-block-button__link[data-emerson-pledge] {
 	display: flex;
 	justify-content: center;
 }
+/* Giving quote: no theme left border */
+.page-id-49 .wp-block-post-content .wp-block-quote {
+	border: 0;
+	padding-left: 0;
+	padding-right: 0;
+}
 .paypal-fees-button .wp-block-button__link:hover,
 .paypal-fees-button .wp-block-button__link:focus-visible,
 .newcomer-button .wp-block-button__link:hover,

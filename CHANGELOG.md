@@ -12,6 +12,10 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-22
 
+### Giving page quote border
+- Bottom mission quote on Make A Contribution: remove the theme left border (no replacement line).
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
 ### Back-navigation: foil stays fixed; browser owns scroll again
 - The foil canvas must stay `position: fixed` from the first paint (critical CSS + inline) so it never inflates then collapses page height. Manual `scrollRestoration` was leaving people stuck at the top on back, so the browser handles scroll again. Wash colour shows immediately; symbols fade in after paint.
 - Foil reveal is one pipeline (wipe out → force mask shut → paint once → wipe in → shine mask next frame) with a sequence token so load/toggle cannot overlap. Shuffle once per reveal; `toDataURL` no longer blocks the wipe. Ready keeps the open mask (no `mask:none` flash). Critical CSS masks the sheet shut before the main stylesheet loads.
@@ -37,6 +41,7 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 - Wipe-in start wash flash: html/body wash only when ready (not during wipe-in); hold mask shut before revealing the layer, then start the wipe on the next frame.
 - Drift start hitch: ease-in-out instead of linear; delay scroll until wipe handoff settles; park at 0,0 then hand off; will-change on ready sheet.
 - Wipe follows shine angle (not X-only): shine 90° is vertical; closed/open mask-position derived from angle so the wash no longer flashes.
+- Foil lazy paint: no canvas draw on cold loads when foil is off; first toggle (or a saved-on session) paints then reveals.
 - **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`, `assets/css/custom.css`, `assets/js/custom.js`, `assets/js/newsletter.js`.
 
 ### Planning Calendar link is public again

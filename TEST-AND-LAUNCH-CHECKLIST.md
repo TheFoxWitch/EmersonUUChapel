@@ -197,14 +197,14 @@ To go back to the newest sermon in **Video Gallery**, clear **YouTube URL** and 
 
 ## Re-commitment Form — how to update the link
 
-The homepage button **Emerson Community Survey** opens the chapel commitment form in Calculated Fields. Submitting it emails the office. Change the button wording under **Modals → Emerson Community Survey**. Click **Edit the commitment form** on that screen to change the fields, wording, and submit button. Check **Include the signature box** and save to put the drawing area, **Clear signature**, and the date back after the email field. The separate **2026-27 Commitment Form** button is the Microsoft form.
+The homepage button **Emerson Community Survey** is a Shortcode block: `[emerson_community_survey]`. It opens the chapel commitment form in Calculated Fields. Submitting it emails the office. Change the button wording under **Modals → Emerson Community Survey**. Click **Edit form** on that screen to change the fields, wording, and submit button. Check **Include the signature box** and save to put the drawing area, **Clear signature**, and the date back after the email field. Move or remove the shortcode in the page editor like any other block. The separate **2026-27 Commitment Form** button is the Microsoft form.
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
 **Where:** WordPress admin (the left-hand menu) → **Modals**. It is a speech-bubble icon, just under **Sunday Schedule**.
 
 1. In WordPress, open **Modals**.
-2. Under **Emerson Community Survey**, change **Button text** if the wording should change. Those words are the homepage button and the heading in the dialog.
+2. Under **Emerson Community Survey**, change **Button text** if the wording should change. Those words are the button and the heading in the dialog. Place the button with `[emerson_community_survey]` (already on the home page).
 3. Click **Save survey button**.
 4. On the homepage, click the button and confirm the commitment form opens.
 
@@ -221,7 +221,7 @@ The same dialog opens from the homepage and from Make a Contribution.
 1. Open **Modals**.
 2. Under **Approximate PayPal Fees**, change **Button text** and **Dialog heading** if the wording should change.
 3. Click **Save PayPal fees**.
-4. Click **Edit the fee form** to change the fields and the fee math. That opens Calculated Fields.
+4. Click **Edit form** to change the fields and the fee math. That opens Calculated Fields.
 
 ## Documents — how to upload or change a file
 

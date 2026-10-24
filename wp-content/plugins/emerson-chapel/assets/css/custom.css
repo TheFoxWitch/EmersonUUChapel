@@ -55,7 +55,7 @@ body a:where(:not(.wp-element-button)):active,
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.75rem;
+	gap: 0.625rem;
 	list-style: none;
 	position: relative;
 	top: -17.77px;
@@ -63,42 +63,71 @@ body a:where(:not(.wp-element-button)):active,
 	padding: 0;
 }
 
-.emerson-header-social a {
+.emerson-header-social a,
+.emerson-footer__social a {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 1.5rem;
-	height: 1.5rem;
+	/* ~33% smaller than the previous 2.5rem icons. */
+	width: 1.67rem;
+	height: 1.67rem;
 	color: var(--emerson-blue);
 }
 
 .emerson-header-social a:hover,
-.emerson-header-social a:focus-visible {
+.emerson-header-social a:focus-visible,
+.emerson-footer__social a:hover,
+.emerson-footer__social a:focus-visible {
 	color: var(--emerson-blue-dark);
 }
 
-.emerson-header-social svg {
+.emerson-header-social svg,
+.emerson-footer__social svg {
 	display: block;
-	width: 2.5rem;
-	height: 2.5rem;
+	width: 1.67rem;
+	height: 1.67rem;
 }
-/* Mobile: logo + social icons 25% larger. */
+/* Mobile: logo 25% larger; socials stay ~33% under the old mobile size. */
 @media (max-width: 599px) {
 	.emerson-header-logo img {
 		width: 300px;
 	}
 	.emerson-header-social {
-		gap: 0.9375rem;
+		gap: 0.625rem;
 		top: -22.21px;
 		margin: 9.71px 0 0;
 	}
-	.emerson-header-social a {
-		width: 1.875rem;
-		height: 1.875rem;
+	.emerson-header-social a,
+	.emerson-footer__social a {
+		width: 2.08rem;
+		height: 2.08rem;
 	}
-	.emerson-header-social svg {
-		width: 3.125rem;
-		height: 3.125rem;
+	.emerson-header-social svg,
+	.emerson-footer__social svg {
+		width: 2.08rem;
+		height: 2.08rem;
+	}
+}
+
+/* Mobile + tablet: center the home logo and socials. The header flex is
+   space-between (logo left, nav/burger right); give the brand the full row
+   so its own align-items:center sits in the viewport middle. Nav wraps under
+   and centers too. Desktop (>1024) keeps logo left / menu right. */
+@media (max-width: 1024px) {
+	header .wp-block-group.alignwide {
+		justify-content: center;
+	}
+	header .emerson-header-brand {
+		width: 100%;
+		align-items: center;
+	}
+	header .wp-block-group.alignwide > .wp-block-group:has(.wp-block-navigation) {
+		width: 100%;
+		justify-content: center;
+	}
+	header .wp-block-navigation,
+	header .wp-block-navigation .wp-block-navigation__container {
+		justify-content: center;
 	}
 }
 /** End Logo **/
@@ -661,8 +690,12 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 	transform: scale(1.05);
 }
 
-/* Buttons on the home page (and matching buttons on Serve Emerson Chapel) */
-/* 2024-25 Pledge Form, Make a Contribution */
+/*
+ * Shared CTA button variants (Modals → Button style).
+ * Legacy block classes (pledge-button, etc.) keep working by sharing these rules.
+ */
+/* Green fill — Commitment Form / Make a Contribution */
+.emerson-cta--green .wp-block-button__link,
 .pledge-button .wp-block-button__link,
 .contribute-button .wp-block-button__link {
 	border-radius: 25px;
@@ -670,6 +703,8 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 	color: #1e1e1e;
 	transition: all 0.3s ease-in-out;
 }
+.emerson-cta--green .wp-block-button__link:hover,
+.emerson-cta--green .wp-block-button__link:focus-visible,
 .pledge-button .wp-block-button__link:hover,
 .pledge-button .wp-block-button__link:focus-visible,
 .contribute-button .wp-block-button__link:hover,
@@ -678,7 +713,8 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 	color: #1e1e1e;
 	transform: scale(1.05);
 }
-/* Approximate Paypal Fees, Newcomer Information Form, Sign up for Newsletter */
+/* Blue fill — PayPal fees, Newcomer, Newsletter, Bylaws */
+.emerson-cta--blue .wp-block-button__link,
 .paypal-fees-button .wp-block-button__link,
 .newcomer-button .wp-block-button__link,
 .newsletter-button .wp-block-button__link,
@@ -688,22 +724,8 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 	border-radius: 25px;
 	transition: all 0.3s ease-in-out;
 }
-button.wp-block-button__link[data-emerson-paypal-fees],
-button.wp-block-button__link[data-emerson-pledge] {
-	border: 0;
-	font: inherit;
-	cursor: pointer;
-}
-.page-id-49 form[action*="paypal.com/donate"] {
-	display: flex;
-	justify-content: center;
-}
-/* Giving quote: no theme left border */
-.page-id-49 .wp-block-post-content .wp-block-quote {
-	border: 0;
-	padding-left: 0;
-	padding-right: 0;
-}
+.emerson-cta--blue .wp-block-button__link:hover,
+.emerson-cta--blue .wp-block-button__link:focus-visible,
 .paypal-fees-button .wp-block-button__link:hover,
 .paypal-fees-button .wp-block-button__link:focus-visible,
 .newcomer-button .wp-block-button__link:hover,
@@ -716,6 +738,8 @@ button.wp-block-button__link[data-emerson-pledge] {
 	color: #fff;
 	transform: scale(1.05);
 }
+/* Blue outline — Community Survey */
+.emerson-cta--outline .wp-block-button__link,
 .recommit-button .wp-block-button__link {
 	border: 2px solid var(--emerson-blue);
 	border-radius: 25px;
@@ -723,11 +747,43 @@ button.wp-block-button__link[data-emerson-pledge] {
 	color: var(--emerson-blue);
 	transition: all 0.3s ease-in-out;
 }
+.emerson-cta--outline .wp-block-button__link:hover,
+.emerson-cta--outline .wp-block-button__link:focus-visible,
 .recommit-button .wp-block-button__link:hover,
 .recommit-button .wp-block-button__link:focus-visible {
 	background: #fff;
 	color: var(--emerson-blue);
 	transform: scale(1.05);
+}
+button.wp-block-button__link[data-emerson-paypal-fees],
+button.wp-block-button__link[data-emerson-pledge],
+button.wp-block-button__link[data-emerson-modal],
+button.wp-block-button__link[data-emerson-recommit] {
+	border: 0;
+	font: inherit;
+	cursor: pointer;
+}
+.emerson-cta--outline .wp-block-button__link[data-emerson-modal],
+.emerson-cta--outline .wp-block-button__link[data-emerson-recommit],
+.recommit-button .wp-block-button__link {
+	border: 2px solid var(--emerson-blue);
+}
+.page-id-49 form[action*="paypal.com/donate"] {
+	display: flex;
+	justify-content: center;
+}
+/* Giving quote: no theme left border */
+.page-id-49 .wp-block-post-content .wp-block-quote {
+	border: 0;
+	padding-left: 0;
+	padding-right: 0;
+}
+/* Standalone plugin shortcodes (when not injected into a buttons row). */
+.emerson-community-survey-button,
+.emerson-cta-standalone {
+	display: flex;
+	justify-content: center;
+	width: 100%;
 }
 
 /* Bottom page buttons use a negative margin so the gap under them stays even.
@@ -745,6 +801,7 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 .emerson-paypal-fees {
 	width: min(36rem, calc(100vw - 2rem));
 	max-height: min(85vh, 40rem);
+	overflow: auto;
 	padding: 1.25rem 1.35rem 1.5rem;
 	border: 0;
 	border-radius: 16px;
@@ -838,6 +895,14 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 #emerson-recommit.emerson-recommit--sent .cpefb_error {
 	display: none !important;
 }
+/* Survey validation summary: JS fades this after 4s. */
+#emerson-recommit .cff-error-dlg {
+	transition: opacity 0.4s ease;
+}
+#emerson-recommit .cff-error-dlg.emerson-cff-error-dlg--fade {
+	opacity: 0;
+	pointer-events: none;
+}
 
 #emerson-recommit .emerson-survey-phone input {
 	font-variant-numeric: tabular-nums;
@@ -916,9 +981,50 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	text-align: center;
 }
 .emerson-recommit__fit {
+	position: relative;
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow: hidden;
+}
+.emerson-recommit__loading {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0;
+	background: rgba(255, 255, 255, 0.92);
+	color: var(--emerson-blue);
+	font-size: 1.05rem;
+	font-weight: 600;
+}
+.emerson-recommit__loading[hidden] {
+	display: none !important;
+}
+.emerson-recommit__fit.is-loading .emerson-recommit__loading:not([hidden]) {
+	display: flex;
+}
+.emerson-recommit__fit.is-loading .emerson-recommit__loading::before {
+	content: '';
+	width: 1.35rem;
+	height: 1.35rem;
+	margin-right: 0.65rem;
+	border: 3px solid rgba(63, 79, 160, 0.25);
+	border-top-color: var(--emerson-blue);
+	border-radius: 50%;
+	animation: emerson-modal-spin 0.7s linear infinite;
+}
+@keyframes emerson-modal-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.emerson-recommit__fit.is-loading .emerson-recommit__loading::before {
+		animation: none;
+		border-top-color: rgba(63, 79, 160, 0.25);
+	}
 }
 .emerson-recommit__frame {
 	display: block;
@@ -1122,6 +1228,9 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	:root :where(.wp-element-button:focus, .wp-block-button__link:focus),
 	:root :where(.wp-element-button:focus-visible, .wp-block-button__link:focus-visible),
 	:root :where(.wp-element-button:active, .wp-block-button__link:active),
+	.emerson-cta--green .wp-block-button__link:hover,
+	.emerson-cta--blue .wp-block-button__link:hover,
+	.emerson-cta--outline .wp-block-button__link:hover,
 	.pledge-button .wp-block-button__link:hover,
 	.contribute-button .wp-block-button__link:hover,
 	.paypal-fees-button .wp-block-button__link:hover,
@@ -1950,15 +2059,61 @@ blockquote {
 	margin: 0 0 1rem;
 }
 
+/* Logo column: logo, socials, and blurb stacked and centred. */
+.emerson-footer__brand {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	text-align: center;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	margin-inline: 0;
+	padding-inline: 0;
+}
+
 .emerson-footer__logo {
-	display: inline-block;
+	display: block;
+	width: min(240px, 100%);
+	max-width: 100%;
 	line-height: 0;
-	margin-bottom: 1rem;
+	margin: 0 auto 0.75rem;
+	box-sizing: border-box;
 }
 
 .emerson-footer__logo img {
-	width: 220px;
+	display: block;
+	width: 100%;
 	height: auto;
+}
+
+.emerson-footer__social {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.625rem;
+	list-style: none;
+	width: 100%;
+	max-width: 100%;
+	margin: 0 0 1rem;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+.emerson-footer__social li {
+	margin: 0;
+	padding: 0;
+	line-height: 0;
+}
+
+.emerson-footer__brand > p {
+	margin: 0 auto;
+	text-align: center;
+	width: 100%;
+	max-width: 22rem;
+	box-sizing: border-box;
 }
 
 .emerson-footer__heading {
@@ -2079,13 +2234,46 @@ blockquote {
 	margin: 0;
 }
 
+@media (max-width: 782px) {
+	/* One column until tablet — avoids brand sitting in a side column and looking off-centre. */
+	.emerson-footer__columns {
+		grid-template-columns: 1fr;
+	}
+}
+
 @media (max-width: 600px) {
 	.emerson-footer {
 		text-align: center;
 	}
 
+	.emerson-footer__brand {
+		width: 100%;
+		align-items: center;
+	}
+
+	/*
+	 * Do not force 300px here: with theme padding the content box is often narrower,
+	 * so a fixed 300px logo overflowed right and the whole stack looked off-centre.
+	 * Cap at 300px when space allows; otherwise fill the column.
+	 */
+	.emerson-footer__logo {
+		width: min(300px, 100%);
+		margin-inline: auto;
+		transform: none;
+	}
+
+	.emerson-footer__social {
+		justify-content: center;
+		gap: 0.625rem;
+	}
+
+	.emerson-footer__brand > p {
+		margin-inline: auto;
+	}
+
 	.emerson-footer__bottom {
 		justify-content: center;
+		text-align: center;
 	}
 }
 /** End Footer **/
@@ -2913,11 +3101,6 @@ blockquote {
 }
 /** End Sunday Morning Schedule sheet **/
 
-/* Custom Modals shortcode buttons share the pledge / survey button look */
-.emerson-modal-button .wp-block-button__link,
-button.wp-block-button__link[data-emerson-modal] {
-	cursor: pointer;
-}
 .emerson-modal .emerson-modal__heading {
 	margin: 0 1rem 0.75rem;
 	font-size: 1.25rem;
@@ -2926,6 +3109,40 @@ button.wp-block-button__link[data-emerson-modal] {
 	padding: 0 1rem 1rem;
 	overflow: auto;
 	max-height: min(70vh, 36rem);
+}
+
+/* Overflow scroll hint (Modals → Display). Absolute over the dialog (UA position:fixed). */
+.emerson-modal-scroll-hint {
+	position: absolute;
+	left: 50%;
+	bottom: calc(0.65rem + 15px);
+	z-index: 6;
+	transform: translateX(-50%);
+	pointer-events: none;
+}
+.emerson-modal-scroll-hint__arrow {
+	display: block;
+	width: 0.85rem;
+	height: 0.85rem;
+	margin: 0 auto;
+	border-right: 3px solid var(--emerson-blue);
+	border-bottom: 3px solid var(--emerson-blue);
+	transform: rotate(45deg);
+	animation: emerson-modal-scroll-bounce 0.65s ease-in-out 3;
+}
+@keyframes emerson-modal-scroll-bounce {
+	0%,
+	100% {
+		translate: 0 0;
+	}
+	50% {
+		translate: 0 0.45rem;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.emerson-modal-scroll-hint {
+		display: none;
+	}
 }
 
 .emerson-foil-layer {

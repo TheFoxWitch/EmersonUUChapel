@@ -17,7 +17,10 @@
 		if (!form) {
 			return;
 		}
+		/* Scroll instead of transform:scale — scaling broke signature pointer coordinates. */
 		form.style.transform = '';
+		form.style.maxHeight = '';
+		form.style.overflowY = '';
 		var bar = dialog.querySelector('.emerson-recommit__bar');
 		var dialogStyle = window.getComputedStyle(dialog);
 		var barStyle = bar ? window.getComputedStyle(bar) : null;
@@ -30,9 +33,8 @@
 		if (available <= 0 || needed <= available + 1) {
 			return;
 		}
-		var scale = available / needed;
-		form.style.transformOrigin = 'top center';
-		form.style.transform = 'scale(' + scale + ')';
+		form.style.maxHeight = available + 'px';
+		form.style.overflowY = 'auto';
 	}
 
 	function installSurveySignature(dialog) {
@@ -94,22 +96,24 @@
 		}
 
 		function sizeCanvas() {
-			var rect = canvas.getBoundingClientRect();
+			/* Use layout size (client*), not getBoundingClientRect — that includes parent transforms. */
+			var cssW = Math.max(1, canvas.clientWidth);
+			var cssH = Math.max(1, canvas.clientHeight);
 			var ratio = window.devicePixelRatio || 1;
 			var previous = ink ? canvas.toDataURL('image/png') : '';
-			canvas.width = Math.max(1, Math.round(rect.width * ratio));
-			canvas.height = Math.max(1, Math.round(rect.height * ratio));
+			canvas.width = Math.max(1, Math.round(cssW * ratio));
+			canvas.height = Math.max(1, Math.round(cssH * ratio));
 			ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 			ctx.lineWidth = 2.25;
 			ctx.lineCap = 'round';
 			ctx.lineJoin = 'round';
 			ctx.strokeStyle = '#1e1e1e';
 			ctx.fillStyle = '#fff';
-			ctx.fillRect(0, 0, rect.width, rect.height);
+			ctx.fillRect(0, 0, cssW, cssH);
 			if (previous) {
 				var image = new Image();
 				image.onload = function () {
-					ctx.drawImage(image, 0, 0, rect.width, rect.height);
+					ctx.drawImage(image, 0, 0, cssW, cssH);
 					syncSignatureField();
 				};
 				image.src = previous;
@@ -121,9 +125,11 @@
 
 		function point(event) {
 			var rect = canvas.getBoundingClientRect();
+			var scaleX = canvas.clientWidth / Math.max(1, rect.width);
+			var scaleY = canvas.clientHeight / Math.max(1, rect.height);
 			return {
-				x: event.clientX - rect.left,
-				y: event.clientY - rect.top
+				x: (event.clientX - rect.left) * scaleX,
+				y: (event.clientY - rect.top) * scaleY
 			};
 		}
 
@@ -189,9 +195,11 @@
 				return true;
 			};
 		}
+		canvas.emersonResize = sizeCanvas;
+		window.addEventListener('resize', sizeCanvas);
 		window.requestAnimationFrame(function () {
-			sizeCanvas();
 			fitSurveyForm(dialog);
+			sizeCanvas();
 		});
 	}
 
@@ -272,6 +280,13 @@
 		installSurveyPhone(dialog);
 		window.requestAnimationFrame(function () {
 			fitSurveyForm(dialog);
+			var pad = dialog.querySelector('.emerson-recommit__pad');
+			if (pad && typeof pad.emersonResize === 'function') {
+				pad.emersonResize();
+			}
+			if (typeof window.emersonModalOverflowArrow === 'function') {
+				window.emersonModalOverflowArrow(dialog);
+			}
 		});
 	}
 
@@ -279,8 +294,16 @@
 		if (!dialog) {
 			return;
 		}
-		dialog.querySelectorAll('.cpefb_error').forEach(function (node) {
+		/*
+		 * Calculated Fields puts `cpefb_error` on the inputs themselves and uses
+		 * `.cpefb_error.message` for the bubbles. Removing every `.cpefb_error`
+		 * deleted the fields after a failed submit — reopen showed only signature.
+		 */
+		dialog.querySelectorAll('.cpefb_error.message').forEach(function (node) {
 			node.remove();
+		});
+		dialog.querySelectorAll('.cpefb_error').forEach(function (node) {
+			node.classList.remove('cpefb_error');
 		});
 		dialog.querySelectorAll('.error, .cff-error').forEach(function (node) {
 			node.classList.remove('error', 'cff-error');
@@ -288,6 +311,60 @@
 		dialog.querySelectorAll('[aria-invalid="true"]').forEach(function (node) {
 			node.removeAttribute('aria-invalid');
 		});
+		dialog.querySelectorAll('.cff-error-dlg').forEach(function (node) {
+			node.remove();
+		});
+		var form = dialog.querySelector('form.cff-form');
+		if (form) {
+			form.style.transform = '';
+			form.style.maxHeight = '';
+			form.style.overflowY = '';
+		}
+	}
+
+	/**
+	 * Calculated Fields error summary (.cff-error-dlg): fade away after 4s
+	 * instead of waiting for a click on the X / document.
+	 */
+	function watchSurveyErrorDlg(dialog) {
+		if (!dialog || dialog.dataset.emersonErrorDlgWatch === '1') {
+			return;
+		}
+		dialog.dataset.emersonErrorDlgWatch = '1';
+
+		function dismissBox(box) {
+			if (!box || !box.parentNode) {
+				return;
+			}
+			box.classList.add('emerson-cff-error-dlg--fade');
+			window.setTimeout(function () {
+				if (window.jQuery && window.jQuery.fbuilder && typeof window.jQuery.fbuilder.closeErrorDlg === 'function') {
+					window.jQuery.fbuilder.closeErrorDlg();
+					return;
+				}
+				if (box.parentNode) {
+					box.remove();
+				}
+			}, 450);
+		}
+
+		function armBox(box) {
+			if (!box || box.dataset.emersonAutoFade === '1') {
+				return;
+			}
+			box.dataset.emersonAutoFade = '1';
+			window.setTimeout(function () {
+				dismissBox(box);
+			}, 4000);
+		}
+
+		function scan() {
+			dialog.querySelectorAll('.cff-error-dlg').forEach(armBox);
+		}
+
+		var watch = new MutationObserver(scan);
+		watch.observe(dialog, { childList: true, subtree: true });
+		scan();
 	}
 
 	/**
@@ -342,10 +419,39 @@
 		}
 	}
 
+	function setFrameLoading(dialog, on) {
+		var fit = dialog ? dialog.querySelector('[data-emerson-frame-fit]') : null;
+		if (!fit) {
+			return;
+		}
+		fit.classList.toggle('is-loading', !!on);
+		var label = fit.querySelector('.emerson-recommit__loading');
+		if (label) {
+			label.hidden = !on;
+		}
+	}
+
+	/* Our spinner is for Google only — Microsoft Forms already shows its own. */
+	function isGoogleFormUrl(url) {
+		if (!url) {
+			return false;
+		}
+		try {
+			var host = new URL(url, window.location.href).hostname.toLowerCase();
+			return host === 'forms.gle' || host === 'docs.google.com';
+		} catch (err) {
+			return /forms\.gle|docs\.google\.com/i.test(url);
+		}
+	}
+
 	function bindIframeDialog(dialog, openerSelector) {
 		if (!dialog || typeof dialog.showModal !== 'function') {
 			return;
 		}
+		if (dialog.dataset.emersonBound === '1') {
+			return;
+		}
+		dialog.dataset.emersonBound = '1';
 		var frame = dialog.querySelector('.emerson-recommit__frame');
 
 		function revealDialog() {
@@ -356,52 +462,87 @@
 			dialog.classList.remove('is-opening');
 		}
 
+		function afterOpenReady() {
+			revealDialog();
+			finishSurveyLayout(dialog);
+		}
+
 		function openDialog() {
 			if (dialog.open || dialog.classList.contains('is-closing')) {
 				return;
 			}
 			dialog.classList.remove('emerson-recommit--sent');
 			clearSurveyValidation(dialog);
-			if (frame && !frame.getAttribute('src')) {
-				frame.setAttribute('src', frame.getAttribute('data-src'));
-			}
 			if (!reduceMotion()) {
 				dialog.classList.add('is-opening');
 			}
 			dialog.showModal();
+
 			var list = dialog.querySelector('[id^="fieldlist_"]');
-			if (!list || list.children.length || reduceMotion()) {
-				revealDialog();
-				finishSurveyLayout(dialog);
+			if (list && !list.children.length && !reduceMotion()) {
+				var revealed = false;
+				function reveal() {
+					if (revealed) {
+						return;
+					}
+					revealed = true;
+					observer.disconnect();
+					window.requestAnimationFrame(function () {
+						window.requestAnimationFrame(afterOpenReady);
+					});
+				}
+				var observer = new MutationObserver(function () {
+					if (list.children.length) {
+						reveal();
+					}
+				});
+				observer.observe(list, { childList: true });
+				window.setTimeout(reveal, 4000);
 				return;
 			}
-			var revealed = false;
-			function reveal() {
-				if (revealed) {
+
+			if (frame) {
+				var src = frame.getAttribute('src');
+				var dataSrc = frame.getAttribute('data-src');
+				if (!src && dataSrc) {
+					var showGoogleLoader = isGoogleFormUrl(dataSrc);
+					if (showGoogleLoader) {
+						setFrameLoading(dialog, true);
+					}
+					function onFrameLoad() {
+						frame.removeEventListener('load', onFrameLoad);
+						setFrameLoading(dialog, false);
+						afterOpenReady();
+					}
+					frame.addEventListener('load', onFrameLoad);
+					frame.setAttribute('src', dataSrc);
+					/* Show the shell while the form loads (spinner only for Google). */
+					revealDialog();
+					if (showGoogleLoader) {
+						window.setTimeout(function () {
+							if (fitStillLoading(dialog)) {
+								setFrameLoading(dialog, false);
+								afterOpenReady();
+							}
+						}, 12000);
+					}
 					return;
 				}
-				revealed = true;
-				observer.disconnect();
-				window.requestAnimationFrame(function () {
-					window.requestAnimationFrame(function () {
-						revealDialog();
-						finishSurveyLayout(dialog);
-					});
-				});
 			}
-			var observer = new MutationObserver(function () {
-				if (list.children.length) {
-					reveal();
-				}
-			});
-			observer.observe(list, { childList: true });
-			window.setTimeout(reveal, 4000);
+
+			afterOpenReady();
+		}
+
+		function fitStillLoading(dlg) {
+			var fit = dlg.querySelector('[data-emerson-frame-fit]');
+			return !!(fit && fit.classList.contains('is-loading'));
 		}
 
 		function closeDialog() {
 			if (!dialog.open || dialog.classList.contains('is-closing')) {
 				return;
 			}
+			setFrameLoading(dialog, false);
 			if (reduceMotion()) {
 				dialog.close();
 				return;
@@ -426,6 +567,7 @@
 
 		if (dialog.id === 'emerson-recommit' && dialog.classList.contains('emerson-recommit--form')) {
 			watchSurveyThanks(dialog, closeDialog);
+			watchSurveyErrorDlg(dialog);
 		}
 
 		document.addEventListener('click', function (event) {
@@ -434,6 +576,7 @@
 				return;
 			}
 			event.preventDefault();
+			event.stopPropagation();
 			openDialog();
 		});
 		dialog.addEventListener('click', function (event) {
@@ -715,9 +858,16 @@
 		bindIframeDialog(dialog, '[data-emerson-recommit]');
 	}
 	bindIframeDialog(document.getElementById('emerson-pledge'), '[data-emerson-pledge]');
-	document.querySelectorAll('dialog.emerson-modal[data-emerson-modal-id]').forEach(function (modalDialog) {
-		var modalId = modalDialog.getAttribute('data-emerson-modal-id');
-		if (!modalId) {
+	/* One listener per modal id (getElementById) so a duplicated <dialog> cannot open twice. */
+	var boundModalIds = {};
+	document.querySelectorAll('[data-emerson-modal]').forEach(function (opener) {
+		var modalId = opener.getAttribute('data-emerson-modal');
+		if (!modalId || boundModalIds[modalId]) {
+			return;
+		}
+		boundModalIds[modalId] = true;
+		var modalDialog = document.getElementById('emerson-modal-' + modalId);
+		if (!modalDialog) {
 			return;
 		}
 		bindIframeDialog(modalDialog, '[data-emerson-modal="' + modalId + '"]');

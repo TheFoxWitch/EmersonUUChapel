@@ -4,6 +4,96 @@
 (function () {
 	'use strict';
 
+	/**
+	 * Brief bounce-down arrow when a form-maker dialog’s content overflows.
+	 * Toggle: Emerson Chapel → Modals → Display.
+	 */
+	function modalOverflowArrowEnabled() {
+		return !!(window.emersonModals && window.emersonModals.overflowArrow);
+	}
+
+	function findModalScrollRoot(dialog) {
+		if (!dialog) {
+			return null;
+		}
+		var candidates = [
+			dialog.querySelector('.emerson-modal__form'),
+			dialog.querySelector('form.cff-form'),
+			dialog.querySelector('.emerson-recommit__fit'),
+			dialog
+		];
+		var i;
+		for (i = 0; i < candidates.length; i++) {
+			var el = candidates[i];
+			if (!el) {
+				continue;
+			}
+			var style = window.getComputedStyle(el);
+			var oy = style.overflowY;
+			if (
+				(oy === 'auto' || oy === 'scroll' || oy === 'overlay') &&
+				el.scrollHeight > el.clientHeight + 2
+			) {
+				return el;
+			}
+		}
+		return null;
+	}
+
+	function clearModalOverflowArrow(dialog) {
+		if (!dialog) {
+			return;
+		}
+		var hint = dialog.querySelector('.emerson-modal-scroll-hint');
+		if (hint && hint.parentNode) {
+			hint.parentNode.removeChild(hint);
+		}
+		if (dialog._emersonScrollHintCleanup) {
+			dialog._emersonScrollHintCleanup();
+			dialog._emersonScrollHintCleanup = null;
+		}
+	}
+
+	function showModalOverflowArrow(dialog) {
+		clearModalOverflowArrow(dialog);
+		if (!dialog || !dialog.open || !modalOverflowArrowEnabled()) {
+			return;
+		}
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			return;
+		}
+		var root = findModalScrollRoot(dialog);
+		if (!root) {
+			return;
+		}
+		var hint = document.createElement('div');
+		hint.className = 'emerson-modal-scroll-hint';
+		hint.setAttribute('aria-hidden', 'true');
+		hint.innerHTML = '<span class="emerson-modal-scroll-hint__arrow"></span>';
+		dialog.appendChild(hint);
+
+		function dismiss() {
+			clearModalOverflowArrow(dialog);
+		}
+
+		var arrow = hint.querySelector('.emerson-modal-scroll-hint__arrow');
+		if (arrow) {
+			arrow.addEventListener('animationend', dismiss);
+		}
+		root.addEventListener('scroll', dismiss, { passive: true });
+		dialog.addEventListener('close', dismiss);
+
+		dialog._emersonScrollHintCleanup = function () {
+			root.removeEventListener('scroll', dismiss);
+			dialog.removeEventListener('close', dismiss);
+			if (arrow) {
+				arrow.removeEventListener('animationend', dismiss);
+			}
+		};
+	}
+
+	window.emersonModalOverflowArrow = showModalOverflowArrow;
+
 	// Church Admin's month grid writes "This month's PDF" as /ca_download=monthly-calendar-pdf&start_date=…,
 	// a page address that doesn't exist. The grid is redrawn by Ajax, so fix the address when it's clicked.
 	document.addEventListener(
@@ -52,6 +142,9 @@
 		var list = dialog.querySelector('[id^="fieldlist_"]');
 		if (!list || list.children.length || reduceMotion) {
 			revealPaypalFees(dialog);
+			window.requestAnimationFrame(function () {
+				showModalOverflowArrow(dialog);
+			});
 			return;
 		}
 		var revealed = false;
@@ -64,6 +157,7 @@
 			window.requestAnimationFrame(function () {
 				window.requestAnimationFrame(function () {
 					revealPaypalFees(dialog);
+					showModalOverflowArrow(dialog);
 				});
 			});
 		}

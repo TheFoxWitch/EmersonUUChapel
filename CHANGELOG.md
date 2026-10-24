@@ -10,6 +10,49 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-24
+
+### Custom modal buttons: shared CTA styles + row inject
+- Each custom dialog has a **Button style**: green fill, blue fill, or blue outline (same looks as Commitment / PayPal / Survey).
+- On pages with the pledge/PayPal Buttons row, `[emerson_modal]` joins that row automatically (like the survey). Elsewhere the button centres on its own. No per-button CSS.
+- **File:** `wp-content/plugins/emerson-chapel/inc/modals.php`, `inc/recommitment.php`, `assets/css/custom.css`.
+
+### Custom modal: one dialog + iframe loading cue
+- Custom form dialogs were printing twice in the footer (two stacked modals for one button). Print once per request; open via `getElementById` so a duplicate cannot bind twice.
+- Google Forms iframes show a “Loading form…” spinner until `load`; Microsoft Forms skip it (they already show their own).
+- **File:** `wp-content/plugins/emerson-chapel/inc/modals.php`, `assets/js/recommitment.js`, `assets/css/custom.css`.
+
+### Modal overflow scroll arrow
+- Modals → Display: optional animated down-arrow when a Calculated Fields dialog’s content is taller than the dialog (survey, PayPal fees, custom form-maker dialogs). Bounces three times, then goes away; also clears on scroll or close. Off when the visitor prefers reduced motion. On by default.
+- **File:** `wp-content/plugins/emerson-chapel/inc/modals.php`, `assets/js/custom.js`, `assets/js/recommitment.js`, `assets/css/custom.css`.
+
+### Header logo + socials centred on mobile/tablet
+- Below 1024px the header brand (home logo and social icons) takes the full row and centres; the nav wraps under and centres too. Desktop keeps logo left / menu right.
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
+### Footer social icons
+- Same Facebook, Instagram, YouTube, and GroupMe links as the header, under the footer logo.
+- Footer logo sized to match the header (240px, 300px on small screens).
+- Footer social row centred at all widths; icon hit boxes match SVG size so centering isn’t optically left.
+- Header and footer social icons ~33% smaller on all breakpoints.
+- Footer brand column centres logo, socials, and blurb; logo capped to column width (no 300px overflow); single column until 782px; no left optical shift (that over-corrected on desktop).
+- **File:** `wp-content/themes/emerson-uuchapel/patterns/footer.php`, `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
+### Modals “Edit form” wording
+- Calculated Fields links on the Modals screen all say **Edit form** (survey, PayPal fees, and custom CFF dialogs). No form-specific labels that can go stale.
+- Modals section heading is **Commitment Form** (not year-stamped).
+- Community survey shortcode button centred (wrapper flex, not relying on a shortcode block class).
+- Survey button injects into the home CTA `.wp-block-buttons` row so spacing matches pledge / PayPal; shortcode stays visible in the editor.
+- Survey reopen after validation errors: only remove `.cpefb_error.message` bubbles — clearing every `.cpefb_error` had deleted the inputs themselves.
+- Survey validation summary (`.cff-error-dlg`) fades out after 4 seconds instead of needing a click to dismiss.
+- Signature pad: stop scaling the survey form (scroll instead); map pointer coords through any remaining CSS scale so the ink tracks the cursor.
+- **File:** `wp-content/plugins/emerson-chapel/inc/modals.php`, `inc/recommitment.php`, `assets/js/recommitment.js`, `assets/css/custom.css`, `TEST-AND-LAUNCH-CHECKLIST.md`.
+
+### Community Survey button is a shortcode
+- Emerson Community Survey no longer injects itself invisibly next to the pledge button. Place it with `[emerson_community_survey]` (Shortcode block), same idea as custom Modals. Settings stay under Emerson Chapel → Modals. Home page (15) has the shortcode in the buttons row.
+- **File:** `wp-content/plugins/emerson-chapel/inc/recommitment.php`, `inc/modals.php`, `assets/css/custom.css`, `TEST-AND-LAUNCH-CHECKLIST.md`.
+- **Local DB:** front page content — shortcode inserted; backup `backups/pages/page-15-before-community-survey-shortcode.html`.
+
 ## 2026-10-22
 
 ### Giving page quote border

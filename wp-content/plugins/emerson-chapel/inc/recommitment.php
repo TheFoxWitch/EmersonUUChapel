@@ -1,9 +1,9 @@
 <?php
 /**
- * Homepage re-commitment form.
+ * Emerson Community Survey (chapel commitment form in a dialog).
  *
- * The button sits with the pledge and PayPal-fees buttons. It opens Microsoft's form
- * inside the dialog on this page.
+ * Place the button with [emerson_community_survey] (Shortcode block), same idea as
+ * custom Modals. Settings stay under Emerson Chapel → Modals.
  */
 
 declare( strict_types=1 );
@@ -13,7 +13,8 @@ const EMERSON_RECOMMIT_MAX_PER_HOUR = 8;
 const EMERSON_RECOMMIT_FORM_OPTION   = 'emerson_recommit_form_url';
 const EMERSON_RECOMMIT_FORM_DEFAULT  = 'https://forms.cloud.microsoft/r/59mVXw4vPP';
 const EMERSON_RECOMMIT_LABEL_OPTION  = 'emerson_recommit_label';
-const EMERSON_RECOMMIT_LABEL_DEFAULT = 'Re-commitment Form';
+const EMERSON_RECOMMIT_LABEL_DEFAULT = 'Emerson Community Survey';
+const EMERSON_COMMUNITY_SURVEY_SHORTCODE = 'emerson_community_survey';
 
 /**
  * Words on the homepage button and the dialog heading.
@@ -73,29 +74,127 @@ function emerson_recommit_embed_url(): string {
 }
 
 /**
- * Add the button to the homepage row that already holds the pledge form.
+ * Whether this request’s post content asks for the community survey button.
+ */
+function emerson_recommit_page_has_button(): bool {
+	if ( ! empty( $GLOBALS['emerson_community_survey_used'] ) ) {
+		return true;
+	}
+	if ( ! is_singular() ) {
+		return false;
+	}
+	$post = get_post();
+	if ( ! ( $post instanceof WP_Post ) ) {
+		return false;
+	}
+	$content = (string) $post->post_content;
+	return str_contains( $content, 'data-emerson-recommit' )
+		|| has_shortcode( $content, EMERSON_COMMUNITY_SURVEY_SHORTCODE );
+}
+
+/**
+ * Home CTA row (pledge / PayPal) can host the survey so all openers share one flex gap.
+ */
+function emerson_recommit_will_inject_into_buttons(): bool {
+	if ( ! is_singular() ) {
+		return false;
+	}
+	$post = get_post();
+	if ( ! ( $post instanceof WP_Post ) ) {
+		return false;
+	}
+	$content = (string) $post->post_content;
+	if ( ! has_shortcode( $content, EMERSON_COMMUNITY_SURVEY_SHORTCODE ) ) {
+		return false;
+	}
+	if ( function_exists( 'emerson_page_has_cta_buttons_row' ) ) {
+		return emerson_page_has_cta_buttons_row();
+	}
+	return str_contains( $content, 'pledge-button' )
+		|| str_contains( $content, 'paypal-fees-button' );
+}
+
+/**
+ * Markup for the survey opener (inner button only — sits inside .wp-block-buttons).
+ */
+function emerson_community_survey_button_html(): string {
+	return '<div class="wp-block-button recommit-button emerson-cta emerson-cta--outline"><button type="button" class="wp-block-button__link wp-element-button" data-emerson-recommit>'
+		. esc_html( emerson_recommit_label() ) . '</button></div>';
+}
+
+/**
+ * Button for the Emerson Community Survey dialog.
+ *
+ * Usage: [emerson_community_survey]
+ * On the home CTA row the button is injected into that buttons block for even spacing;
+ * the shortcode block itself is suppressed on the front in that case.
+ */
+function emerson_community_survey_shortcode(): string {
+	$GLOBALS['emerson_community_survey_used'] = true;
+	if ( emerson_recommit_will_inject_into_buttons() && ! is_admin()
+		&& ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return '';
+	}
+	return '<div class="emerson-community-survey-button">' . emerson_community_survey_button_html() . '</div>';
+}
+add_shortcode( EMERSON_COMMUNITY_SURVEY_SHORTCODE, 'emerson_community_survey_shortcode' );
+
+/**
+ * Append the survey button inside the pledge/PayPal buttons group (same flex gap).
  *
  * @param string               $content Rendered block HTML.
  * @param array<string, mixed> $block   Block data.
  */
-function emerson_recommit_render_button( string $content, array $block ): string {
-	if ( ( $block['blockName'] ?? '' ) !== 'core/buttons' || ! is_front_page() ) {
+function emerson_recommit_inject_into_buttons( string $content, array $block ): string {
+	if ( ( $block['blockName'] ?? '' ) !== 'core/buttons' ) {
 		return $content;
 	}
-	if ( ! str_contains( $content, 'pledge-button' ) || str_contains( $content, 'data-emerson-recommit' ) ) {
+	if ( str_contains( $content, 'data-emerson-recommit' ) ) {
 		return $content;
 	}
-	$button = '<div class="wp-block-button recommit-button"><button type="button" class="wp-block-button__link wp-element-button" data-emerson-recommit>' . esc_html( emerson_recommit_label() ) . '</button></div>';
+	if ( ! str_contains( $content, 'pledge-button' ) && ! str_contains( $content, 'paypal-fees-button' ) ) {
+		return $content;
+	}
+	if ( ! emerson_recommit_will_inject_into_buttons() ) {
+		return $content;
+	}
+	$GLOBALS['emerson_community_survey_used'] = true;
+	$button = emerson_community_survey_button_html();
 	$pos    = strrpos( $content, '</div>' );
 	if ( false === $pos ) {
 		return $content . $button;
 	}
 	return substr( $content, 0, $pos ) . $button . substr( $content, $pos );
 }
-add_filter( 'render_block', 'emerson_recommit_render_button', 10, 2 );
+add_filter( 'render_block', 'emerson_recommit_inject_into_buttons', 10, 2 );
+
+/**
+ * Drop the standalone shortcode block on the front when the button lives in the CTA row.
+ *
+ * @param string               $content Rendered block HTML.
+ * @param array<string, mixed> $block   Block data.
+ */
+function emerson_community_survey_suppress_shortcode_block( string $content, array $block ): string {
+	if ( ( $block['blockName'] ?? '' ) !== 'core/shortcode' ) {
+		return $content;
+	}
+	$inner = (string) ( $block['innerHTML'] ?? '' );
+	if ( ! str_contains( $inner, '[' . EMERSON_COMMUNITY_SURVEY_SHORTCODE ) ) {
+		return $content;
+	}
+	if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return $content;
+	}
+	if ( ! emerson_recommit_will_inject_into_buttons() ) {
+		return $content;
+	}
+	$GLOBALS['emerson_community_survey_used'] = true;
+	return '';
+}
+add_filter( 'render_block', 'emerson_community_survey_suppress_shortcode_block', 5, 2 );
 
 function emerson_recommit_enqueue(): void {
-	if ( ! is_front_page() ) {
+	if ( ! emerson_recommit_page_has_button() ) {
 		return;
 	}
 	$path = emerson_chapel_path( 'assets/js/recommitment.js' );
@@ -301,7 +400,7 @@ function emerson_survey_editor_url(): string {
 }
 
 function emerson_recommit_dialog(): void {
-	if ( ! is_front_page() ) {
+	if ( ! emerson_recommit_page_has_button() ) {
 		return;
 	}
 	$label   = emerson_recommit_label();
@@ -377,14 +476,14 @@ function emerson_recommit_admin_save(): ?string {
 	$label = isset( $_POST['button_label'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['button_label'] ) ) : '';
 	$label = trim( preg_replace( '/\s+/', ' ', $label ) ?? '' );
 	if ( $label === '' ) {
-		return 'Type the words that should appear on the homepage button.';
+		return 'Type the words that should appear on the survey button.';
 	}
 	if ( mb_strlen( $label ) > 80 ) {
 		return 'The button text is too long. Keep it to 80 characters.';
 	}
 	update_option( EMERSON_RECOMMIT_LABEL_OPTION, $label, false );
 	update_option( 'emerson_survey_signature', empty( $_POST['survey_signature'] ) ? '0' : '1', false );
-	return 'Saved. The homepage button will use this wording and open the commitment form.';
+	return 'Saved. Place the button with [' . EMERSON_COMMUNITY_SURVEY_SHORTCODE . '].';
 }
 
 function emerson_survey_signature_enabled(): bool {

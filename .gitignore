@@ -3,6 +3,10 @@
 db-init/*.sql
 .DS_Store
 
+# Local-only leftovers (not site code; phone backup must stay out of git)
+Magazines.xlsx
+backups/pages/page-*-before-remove-phones.html
+
 # Full-site backups and exports: contain member emails, password hashes and the SMTP password
 www.emersonuuchapel.org_wpvivid-*/
 *.WordPress.*.xml

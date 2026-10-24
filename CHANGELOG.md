@@ -12,6 +12,29 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-24
 
+### Foil shine: 90° covers the full viewport
+- Shine pan uses rotate-then-translate so travel follows the shine angle. At 90° the band sweeps top→bottom across the full width (it used to only slide along a middle strip).
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
+### Foil shine: optional rainbow band
+- Page background admin: checkbox next to the wash colour picker turns the moving shine into a pride rainbow gradient (opacity and angle unchanged). Off by default.
+- **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`, `assets/css/custom.css`.
+
+### Planning Calendar link: centered
+- The Planning Calendar link under the members’ calendar is centered at every viewport width.
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
+### Foil emoji fields: one grapheme each
+- Background symbol inputs and the corner button keep a single Unicode grapheme (real “one emoji”), enforced in the admin UI and on save — not a fixed character length.
+- **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`.
+
+### Foil drift: less crawl after wipe
+- Drift uses a mild cubic-bezier (smoother than segmented linear, less crawl than full ease-in-out).
+- Shine restored: band is a viewport sibling of the icon sheet (not masked to the canvas PNG — that mask hid it). Ambient loop after reveal with a short delay.
+- Shine travel uses `vmax` (~95% of the longer side) with a late fade — `%` was of the band width, so desktop only got a short hop.
+- Shine band is centered and 220vmax tall so any angle still spans the viewport; ambient shine waits until drift starts (no band during wipe).
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `inc/foil-background.php`, `assets/js/custom.js`.
+
 ### Custom modal buttons: shared CTA styles + row inject
 - Each custom dialog has a **Button style**: green fill, blue fill, or blue outline (same looks as Commitment / PayPal / Survey).
 - On pages with the pledge/PayPal Buttons row, `[emerson_modal]` joins that row automatically (like the survey). Elsewhere the button centres on its own. No per-button CSS.

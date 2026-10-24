@@ -48,6 +48,7 @@ function emerson_foil_default_symbols(): array {
  *   shine_angle:float,
  *   drift_on:bool,
  *   shine_on:bool,
+ *   shine_rainbow:bool,
  *   glow_on:bool,
  *   randomize_on_load:bool,
  *   layer_color:string,
@@ -64,6 +65,7 @@ function emerson_foil_style_defaults(): array {
 		'shine_angle'       => 0.0,
 		'drift_on'          => true,
 		'shine_on'          => true,
+		'shine_rainbow'     => false,
 		'glow_on'           => true,
 		'randomize_on_load' => false,
 		'layer_color'       => '#f4f7f1',
@@ -83,17 +85,41 @@ function emerson_foil_style_defaults(): array {
 }
 
 /**
- * One stored symbol, trimmed. Empty strings are dropped by the caller.
+ * First Unicode grapheme cluster (one emoji / character), or empty.
+ * Emoji lengths vary; string length / maxlength cannot mean “one emoji”.
  */
-function emerson_foil_clean_symbol( string $symbol ): string {
-	$symbol = trim( wp_strip_all_tags( $symbol ) );
-	if ( $symbol === '' ) {
+function emerson_foil_one_grapheme( string $text ): string {
+	$text = trim( $text );
+	if ( $text === '' ) {
 		return '';
 	}
-	if ( function_exists( 'mb_substr' ) && mb_strlen( $symbol ) > 16 ) {
-		$symbol = mb_substr( $symbol, 0, 16 );
+	if ( function_exists( 'grapheme_substr' ) ) {
+		$one = grapheme_substr( $text, 0, 1 );
+		return is_string( $one ) ? $one : '';
 	}
-	return $symbol;
+	if ( class_exists( 'IntlBreakIterator' ) ) {
+		$breaker = \IntlBreakIterator::createCharacterInstance();
+		if ( $breaker ) {
+			$breaker->setText( $text );
+			$start = $breaker->first();
+			$end   = $breaker->next();
+			if ( is_int( $start ) && is_int( $end ) && $end > $start ) {
+				return substr( $text, $start, $end - $start );
+			}
+		}
+	}
+	/* Last resort: first UTF-8 code point (may split some multi-code-point emoji). */
+	if ( function_exists( 'mb_substr' ) ) {
+		return (string) mb_substr( $text, 0, 1, 'UTF-8' );
+	}
+	return $text;
+}
+
+/**
+ * One stored symbol, trimmed to a single grapheme. Empty strings are dropped by the caller.
+ */
+function emerson_foil_clean_symbol( string $symbol ): string {
+	return emerson_foil_one_grapheme( wp_strip_all_tags( $symbol ) );
 }
 
 /**
@@ -171,6 +197,7 @@ function emerson_foil_symbols(): array {
  *   shine_angle:float,
  *   drift_on:bool,
  *   shine_on:bool,
+ *   shine_rainbow:bool,
  *   glow_on:bool,
  *   randomize_on_load:bool,
  *   layer_color:string,
@@ -227,6 +254,7 @@ function emerson_foil_style(): array {
 		'shine_angle'       => emerson_foil_clamp_float( $stored['shine_angle'] ?? null, 0.0, 360.0, $defaults['shine_angle'] ),
 		'drift_on'          => array_key_exists( 'drift_on', $stored ) ? ! empty( $stored['drift_on'] ) : $defaults['drift_on'],
 		'shine_on'          => array_key_exists( 'shine_on', $stored ) ? ! empty( $stored['shine_on'] ) : $defaults['shine_on'],
+		'shine_rainbow'     => array_key_exists( 'shine_rainbow', $stored ) ? ! empty( $stored['shine_rainbow'] ) : $defaults['shine_rainbow'],
 		'glow_on'           => array_key_exists( 'glow_on', $stored ) ? ! empty( $stored['glow_on'] ) : $defaults['glow_on'],
 		'randomize_on_load' => array_key_exists( 'randomize_on_load', $stored ) ? ! empty( $stored['randomize_on_load'] ) : $defaults['randomize_on_load'],
 		'layer_color'       => $color,
@@ -279,7 +307,7 @@ add_action(
 			? '0 0 0.28em #fff, 0 0 0.28em #fff, 0 0 0.12em #fff'
 			: 'none';
 		$drift_anim  = $style['drift_on']
-			? 'emerson-foil-drift ' . $style['drift_seconds'] . 's ease-in-out infinite alternate'
+			? 'emerson-foil-drift ' . $style['drift_seconds'] . 's cubic-bezier(0.3, 0, 0.7, 1) infinite alternate'
 			: 'none';
 		$shine_anim  = $style['shine_on']
 			? 'emerson-foil-pan ' . $style['shine_seconds'] . 's linear infinite'
@@ -320,8 +348,11 @@ add_action(
 		echo '<canvas class="emerson-foil__canvas" data-symbols="' . esc_attr( wp_json_encode( $symbols ) ) . '"'
 			. ( ! empty( $style['randomize_on_load'] ) ? ' data-randomize="1"' : '' )
 			. '></canvas>';
-		echo '<div class="emerson-foil__shine"><span></span></div>';
-		echo '</div></div>';
+		echo '</div>';
+		/* Shine is a sibling of the sheet so it sweeps the viewport, not the huge canvas. */
+		$shine_class = 'emerson-foil__shine' . ( ! empty( $style['shine_rainbow'] ) ? ' emerson-foil__shine--rainbow' : '' );
+		echo '<div class="' . esc_attr( $shine_class ) . '"><span></span></div>';
+		echo '</div>';
 		echo '<button type="button" class="emerson-foil-toggle wp-exclude-emoji" aria-pressed="false" aria-label="Switch the page background" style="position:fixed;z-index:40;right:1.5rem;bottom:1.5rem">'
 			. esc_html( $style['toggle_emoji'] )
 			. '</button>';
@@ -420,6 +451,7 @@ function emerson_foil_style_save(): ?string {
 		'shine_angle'       => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_angle'] ?? null ), 0.0, 360.0, $defaults['shine_angle'] ),
 		'drift_on'          => ! empty( $_POST['foil_drift_on'] ),
 		'shine_on'          => ! empty( $_POST['foil_shine_on'] ),
+		'shine_rainbow'     => ! empty( $_POST['foil_shine_rainbow'] ),
 		'glow_on'           => ! empty( $_POST['foil_glow_on'] ),
 		'randomize_on_load' => ! empty( $_POST['foil_randomize_on_load'] ),
 		'layer_color'       => $color,
@@ -462,11 +494,11 @@ function emerson_foil_admin_page(): void {
 	echo '<form method="post" class="emerson-foil-panel">';
 	wp_nonce_field( 'emerson_foil_save' );
 	echo '<h2>Symbols</h2>';
-	echo '<p>These symbols repeat across the background. One symbol fills the field. Three symbols repeat those three. WordPress will not rewrite the toggle button emoji.</p>';
+	echo '<p>These symbols repeat across the background. Each field holds <strong>one</strong> emoji (extra characters are trimmed). Add more fields for more symbols.</p>';
 	echo '<div class="emerson-foil-symbols">';
 	foreach ( $symbols as $symbol ) {
 		echo '<div class="emerson-foil-symbol">';
-		echo '<input type="text" name="foil_symbols[]" maxlength="16" value="' . esc_attr( $symbol ) . '" aria-label="Background symbol">';
+		echo '<input type="text" class="emerson-foil-one-emoji" name="foil_symbols[]" value="' . esc_attr( $symbol ) . '" aria-label="Background symbol" autocomplete="off">';
 		echo '<button type="button" class="button emerson-foil-remove">Remove</button>';
 		echo '</div>';
 	}
@@ -511,11 +543,13 @@ function emerson_foil_admin_page(): void {
 
 	echo '<tr><th scope="row"><label for="emerson-foil-layer-color">Background colour</label></th><td>';
 	echo '<input type="color" id="emerson-foil-layer-color" name="foil_layer_color" value="' . esc_attr( $style['layer_color'] ) . '">';
+	echo ' <label style="margin-left:0.75rem"><input type="checkbox" name="foil_shine_rainbow" value="1"' . checked( $style['shine_rainbow'], true, false ) . '> Rainbow shine</label>';
+	echo '<p class="description">Wash colour for the page. Rainbow shine swaps the moving band for a pride gradient (still respects shine opacity and angle).</p>';
 	echo '</td></tr>';
 
 	echo '<tr><th scope="row"><label for="emerson-foil-toggle-emoji">Corner button</label></th><td>';
-	echo '<input type="text" class="emerson-foil-toggle-emoji" id="emerson-foil-toggle-emoji" name="foil_toggle_emoji" maxlength="16" value="' . esc_attr( $style['toggle_emoji'] ) . '">';
-	echo '<p class="description">Kept as a real emoji (<code>wp-exclude-emoji</code>), so WordPress does not replace it with an image.</p>';
+	echo '<input type="text" class="emerson-foil-toggle-emoji emerson-foil-one-emoji" id="emerson-foil-toggle-emoji" name="foil_toggle_emoji" value="' . esc_attr( $style['toggle_emoji'] ) . '" autocomplete="off">';
+	echo '<p class="description">One emoji only. Kept as a real emoji (<code>wp-exclude-emoji</code>), so WordPress does not replace it with an image.</p>';
 	echo '</td></tr>';
 
 	echo '<tr><th scope="row">Reading glow</th><td>';
@@ -531,14 +565,44 @@ function emerson_foil_admin_page(): void {
 
 	echo '<script>
 		(function () {
+			var segmenter = (typeof Intl !== "undefined" && Intl.Segmenter)
+				? new Intl.Segmenter(undefined, { granularity: "grapheme" })
+				: null;
+			function firstGrapheme(value) {
+				value = String(value || "").trim();
+				if (!value) return "";
+				if (segmenter) {
+					for (var part of segmenter.segment(value)) {
+						return part.segment;
+					}
+					return "";
+				}
+				return Array.from(value)[0] || "";
+			}
+			function bindOneEmoji(input) {
+				if (!input || input.dataset.emersonOneEmoji === "1") return;
+				input.dataset.emersonOneEmoji = "1";
+				function trim() {
+					var one = firstGrapheme(input.value);
+					if (input.value !== one) {
+						input.value = one;
+					}
+				}
+				input.addEventListener("input", trim);
+				input.addEventListener("blur", trim);
+				trim();
+			}
+			document.querySelectorAll(".emerson-foil-one-emoji").forEach(bindOneEmoji);
 			var list = document.querySelector(".emerson-foil-symbols");
 			var add = document.querySelector(".emerson-foil-add");
 			if (!list || !add) return;
 			function row(value) {
 				var line = document.createElement("div");
 				line.className = "emerson-foil-symbol";
-				line.innerHTML = "<input type=\\"text\\" name=\\"foil_symbols[]\\" maxlength=\\"16\\" aria-label=\\"Background symbol\\"> <button type=\\"button\\" class=\\"button emerson-foil-remove\\">Remove</button>";
-				line.querySelector("input").value = value;
+				line.innerHTML = "<input type=\\"text\\" class=\\"emerson-foil-one-emoji\\" name=\\"foil_symbols[]\\" aria-label=\\"Background symbol\\" autocomplete=\\"off\\"> <button type=\\"button\\" class=\\"button emerson-foil-remove\\">Remove</button>";
+				var input = line.querySelector("input");
+				input.value = firstGrapheme(value);
+				bindOneEmoji(input);
 				return line;
 			}
 			add.addEventListener("click", function () {

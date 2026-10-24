@@ -1752,18 +1752,22 @@
 		}
 		return list;
 	}
-	function foilApplyShineMask(shine, width, height, dataUrl) {
-		if (!shine || !dataUrl) {
+	function foilApplyShineMask(shine) {
+		/*
+		 * Shine is a viewport-sized sibling of the sheet (not masked to the canvas).
+		 * The old canvas PNG mask made the band effectively invisible.
+		 */
+		if (!shine) {
 			return;
 		}
-		shine.style.width = width + 'px';
-		shine.style.height = height + 'px';
-		shine.style.maskImage = 'url("' + dataUrl + '")';
-		shine.style.webkitMaskImage = 'url("' + dataUrl + '")';
-		shine.style.maskSize = width + 'px ' + height + 'px';
-		shine.style.webkitMaskSize = width + 'px ' + height + 'px';
-		shine.style.maskRepeat = 'no-repeat';
-		shine.style.webkitMaskRepeat = 'no-repeat';
+		shine.style.removeProperty('width');
+		shine.style.removeProperty('height');
+		shine.style.removeProperty('mask-image');
+		shine.style.removeProperty('-webkit-mask-image');
+		shine.style.removeProperty('mask-size');
+		shine.style.removeProperty('-webkit-mask-size');
+		shine.style.removeProperty('mask-repeat');
+		shine.style.removeProperty('-webkit-mask-repeat');
 	}
 	/**
 	 * Draw icons only (no toDataURL). Must run while the wipe mask is shut.
@@ -1819,10 +1823,8 @@
 		 * Shine delay parks the band off-screen after the reveal pass.
 		 */
 		root.style.setProperty('--emerson-foil-drift-delay', '0s');
-		root.style.setProperty(
-			'--emerson-foil-shine-delay',
-			(-foilShineSeconds()).toFixed(3) + 's'
-		);
+		/* Shine starts with drift; tiny settle so it does not pop on the first drift frame. */
+		root.style.setProperty('--emerson-foil-shine-delay', '0.2s');
 		foilSyncWipeAxis();
 		return { width: width, height: height };
 	}
@@ -1845,12 +1847,7 @@
 			if (!foilStill(seq) || !foilCanvas) {
 				return;
 			}
-			foilApplyShineMask(
-				document.querySelector('.emerson-foil__shine'),
-				size.width,
-				size.height,
-				foilCanvas.toDataURL('image/png')
-			);
+			foilApplyShineMask(document.querySelector('.emerson-foil__shine'));
 			startIn();
 		});
 	}
@@ -1936,6 +1933,7 @@
 							return;
 						}
 						root.classList.add('emerson-foil-drifting');
+						root.classList.add('emerson-foil-shining');
 						window.requestAnimationFrame(function () {
 							if (!foilStill(seq) || !sheet) {
 								return;
@@ -2129,7 +2127,7 @@
 				}
 			}
 			foilForceMaskClosed();
-			root.classList.add('emerson-foil-ready', 'emerson-foil-drifting');
+			root.classList.add('emerson-foil-ready', 'emerson-foil-drifting', 'emerson-foil-shining');
 			foilFlightDone();
 			return;
 		}

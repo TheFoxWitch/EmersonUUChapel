@@ -2683,6 +2683,11 @@ blockquote {
 /** End newcomer Other box **/
 
 /* Sunday Morning Schedule sheet: monthly theme + Sunday details */
+.emerson-planning-calendar {
+	text-align: center;
+	margin: 0.75rem 0 1rem;
+}
+
 .emerson-month-theme {
 	text-align: center;
 	margin: 0.35rem 0 1rem;
@@ -3267,8 +3272,11 @@ html.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-i
 	will-change: transform;
 }
 html.emerson-foil-drifting:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in) .emerson-foil__sheet {
-	/* ease-in-out: linear used to kick at full speed on the first frame. */
-	animation: var(--emerson-foil-drift-animation, emerson-foil-drift 36s ease-in-out infinite alternate);
+	/*
+	 * Mild ease (not full ease-in-out crawl, not linear segment jumps).
+	 * cubic-bezier keeps a continuous speed change into cruise and into reverse.
+	 */
+	animation: var(--emerson-foil-drift-animation, emerson-foil-drift 36s cubic-bezier(0.3, 0, 0.7, 1) infinite alternate);
 	animation-delay: var(--emerson-foil-drift-delay, 0s);
 }
 /*
@@ -3326,39 +3334,65 @@ html.emerson-foil-wiping-out .emerson-foil-layer {
 	width: 100%;
 	height: 100%;
 	overflow: hidden; /* clip rotated band — was flashing white at the bottom */
-	opacity: var(--emerson-foil-shine-opacity, 0.25);
+	/* Stored opacity is often ~0.2; floor visibility so the band still reads on the wash. */
+	opacity: max(0.45, var(--emerson-foil-shine-opacity, 0.25));
 	pointer-events: none;
 }
+/*
+ * Band is centered and long enough (220vmax) to span the viewport at any shine
+ * angle — shorter bars looked “bent” / clipped when rotated (esp. near 90°).
+ * Transform order is rotate then translate: travel stays on the shine axis
+ * (0° pans left→right; 90° pans top→bottom). translate-then-rotate kept
+ * motion on screen-X, so a 90° band only slid along its own middle strip.
+ */
 .emerson-foil__shine span {
 	position: absolute;
 	top: 50%;
-	left: 0;
-	width: 16%;
-	height: 140%;
-	margin-top: -70%;
+	left: 50%;
+	width: 22vmin;
+	height: 220vmax;
+	margin: -110vmax 0 0 -11vmin;
 	background: linear-gradient(
 		to right,
 		transparent 0%,
-		rgba(255, 255, 255, 0.55) 46%,
-		rgba(255, 248, 214, 0.55) 54%,
+		rgba(255, 255, 255, 0.35) 38%,
+		rgba(255, 255, 255, 0.75) 50%,
+		rgba(255, 248, 214, 0.55) 58%,
 		transparent 100%
 	);
-	transform: translate3d(-130%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+	transform: rotate(var(--emerson-foil-shine-angle, 0deg)) translate3d(-110vmax, 0, 0);
 	transform-origin: center center;
 	opacity: 0;
 	will-change: transform, opacity;
 }
-html.emerson-foil-wiping-in .emerson-foil__shine span {
-	animation: emerson-foil-pan calc(var(--emerson-foil-shine-seconds, 3.2) * 1s) linear both;
+/* Pride rainbow band (admin: Rainbow shine). Soft edges so the sweep still reads as a shine. */
+.emerson-foil__shine--rainbow span {
+	width: 36vmin;
+	margin-left: -18vmin;
+	background: linear-gradient(
+		to right,
+		transparent 0%,
+		rgba(228, 3, 3, 0.55) 14%,
+		rgba(255, 140, 0, 0.65) 28%,
+		rgba(255, 237, 0, 0.7) 42%,
+		rgba(0, 128, 38, 0.65) 56%,
+		rgba(0, 77, 255, 0.65) 70%,
+		rgba(117, 7, 135, 0.55) 84%,
+		transparent 100%
+	);
 }
+/* Wipe uses the mask only — shine band waits until drift (icons moving). */
+html.emerson-foil-wiping-in .emerson-foil__shine span,
 html.emerson-foil-wiping-out .emerson-foil__shine span {
-	animation: emerson-foil-pan calc(var(--emerson-foil-shine-seconds, 3.2) * 1s) linear reverse both;
-}
-/* No ambient shine restart after reveal — that white flash at the bottom. */
-html.emerson-foil-ready:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping-out) .emerson-foil__shine span {
-	opacity: 0;
 	animation: none;
-	transform: translate3d(200%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+	opacity: 0;
+}
+/*
+ * Ambient shine only after the sheet is drifting. Parent clips overflow.
+ */
+html.emerson-foil-drifting:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping-out) .emerson-foil__shine span {
+	animation: var(--emerson-foil-shine-animation, emerson-foil-pan 3.2s linear infinite);
+	animation-delay: var(--emerson-foil-shine-delay, 0.2s);
 }
 @keyframes emerson-foil-wipe-in {
 	from {
@@ -3380,25 +3414,37 @@ html.emerson-foil-ready:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping-ou
 		mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
 	}
 }
+/*
+ * Pan along the shine axis (~95% of the longer viewport side), then fade.
+ * rotate → translate so 90° sweeps vertically across the full width.
+ * GPU transform/opacity only.
+ */
 @keyframes emerson-foil-pan {
 	0% {
-		transform: translate3d(-130%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+		transform: rotate(var(--emerson-foil-shine-angle, 0deg)) translate3d(-110vmax, 0, 0);
 		opacity: 0;
 	}
-	8% {
+	6% {
 		opacity: 1;
 	}
-	55% {
+	78% {
 		opacity: 1;
+	}
+	95% {
+		opacity: 0.18;
 	}
 	100% {
-		transform: translate3d(200%, 0, 0) rotate(var(--emerson-foil-shine-angle, 0deg));
+		transform: rotate(var(--emerson-foil-shine-angle, 0deg)) translate3d(95vmax, 0, 0);
 		opacity: 0;
 	}
 }
 @keyframes emerson-foil-drift {
-	from { transform: translate3d(0, 0, 0); }
-	to { transform: translate3d(-8%, -6%, 0); }
+	from {
+		transform: translate3d(0, 0, 0);
+	}
+	to {
+		transform: translate3d(-8%, -6%, 0);
+	}
 }
 .emerson-foil-toggle {
 	position: fixed;

@@ -930,6 +930,30 @@
 			}
 		}
 
+		/**
+		 * “Previous week” is wider than “Next week”. Match both to the larger
+		 * width so a centred date label also has even gaps (CSS alone cannot).
+		 */
+		function balanceWeekNavButtons(nav) {
+			if (!nav || nav.hidden) {
+				return;
+			}
+			var prev = nav.querySelector('.emerson-ca-week-nav__prev');
+			var next = nav.querySelector('.emerson-ca-week-nav__next');
+			if (!prev || !next) {
+				return;
+			}
+			prev.style.width = '';
+			next.style.width = '';
+			var width = Math.ceil(
+				Math.max(prev.getBoundingClientRect().width, next.getBoundingClientRect().width)
+			);
+			if (width > 0) {
+				prev.style.width = width + 'px';
+				next.style.width = width + 'px';
+			}
+		}
+
 		function ensureWeekNav(render) {
 			var nav = render.querySelector('.emerson-ca-week-nav');
 			if (!nav) {
@@ -949,6 +973,7 @@
 			}
 			nav.hidden = false;
 			nav.querySelector('.emerson-ca-week-nav__label').textContent = weekStartYmd ? weekRangeLabel(weekStartYmd) : '';
+			balanceWeekNavButtons(nav);
 		}
 
 		function shiftCompactWeek(delta) {

@@ -10,9 +10,31 @@ declare( strict_types=1 );
 
 const EMERSON_BOARD_OPTION          = 'emerson_board_exceptions';
 const EMERSON_BOARD_DEFAULT_TIME    = '18:30:00';
+/** Short label in the Board Location admin form when no place is set. */
 const EMERSON_BOARD_DEFAULT_VENUE   = 'Rotating';
 const EMERSON_BOARD_DEFAULT_ADDRESS = '';
-const EMERSON_BOARD_LOCATION_LINE   = 'Rotating';
+/** Calendar / sidebar text when the meeting place still rotates. */
+const EMERSON_BOARD_LOCATION_LINE   = 'Rotating location — check This Week at Emerson';
+
+/**
+ * Empty, legacy “Rotating”, or the public rotating line all mean “no fixed place yet”.
+ */
+function emerson_board_venue_rotates( string $venue ): bool {
+	$venue = trim( $venue );
+	if ( $venue === '' ) {
+		return true;
+	}
+	if ( strcasecmp( $venue, EMERSON_BOARD_DEFAULT_VENUE ) === 0 ) {
+		return true;
+	}
+	if ( strcasecmp( $venue, EMERSON_BOARD_LOCATION_LINE ) === 0 ) {
+		return true;
+	}
+	if ( defined( 'EMERSON_GROUP_LOCATION_ROTATES' ) && strcasecmp( $venue, EMERSON_GROUP_LOCATION_ROTATES ) === 0 ) {
+		return true;
+	}
+	return false;
+}
 
 function emerson_board_exceptions(): array {
 	$stored = get_option( EMERSON_BOARD_OPTION, array() );
@@ -97,7 +119,7 @@ function emerson_board_location_line( string $ymd ): string {
 	}
 	$venue   = trim( $shown['venue'] );
 	$address = trim( $shown['address'] );
-	$rotates = $venue === '' || strcasecmp( $venue, EMERSON_BOARD_DEFAULT_VENUE ) === 0;
+	$rotates = emerson_board_venue_rotates( $venue );
 	if ( $address !== '' && ! $rotates ) {
 		return $venue . ', ' . $address;
 	}
@@ -139,11 +161,20 @@ function emerson_board_apply_locations( array $events ): array {
 	return $events;
 }
 
-function emerson_board_sync_calendar_row( string $date, string $location, string $time ): void {
+/**
+ * Write location and start time onto a Church Admin calendar row matched by title + date.
+ */
+function emerson_sync_calendar_row( string $title, string $date, string $location, string $time ): void {
 	global $wpdb;
 	$table = $wpdb->prefix . 'church_admin_calendar_date';
 	if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
 		return;
+	}
+	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+		return;
+	}
+	if ( $time !== '' && preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
+		$time .= ':00';
 	}
 	$wpdb->update(
 		$table,
@@ -152,10 +183,14 @@ function emerson_board_sync_calendar_row( string $date, string $location, string
 			'start_time' => $time,
 		),
 		array(
-			'title'      => 'Board Meeting',
+			'title'      => $title,
 			'start_date' => $date,
 		)
 	);
+}
+
+function emerson_board_sync_calendar_row( string $date, string $location, string $time ): void {
+	emerson_sync_calendar_row( 'Board Meeting', $date, $location, $time );
 }
 
 function emerson_board_seed_rotating_locations(): void {
@@ -178,6 +213,27 @@ function emerson_board_seed_rotating_locations(): void {
 }
 add_action( 'init', 'emerson_board_seed_rotating_locations' );
 
+/** One-time: short “Rotating” on Board Meeting rows → newsletter check line. */
+function emerson_board_seed_twe_location_line(): void {
+	if ( get_option( 'emerson_board_twe_location_seeded' ) ) {
+		return;
+	}
+	global $wpdb;
+	$table = $wpdb->prefix . 'church_admin_calendar_date';
+	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET location = %s WHERE title = %s AND location = %s",
+				EMERSON_BOARD_LOCATION_LINE,
+				'Board Meeting',
+				'Rotating'
+			)
+		);
+	}
+	update_option( 'emerson_board_twe_location_seeded', 1, false );
+}
+add_action( 'init', 'emerson_board_seed_twe_location_line' );
+
 add_action(
 	'admin_menu',
 	static function (): void {
@@ -194,6 +250,15 @@ add_action(
 	20
 );
 
+/** Old menu slug: send the office to Event Places with Board selected. */
+function emerson_board_admin_page(): void {
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		wp_die( esc_html__( 'You do not have permission to edit Board Location.' ) );
+	}
+	wp_safe_redirect( admin_url( 'admin.php?page=emerson-event-places&event=board' ) );
+	exit;
+}
+
 function emerson_board_admin_save(): ?string {
 	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_board_save'] ) ) {
 		return null;
@@ -201,7 +266,10 @@ function emerson_board_admin_save(): ?string {
 	check_admin_referer( 'emerson_board_save' );
 	$posted = isset( $_POST['board'] ) && is_array( $_POST['board'] ) ? wp_unslash( $_POST['board'] ) : array();
 	$next   = emerson_board_exceptions();
-	foreach ( emerson_board_upcoming( 12 ) as $base ) {
+	$rows   = function_exists( 'emerson_event_places_rows' )
+		? emerson_event_places_rows( 'board' )
+		: emerson_board_upcoming( 12 );
+	foreach ( $rows as $base ) {
 		$date   = $base['date'];
 		$row    = is_array( $posted[ $date ] ?? null ) ? $posted[ $date ] : array();
 		$status = sanitize_key( (string) ( $row['status'] ?? 'regular' ) );
@@ -218,7 +286,7 @@ function emerson_board_admin_save(): ?string {
 		$venue   = sanitize_text_field( (string) ( $row['venue'] ?? '' ) );
 		$address = sanitize_text_field( (string) ( $row['address'] ?? '' ) );
 		$note    = sanitize_text_field( (string) ( $row['note'] ?? '' ) );
-		$rotates = $venue === '' || strcasecmp( $venue, EMERSON_BOARD_DEFAULT_VENUE ) === 0;
+		$rotates = emerson_board_venue_rotates( $venue );
 		if ( 'regular' === $status && $time === EMERSON_BOARD_DEFAULT_TIME && $rotates && $address === '' && $note === '' ) {
 			unset( $next[ $date ] );
 			emerson_board_sync_calendar_row( $date, EMERSON_BOARD_LOCATION_LINE, EMERSON_BOARD_DEFAULT_TIME );
@@ -241,41 +309,3 @@ function emerson_board_admin_save(): ?string {
 	return 'Board Location saved.';
 }
 
-function emerson_board_admin_page(): void {
-	if ( ! current_user_can( 'edit_pages' ) ) {
-		wp_die( esc_html__( 'You do not have permission to edit Board Location.' ) );
-	}
-	$notice = emerson_board_admin_save();
-	echo '<div class="wrap emerson-sunday-admin"><h1>Board Location</h1>';
-	echo '<style>.emerson-sunday-admin table input.large-text{min-width:16rem}.emerson-sunday-admin select{min-width:8rem}</style>';
-	if ( $notice ) {
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
-	}
-	echo '<p>Board meetings are on the third Monday at 6:30 pm. Type this month’s place in <strong>Located at</strong> and save. Leave that box empty and the calendar says <strong>Rotating</strong>. Choose <strong>Cancelled</strong> when there is no meeting.</p>';
-	echo '<form method="post">';
-	wp_nonce_field( 'emerson_board_save' );
-	echo '<table class="widefat striped"><thead><tr>';
-	echo '<th>Monday</th><th>Status</th><th>Time</th><th>At the</th><th>Located at</th><th>Note</th>';
-	echo '</tr></thead><tbody>';
-	foreach ( emerson_board_upcoming( 12 ) as $base ) {
-		$shown  = emerson_board_display( $base );
-		$date   = $base['date'];
-		$time   = substr( $shown['time'], 0, 5 );
-		$status = $shown['status'];
-		echo '<tr>';
-		echo '<td><strong>' . esc_html( emerson_board_format_date( $date ) ) . '</strong></td>';
-		echo '<td><select name="board[' . esc_attr( $date ) . '][status]">';
-		foreach ( array( 'regular' => 'Regular', 'cancelled' => 'Cancelled', 'moved' => 'Moved' ) as $value => $label ) {
-			echo '<option value="' . esc_attr( $value ) . '"' . selected( $status, $value, false ) . '>' . esc_html( $label ) . '</option>';
-		}
-		echo '</select></td>';
-		echo '<td><input type="time" name="board[' . esc_attr( $date ) . '][time]" value="' . esc_attr( $time ) . '"></td>';
-		echo '<td><input type="text" class="large-text" name="board[' . esc_attr( $date ) . '][venue]" value="' . esc_attr( $shown['venue'] ) . '"></td>';
-		echo '<td><input type="text" class="large-text" name="board[' . esc_attr( $date ) . '][address]" value="' . esc_attr( $shown['address'] ) . '"></td>';
-		echo '<td><input type="text" class="large-text" name="board[' . esc_attr( $date ) . '][note]" value="' . esc_attr( $shown['note'] ) . '" placeholder="Optional"></td>';
-		echo '</tr>';
-	}
-	echo '</tbody></table>';
-	echo '<p class="submit"><button type="submit" name="emerson_board_save" value="1" class="button button-primary">Save board meetings</button></p>';
-	echo '</form></div>';
-}

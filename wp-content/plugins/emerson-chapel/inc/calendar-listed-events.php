@@ -9,7 +9,9 @@
 
 declare( strict_types=1 );
 
-const EMERSON_GROUP_LOCATION_ROTATES = 'Rotating location — check This Week at Emerson';
+const EMERSON_GROUP_LOCATION_ROTATES   = 'Rotating location — check This Week at Emerson';
+const EMERSON_GROUP_EXCEPTIONS_OPTION  = 'emerson_group_exceptions';
+const EMERSON_GROUP_DEFAULT_VENUE      = 'Rotating';
 
 /**
  * @return list<array{title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}>
@@ -48,8 +50,8 @@ function emerson_listed_event_rules(): array {
 			'nth'         => 3,
 			'wday'        => 1,
 			'recurring'   => 'n31',
-			'location'    => 'Rotating',
-			'description' => 'Board of Trustees meeting. Third Monday of the month, 6:30 pm. Open to all members. Location rotates unless a place is set for that Monday.',
+			'location'    => EMERSON_GROUP_LOCATION_ROTATES,
+			'description' => 'Board of Trustees meeting. Third Monday of the month, 6:30 pm. Open to all members. Location rotates; the current place is in This Week at Emerson unless a place is set for that Monday.',
 			'link'        => $engage,
 			'link_title'  => 'Engage',
 		),
@@ -58,6 +60,266 @@ function emerson_listed_event_rules(): array {
 
 function emerson_calendar_is_sunday_service( string $title ): bool {
 	return strcasecmp( trim( $title ), 'Sunday Service' ) === 0;
+}
+
+/**
+ * Engage groups edited in Event Places (not Board — that keeps its own option).
+ *
+ * @return list<string>
+ */
+function emerson_group_editable_titles(): array {
+	return array( "Womyn's Web", "Men's Night" );
+}
+
+function emerson_group_is_editable( string $title ): bool {
+	foreach ( emerson_group_editable_titles() as $known ) {
+		if ( strcasecmp( trim( $title ), $known ) === 0 ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * @return array<string, array<string, array{status:string,time:string,venue:string,address:string,note:string}>>
+ */
+function emerson_group_exceptions_all(): array {
+	$stored = get_option( EMERSON_GROUP_EXCEPTIONS_OPTION, array() );
+	return is_array( $stored ) ? $stored : array();
+}
+
+/**
+ * @return array<string, array{status:string,time:string,venue:string,address:string,note:string}>
+ */
+function emerson_group_exceptions( string $title ): array {
+	$all = emerson_group_exceptions_all();
+	foreach ( $all as $key => $rows ) {
+		if ( strcasecmp( (string) $key, $title ) === 0 && is_array( $rows ) ) {
+			return $rows;
+		}
+	}
+	return array();
+}
+
+/**
+ * @return array{title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}|null
+ */
+function emerson_group_rule_by_title( string $title ): ?array {
+	foreach ( emerson_listed_event_rules() as $rule ) {
+		if ( strcasecmp( $rule['title'], $title ) === 0 ) {
+			return $rule;
+		}
+	}
+	return null;
+}
+
+function emerson_group_venue_rotates( string $venue ): bool {
+	$venue = trim( $venue );
+	if ( $venue === '' ) {
+		return true;
+	}
+	if ( strcasecmp( $venue, EMERSON_GROUP_DEFAULT_VENUE ) === 0 ) {
+		return true;
+	}
+	if ( strcasecmp( $venue, EMERSON_GROUP_LOCATION_ROTATES ) === 0 ) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Next nth-weekday dates for one Engage group, oldest first.
+ *
+ * @return list<array{date:string,time:string,venue:string,address:string,title:string}>
+ */
+function emerson_group_upcoming( string $title, int $limit = 12 ): array {
+	$rule = emerson_group_rule_by_title( $title );
+	if ( ! $rule || ! emerson_group_is_editable( $title ) ) {
+		return array();
+	}
+	$out   = array();
+	$day   = new DateTime( current_time( 'Y-m-01' ) );
+	$today = current_time( 'Y-m-d' );
+	$now   = current_time( 'H:i:s' );
+	$end   = (string) ( $rule['end'] ?? '23:59:59' );
+	for ( $guard = 0; count( $out ) < $limit && $guard < 36; $guard++ ) {
+		$ymd = emerson_nth_weekday( (int) $day->format( 'Y' ), (int) $day->format( 'n' ), (int) $rule['nth'], (int) $rule['wday'] );
+		$day->modify( '+1 month' );
+		if ( $ymd === '' || $ymd < $today ) {
+			continue;
+		}
+		if ( $ymd === $today && $now > $end ) {
+			continue;
+		}
+		$out[] = array(
+			'date'    => $ymd,
+			'time'    => $rule['time'],
+			'venue'   => EMERSON_GROUP_DEFAULT_VENUE,
+			'address' => '',
+			'title'   => $rule['title'],
+		);
+	}
+	return $out;
+}
+
+/**
+ * @param array{date:string,time:string,venue:string,address:string,title?:string} $base
+ * @return array{status:string,time:string,venue:string,address:string,place:string,note:string}
+ */
+function emerson_group_display( string $title, array $base ): array {
+	$saved  = emerson_group_exceptions( $title )[ $base['date'] ] ?? array();
+	$saved  = is_array( $saved ) ? $saved : array();
+	$status = (string) ( $saved['status'] ?? 'regular' );
+	if ( ! in_array( $status, array( 'regular', 'cancelled', 'moved' ), true ) ) {
+		$status = 'regular';
+	}
+	$time = (string) ( $saved['time'] ?? $base['time'] );
+	if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $time ) ) {
+		$time = $base['time'];
+	}
+	$venue   = trim( (string) ( $saved['venue'] ?? '' ) );
+	$address = trim( (string) ( $saved['address'] ?? '' ) );
+	if ( $venue === '' ) {
+		$venue = EMERSON_GROUP_DEFAULT_VENUE;
+	}
+	$place = $address !== '' ? $venue . ', ' . $address : $venue;
+	return array(
+		'status'  => $status,
+		'time'    => $time,
+		'venue'   => $venue,
+		'address' => $address,
+		'place'   => $place,
+		'note'    => trim( (string) ( $saved['note'] ?? '' ) ),
+	);
+}
+
+function emerson_group_location_line( string $title, string $ymd ): string {
+	$rule = emerson_group_rule_by_title( $title );
+	$base = array(
+		'date'    => $ymd,
+		'time'    => $rule['time'] ?? '19:00:00',
+		'venue'   => EMERSON_GROUP_DEFAULT_VENUE,
+		'address' => '',
+		'title'   => $title,
+	);
+	$shown = emerson_group_display( $title, $base );
+	if ( 'cancelled' === $shown['status'] ) {
+		return 'Cancelled';
+	}
+	$venue   = trim( $shown['venue'] );
+	$address = trim( $shown['address'] );
+	$rotates = emerson_group_venue_rotates( $venue );
+	if ( $address !== '' && ! $rotates ) {
+		return $venue . ', ' . $address;
+	}
+	if ( $address !== '' ) {
+		return $address;
+	}
+	if ( ! $rotates ) {
+		return $venue;
+	}
+	return EMERSON_GROUP_LOCATION_ROTATES;
+}
+
+/**
+ * @param array<string, list<array{title:string,time:string,location?:string}>> $events
+ * @return array<string, list<array{title:string,time:string,location?:string}>>
+ */
+function emerson_group_apply_locations( array $events ): array {
+	foreach ( $events as $ymd => $items ) {
+		foreach ( $items as $index => $item ) {
+			$title = (string) ( $item['title'] ?? '' );
+			if ( ! emerson_group_is_editable( $title ) ) {
+				continue;
+			}
+			$rule  = emerson_group_rule_by_title( $title );
+			$shown = emerson_group_display(
+				$title,
+				array(
+					'date'    => $ymd,
+					'time'    => (string) ( $item['time'] ?? ( $rule['time'] ?? '19:00:00' ) ),
+					'venue'   => EMERSON_GROUP_DEFAULT_VENUE,
+					'address' => '',
+					'title'   => $title,
+				)
+			);
+			$events[ $ymd ][ $index ]['location'] = emerson_group_location_line( $title, $ymd );
+			$events[ $ymd ][ $index ]['time']     = $shown['time'];
+		}
+	}
+	return $events;
+}
+
+/**
+ * Save Event Places rows for one Engage group. Expects POST field group[date][…].
+ */
+function emerson_group_admin_save( string $title ): ?string {
+	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_group_save'] ) ) {
+		return null;
+	}
+	if ( ! emerson_group_is_editable( $title ) ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_group_save' );
+	$rule = emerson_group_rule_by_title( $title );
+	if ( ! $rule ) {
+		return null;
+	}
+	$posted = isset( $_POST['group'] ) && is_array( $_POST['group'] ) ? wp_unslash( $_POST['group'] ) : array();
+	$all    = emerson_group_exceptions_all();
+	$next   = emerson_group_exceptions( $title );
+	$canon  = $rule['title'];
+	$event  = strcasecmp( $canon, "Men's Night" ) === 0 ? 'mens-night' : 'womyns-web';
+	$rows   = function_exists( 'emerson_event_places_rows' )
+		? emerson_event_places_rows( $event )
+		: emerson_group_upcoming( $canon, 12 );
+	foreach ( $rows as $base ) {
+		$date   = $base['date'];
+		$row    = is_array( $posted[ $date ] ?? null ) ? $posted[ $date ] : array();
+		$status = sanitize_key( (string) ( $row['status'] ?? 'regular' ) );
+		if ( ! in_array( $status, array( 'regular', 'cancelled', 'moved' ), true ) ) {
+			$status = 'regular';
+		}
+		$time = sanitize_text_field( (string) ( $row['time'] ?? '' ) );
+		if ( $time !== '' && preg_match( '/^\d{1,2}:\d{2}$/', $time ) ) {
+			$time .= ':00';
+		}
+		if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $time ) ) {
+			$time = $base['time'];
+		}
+		$venue   = sanitize_text_field( (string) ( $row['venue'] ?? '' ) );
+		$address = sanitize_text_field( (string) ( $row['address'] ?? '' ) );
+		$note    = sanitize_text_field( (string) ( $row['note'] ?? '' ) );
+		$rotates = emerson_group_venue_rotates( $venue );
+		if ( 'regular' === $status && $time === $rule['time'] && $rotates && $address === '' && $note === '' ) {
+			unset( $next[ $date ] );
+			if ( function_exists( 'emerson_sync_calendar_row' ) ) {
+				emerson_sync_calendar_row( $canon, $date, EMERSON_GROUP_LOCATION_ROTATES, $rule['time'] );
+			}
+			continue;
+		}
+		if ( $venue === '' ) {
+			$venue = EMERSON_GROUP_DEFAULT_VENUE;
+		}
+		$next[ $date ] = array(
+			'status'  => $status,
+			'time'    => $time,
+			'venue'   => $venue,
+			'address' => $address,
+			'note'    => $note,
+		);
+		$line = 'cancelled' === $status
+			? 'Cancelled'
+			: ( $address !== '' && ! $rotates
+				? $venue . ', ' . $address
+				: ( $address !== '' ? $address : ( $rotates ? EMERSON_GROUP_LOCATION_ROTATES : $venue ) ) );
+		if ( function_exists( 'emerson_sync_calendar_row' ) ) {
+			emerson_sync_calendar_row( $canon, $date, $line, $time );
+		}
+	}
+	$all[ $canon ] = $next;
+	update_option( EMERSON_GROUP_EXCEPTIONS_OPTION, $all, false );
+	return $canon . ' places saved.';
 }
 
 function emerson_nth_weekday( int $year, int $month, int $nth, int $wday ): string {
@@ -261,6 +523,7 @@ function emerson_calendar_other_events( string $first, string $last ): array {
 		}
 	}
 	ksort( $out );
+	$out = emerson_group_apply_locations( $out );
 	if ( function_exists( 'emerson_board_apply_locations' ) ) {
 		$out = emerson_board_apply_locations( $out );
 	}

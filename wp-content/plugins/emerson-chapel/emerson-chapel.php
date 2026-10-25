@@ -84,6 +84,7 @@ $emerson_chapel_modules = array(
 	'calendar-pdfs.php',
 	'sunday-location.php',
 	'board-location.php',
+	'event-places.php',
 	'sunday-schedule-sheet.php',
 	'service-schedule.php',
 	'site-icon.php',

@@ -823,7 +823,7 @@ function emerson_schedule_admin_seed_groups(): ?string {
 
 function emerson_schedule_admin_groups_form(): void {
 	echo '<h2>Womyn’s Web, Men’s Night, and Board Meeting</h2>';
-	echo '<p>These are Church Admin calendar events, so a click on the month grid offers an iCal download like Sunday Service. Womyn’s Web and Men’s Night default to <strong>Rotating location — check This Week at Emerson</strong>. To name this month’s host, edit that date in <strong>Church Admin → Calendar</strong>. Board meetings default to <strong>Rotating</strong>; name a place for one Monday under <strong>Board Location</strong>.</p>';
+	echo '<p>These are Church Admin calendar events, so a click on the month grid offers an iCal download like Sunday Service. Womyn’s Web, Men’s Night, and Board Meeting default to <strong>Rotating location — check This Week at Emerson</strong>. To name this month’s host for a group, edit that date in <strong>Church Admin → Calendar</strong>. To name a board place for one Monday, use <strong>Board Location</strong>.</p>';
 	echo '<form method="post">';
 	wp_nonce_field( 'emerson_schedule_save' );
 	echo '<p class="submit"><button type="submit" name="emerson_schedule_seed_groups" value="1" class="button">Add missing group dates</button></p>';

@@ -10,7 +10,27 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-25
+
+### Event Places: one editor for recurring meeting locations
+- New **Event Places** admin (dropdown: Sunday Service, Womyn’s Web, Men’s Night, Board Meeting) edits upcoming dates like Sunday Location did, and writes location/time onto the Church Admin calendar row for every series (Sundays included).
+- Womyn’s Web and Men’s Night get Emerson per-date exceptions (same rotating default as Board). Old **Sunday Location** and **Board Location** menus redirect into Event Places with the right event selected.
+- Date-range nav shows the current window with Earlier / Later arrows; Earlier is disabled on the default window. Later slides in the next dates and drops the previous ones so future meetings can be edited without leaving the screen. Nav is centred on the page; the old Sunday Location sidebar item is gone (bookmark still redirects).
+- **File:** `wp-content/plugins/emerson-chapel/inc/event-places.php`, `inc/sunday-location.php`, `inc/board-location.php`, `inc/calendar-listed-events.php`, `emerson-chapel.php`.
+
+### Board Meeting calendar: check This Week at Emerson
+- When no place is set, Board Meeting uses the same rotating line as Womyn’s Web and Men’s Night: “Rotating location — check This Week at Emerson”. Existing short “Rotating” rows are updated once on load.
+- **File:** `wp-content/plugins/emerson-chapel/inc/board-location.php`, `inc/calendar-listed-events.php`, `inc/sunday-schedule-sheet.php`.
+
 ## 2026-10-24
+
+### Engage: stack meeting info columns on desktop
+- Womyn’s Web, Men’s Night, Circle Suppers, and Board Meetings show their meeting info as centred rows at every width (was crowded side-by-side columns on desktop).
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`.
+
+### Compact calendar week dates: truly centred
+- Week nav uses equal grid columns; JS matches Previous/Next week to the same width so the date range stays centred with even gaps (the longer “Previous week” label was making it look left-shifted).
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `assets/js/custom.js`.
 
 ### Foil shine: 90° covers the full viewport
 - Shine pan uses rotate-then-translate so travel follows the shine angle. At 90° the band sweeps top→bottom across the full width (it used to only slide along a middle strip).

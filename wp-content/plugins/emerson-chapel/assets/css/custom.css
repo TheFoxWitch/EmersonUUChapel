@@ -403,11 +403,23 @@ html.has-modal-open:not(:has(.wp-block-navigation__responsive-container.is-menu-
 }
 /** End Home page text **/
 
-/* Engage: meeting time and location centre when the columns stack */
-@media (max-width: 781px) {
-	.page-id-68 .emerson-engage-detail {
-		text-align: center;
-	}
+/*
+ * Engage: meeting info columns (Womyn’s Web, Men’s Night, Circle Suppers,
+ * Board Meetings) stack as centred rows at every width — side-by-side was crowded.
+ */
+.page-id-68 .wp-block-columns {
+	flex-direction: column;
+	align-items: center;
+}
+
+.page-id-68 .wp-block-columns > .wp-block-column {
+	flex-basis: 100% !important;
+	width: 100%;
+	text-align: center;
+}
+
+.page-id-68 .emerson-engage-detail {
+	text-align: center;
 }
 
 /* Homepage: next Sunday, including cancelled / moved */
@@ -2847,11 +2859,18 @@ blockquote {
 		color: #2e3a78;
 	}
 
+	/*
+	 * Equal side columns + JS-matched button widths (Previous week is longer
+	 * than Next week). That keeps the date range centred and the gaps even
+	 * when the label text changes length.
+	 */
 	.emerson-ca-week-nav {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
 		gap: 0.5rem;
+		width: 100%;
+		box-sizing: border-box;
 		margin: 0 0 0.75rem;
 	}
 
@@ -2865,12 +2884,15 @@ blockquote {
 
 	.emerson-ca-week-nav__label {
 		margin: 0;
+		justify-self: center;
 		text-align: center;
+		white-space: nowrap;
 		font-weight: 600;
 		color: #2e3a78;
 	}
 
 	.emerson-ca-week-nav button {
+		box-sizing: border-box;
 		min-height: 44px;
 		padding: 0.35em 0.8em;
 		border: 0;
@@ -2878,6 +2900,7 @@ blockquote {
 		background: #3f4fa0;
 		color: #fff;
 		font: inherit;
+		text-align: center;
 		cursor: pointer;
 	}
 }

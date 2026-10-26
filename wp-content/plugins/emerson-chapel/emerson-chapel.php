@@ -75,6 +75,7 @@ add_action(
 );
 
 $emerson_chapel_modules = array(
+	'preload.php',
 	'welcome.php',
 	'newsletter.php',
 	'members.php',

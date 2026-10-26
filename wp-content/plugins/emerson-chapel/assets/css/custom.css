@@ -404,20 +404,22 @@ html.has-modal-open:not(:has(.wp-block-navigation__responsive-container.is-menu-
 /** End Home page text **/
 
 /*
- * Engage: meeting info columns (Womyn’s Web, Men’s Night, Circle Suppers,
- * Board Meetings) stack as centred rows at every width — side-by-side was crowded.
+ * Engage: same stack WordPress uses under 782px, kept above that width.
+ * Core sets flex-wrap:nowrap!important and flex-basis:0 from 782px up;
+ * these two declarations are the mobile pair (wrap + 100% basis).
  */
-.page-id-68 .wp-block-columns {
-	flex-direction: column;
-	align-items: center;
+@media (min-width: 782px) {
+	.page-id-68 .wp-block-columns:not(.is-not-stacked-on-mobile) {
+		flex-wrap: wrap !important;
+	}
+
+	.page-id-68 .wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column {
+		flex-basis: 100% !important;
+	}
 }
 
-.page-id-68 .wp-block-columns > .wp-block-column {
-	flex-basis: 100% !important;
-	width: 100%;
-	text-align: center;
-}
-
+.page-id-68 .wp-block-columns > .wp-block-column,
+.page-id-68 .wp-block-columns > .wp-block-column > :is(h2, h3, p),
 .page-id-68 .emerson-engage-detail {
 	text-align: center;
 }
@@ -3340,12 +3342,13 @@ html.emerson-foil-ready:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping-ou
 html.emerson-foil-wiping-in .emerson-foil-layer {
 	-webkit-mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
 	mask-position: var(--emerson-foil-wipe-closed, 100% 50%);
-	animation: emerson-foil-wipe-in calc(var(--emerson-foil-shine-seconds, 3.2) * 1s) linear both;
+	/* Wipe uses its own timer — not shine_seconds (slow ambient used to stretch reveal). */
+	animation: emerson-foil-wipe-in calc(var(--emerson-foil-wipe-seconds, 4) * 1s) linear both;
 }
 html.emerson-foil-wiping-out .emerson-foil-layer {
 	-webkit-mask-position: var(--emerson-foil-wipe-open, 0% 50%);
 	mask-position: var(--emerson-foil-wipe-open, 0% 50%);
-	animation: emerson-foil-wipe-out calc(var(--emerson-foil-shine-seconds, 3.2) * 1s) linear both;
+	animation: emerson-foil-wipe-out calc(var(--emerson-foil-wipe-seconds, 4) * 1s) linear both;
 }
 .emerson-foil__canvas {
 	display: block;

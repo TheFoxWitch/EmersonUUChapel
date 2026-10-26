@@ -43,6 +43,7 @@ function emerson_foil_default_symbols(): array {
  * @return array{
  *   drift_seconds:float,
  *   shine_seconds:float,
+ *   wipe_seconds:float,
  *   canvas_opacity:float,
  *   shine_opacity:float,
  *   shine_angle:float,
@@ -60,6 +61,8 @@ function emerson_foil_style_defaults(): array {
 	return array(
 		'drift_seconds'     => 36.0,
 		'shine_seconds'     => 3.2,
+		/* Show/hide wipe — separate from ambient shine so a slow band does not stretch reveal. */
+		'wipe_seconds'      => 4.0,
 		'canvas_opacity'    => 0.25,
 		'shine_opacity'     => 0.25,
 		'shine_angle'       => 0.0,
@@ -192,6 +195,7 @@ function emerson_foil_symbols(): array {
  * @return array{
  *   drift_seconds:float,
  *   shine_seconds:float,
+ *   wipe_seconds:float,
  *   canvas_opacity:float,
  *   shine_opacity:float,
  *   shine_angle:float,
@@ -249,6 +253,7 @@ function emerson_foil_style(): array {
 	return array(
 		'drift_seconds'     => emerson_foil_clamp_float( $stored['drift_seconds'] ?? null, 1.0, 120.0, $defaults['drift_seconds'] ),
 		'shine_seconds'     => emerson_foil_clamp_float( $stored['shine_seconds'] ?? null, 0.5, 30.0, $defaults['shine_seconds'] ),
+		'wipe_seconds'      => emerson_foil_clamp_float( $stored['wipe_seconds'] ?? null, 1.5, 5.0, $defaults['wipe_seconds'] ),
 		'canvas_opacity'    => emerson_foil_clamp_float( $stored['canvas_opacity'] ?? null, 0.05, 1.0, $defaults['canvas_opacity'] ),
 		'shine_opacity'     => emerson_foil_clamp_float( $stored['shine_opacity'] ?? null, 0.05, 1.0, $defaults['shine_opacity'] ),
 		'shine_angle'       => emerson_foil_clamp_float( $stored['shine_angle'] ?? null, 0.0, 360.0, $defaults['shine_angle'] ),
@@ -320,6 +325,7 @@ add_action(
 			. '--emerson-foil-shine-angle:' . $style['shine_angle'] . 'deg;'
 			. '--emerson-foil-drift-seconds:' . $style['drift_seconds'] . ';'
 			. '--emerson-foil-shine-seconds:' . $style['shine_seconds'] . ';'
+			. '--emerson-foil-wipe-seconds:' . $style['wipe_seconds'] . ';'
 			. '--emerson-foil-drift-animation:' . $drift_anim . ';'
 			. '--emerson-foil-shine-animation:' . $shine_anim . ';'
 			. '--emerson-foil-glow:' . $glow_shadow . ';'
@@ -446,6 +452,7 @@ function emerson_foil_style_save(): ?string {
 	$saved = array(
 		'drift_seconds'     => emerson_foil_clamp_float( wp_unslash( $_POST['foil_drift_seconds'] ?? null ), 1.0, 120.0, $defaults['drift_seconds'] ),
 		'shine_seconds'     => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_seconds'] ?? null ), 0.5, 30.0, $defaults['shine_seconds'] ),
+		'wipe_seconds'      => emerson_foil_clamp_float( wp_unslash( $_POST['foil_wipe_seconds'] ?? null ), 1.5, 5.0, $defaults['wipe_seconds'] ),
 		'canvas_opacity'    => emerson_foil_clamp_float( wp_unslash( $_POST['foil_canvas_opacity'] ?? null ), 5.0, 100.0, $defaults['canvas_opacity'] * 100 ) / 100,
 		'shine_opacity'     => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_opacity'] ?? null ), 5.0, 100.0, $defaults['shine_opacity'] * 100 ) / 100,
 		'shine_angle'       => emerson_foil_clamp_float( wp_unslash( $_POST['foil_shine_angle'] ?? null ), 0.0, 360.0, $defaults['shine_angle'] ),
@@ -526,8 +533,13 @@ function emerson_foil_admin_page(): void {
 
 	echo '<tr><th scope="row">Shine</th><td>';
 	echo '<label><input type="checkbox" name="foil_shine_on" value="1"' . checked( $style['shine_on'], true, false ) . '> Show the moving shine</label>';
+	echo '<p style="margin:0.65rem 0 0"><label><input type="checkbox" name="foil_shine_rainbow" value="1"' . checked( $style['shine_rainbow'], true, false ) . '> Rainbow shine</label></p>';
+	echo '<p class="description" style="margin-top:0.35rem">Pride gradient on the moving band (still respects shine opacity and angle).</p>';
 	echo '<p><label for="emerson-foil-shine-seconds">Seconds for one shine pass </label>';
 	echo '<input type="number" id="emerson-foil-shine-seconds" name="foil_shine_seconds" min="0.5" max="30" step="0.1" value="' . esc_attr( (string) $style['shine_seconds'] ) . '"></p>';
+	echo '<p><label for="emerson-foil-wipe-seconds">Seconds for show / hide wipe </label>';
+	echo '<input type="number" id="emerson-foil-wipe-seconds" name="foil_wipe_seconds" min="1.5" max="5" step="0.1" value="' . esc_attr( (string) $style['wipe_seconds'] ) . '"></p>';
+	echo '<p class="description">Wipe is separate from the shine pass so a slow ambient band on a large screen does not stretch reveal or hide (aim about 4–5 seconds).</p>';
 	echo '<p><label for="emerson-foil-shine-angle">Shine angle (degrees) </label>';
 	echo '<input type="number" id="emerson-foil-shine-angle" name="foil_shine_angle" min="0" max="360" step="1" value="' . esc_attr( (string) $style['shine_angle'] ) . '"></p>';
 	echo '<p class="description">0 is upright (the usual look). 45 or −45 / 315 is a clear diagonal; 90 lays the band on its side.</p>';
@@ -543,8 +555,7 @@ function emerson_foil_admin_page(): void {
 
 	echo '<tr><th scope="row"><label for="emerson-foil-layer-color">Background colour</label></th><td>';
 	echo '<input type="color" id="emerson-foil-layer-color" name="foil_layer_color" value="' . esc_attr( $style['layer_color'] ) . '">';
-	echo ' <label style="margin-left:0.75rem"><input type="checkbox" name="foil_shine_rainbow" value="1"' . checked( $style['shine_rainbow'], true, false ) . '> Rainbow shine</label>';
-	echo '<p class="description">Wash colour for the page. Rainbow shine swaps the moving band for a pride gradient (still respects shine opacity and angle).</p>';
+	echo '<p class="description">Wash colour for the page behind the symbols.</p>';
 	echo '</td></tr>';
 
 	echo '<tr><th scope="row"><label for="emerson-foil-toggle-emoji">Corner button</label></th><td>';

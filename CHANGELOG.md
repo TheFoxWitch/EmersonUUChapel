@@ -12,6 +12,20 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-25
 
+### Calendar: show today’s details without a click
+- On load (and when returning to a month that includes today with no day selected), the calendar selects today the same way a click would, so the sidebar shows service/event details immediately.
+- **File:** `wp-content/plugins/emerson-chapel/assets/js/custom.js`.
+
+### Preload list + Engage meeting info as rows
+- New `inc/preload.php` manifest: add CSS/images/thumbs there. Preloads chapel CSS everywhere, PayPal Donate GIF on Giving, blossom CSS + sermon YouTube thumb on home; critical rainbow heading CSS inlined on the homepage.
+- Donate button GIF is served from the plugin (`assets/images/btn_donateCC_LG.gif`); PayPal’s CDN was taking ~5s on DNS/TLS even with preload. Form still posts to PayPal. Content rewrite + preload follow that GIF URL on any page (moved or duplicated buttons); a different PayPal button asset URL would need its own entry.
+- Engage reuses WordPress’s under-782px Columns stack above that breakpoint (`flex-basis: 100%`), so Meeting Time / Location / Join are rows without overriding `flex-direction`.
+- **File:** `wp-content/plugins/emerson-chapel/inc/preload.php`, `emerson-chapel.php`, `assets/css/custom.css`, `assets/images/btn_donateCC_LG.gif`.
+
+### Foil wipe: separate from shine pass timing
+- Show/hide wipe uses its own duration (default 4s, max 5s) so a slow ambient shine on a large screen no longer stretches reveal to ~10s. Shine pass seconds stay for the rainbow/white band only. Admin: **Seconds for show / hide wipe** under Page background.
+- **File:** `wp-content/plugins/emerson-chapel/inc/foil-background.php`, `assets/css/custom.css`, `assets/js/custom.js`.
+
 ### Event Places: one editor for recurring meeting locations
 - New **Event Places** admin (dropdown: Sunday Service, Womyn’s Web, Men’s Night, Board Meeting) edits upcoming dates like Sunday Location did, and writes location/time onto the Church Admin calendar row for every series (Sundays included).
 - Womyn’s Web and Men’s Night get Emerson per-date exceptions (same rotating default as Board). Old **Sunday Location** and **Board Location** menus redirect into Event Places with the right event selected.

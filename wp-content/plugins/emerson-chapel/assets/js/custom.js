@@ -1079,10 +1079,30 @@
 			}
 		}
 
+		/*
+		 * Church Admin only selects a day on click (sets .ca-current + day-render).
+		 * Month load can leave today’s sidebar thin until that click — do it once
+		 * when today is on the grid and nothing is selected yet.
+		 */
+		function ensureTodaySelected() {
+			if (document.querySelector('.ca-day.ca-current[data-date]')) {
+				return;
+			}
+			var today = todayYmd();
+			var day = document.querySelector(
+				'.ca-day[data-date="' + today + '"]:not(.ca-inactive)'
+			);
+			if (!day) {
+				return;
+			}
+			day.click();
+		}
+
 		function decorate() {
 			closeRequests();
 			updateTheme();
 			decorateDays();
+			ensureTodaySelected();
 			decorateSidebar();
 			applyCompactWeek();
 			fitDayCopy();
@@ -1612,6 +1632,13 @@
 		);
 		return raw > 0 ? raw : 3.2;
 	}
+	/** Show/hide wipe duration — independent of ambient shine pass. */
+	function foilWipeSeconds() {
+		var raw = parseFloat(
+			window.getComputedStyle(foilRoot()).getPropertyValue('--emerson-foil-wipe-seconds')
+		);
+		return raw > 0 ? raw : 4;
+	}
 	function foilShineAngleDeg() {
 		var raw = parseFloat(
 			window.getComputedStyle(foilRoot()).getPropertyValue('--emerson-foil-shine-angle')
@@ -1878,7 +1905,7 @@
 	}
 	function foilWaitWipe(el, seq, done) {
 		var finished = false;
-		var ms = foilReduceMotion() ? 0 : Math.round(foilShineSeconds() * 1000) + 100;
+		var ms = foilReduceMotion() ? 0 : Math.round(foilWipeSeconds() * 1000) + 100;
 		function finish() {
 			if (finished || !foilStill(seq)) {
 				return;
@@ -2104,7 +2131,7 @@
 		foilStartWipeOut(seq, finishOff);
 		foilHideTimer = window.setTimeout(
 			finishOff,
-			Math.round(foilShineSeconds() * 1000) + 200
+			Math.round(foilWipeSeconds() * 1000) + 200
 		);
 	};
 

@@ -10,6 +10,15 @@ export PATH="$HOME/.docker/bin:$PATH"
 
 ## Browsers (local site)
 
+### Open the local site on a phone (same Wi‑Fi)
+`localhost` on the phone means the phone, not your Mac. Docker already listens on every interface (`0.0.0.0:8080`).
+
+1. On the Mac, get the Wi‑Fi address: `ipconfig getifaddr en0` (today that is often something like `172.16.3.86`).
+2. On the phone’s browser open **`http://THAT-IP:8080/`** (plain `http`, include the port).
+3. `emerson-lan-preview.php` (mu-plugin) only rewrites URLs for private LAN IPs. Visits to `http://localhost:8080/` are left alone so CSS/JS keep the `:8080` port. An earlier version rewrote desktop `localhost:8080` links to `http://localhost/` (port 80) and the whole site lost its styles.
+
+If the phone cannot connect: confirm both devices are on the same Wi‑Fi (not guest/client-isolation), and that the Mac firewall is not blocking Docker / incoming connections on port 8080.
+
 ### Safari still shows an old tab icon (or the WordPress “W”)
 The files are the round green badge, built from `images/emersonLogoUpscale.png`. `/favicon.ico`, `/favicon.svg`, and `/apple-touch-icon.png` all return that badge. Chrome and Firefox use the `<link rel="icon">` tags and update on a refresh.
 
@@ -229,6 +238,12 @@ Browsers don't load the full-size file. They pick one of WordPress's resized cop
 - **Then refresh the browser's copy:**
   - Safari, Chrome, Firefox: Cmd+Shift+R.
   - The Cursor browser: its cache can't be cleared from the agent tools. Re-downloading each `srcset` URL with `fetch(url, {cache: 'reload'})` and then reloading works.
+
+### Re-uploading the same filename still shows the old picture
+W3 Total Cache sets `Cache-Control: max-age=31536000` (one year) on files under `wp-content/uploads/`. Deleting and re-uploading `community_flame.png` keeps the same URL, so the browser is allowed to keep the old bytes for up to a year — it looks like WordPress “overwrote” your new file with the old one.
+- **Fix for one image:** save under a new filename (for example `community_flame-v2.png`), regenerate thumbnails, and point the page at that file.
+- **Ongoing:** Performance → Browser Cache → “Prevent caching after file change” for other/media (`browsercache.other.replace`) rewrites media URLs when the file’s mtime changes. Still prefer a new filename for a deliberate art swap so every visitor gets the new URL.
+- Church Leadership’s flame graphic is attachment **1184** (`community_flame-v2.png`). Backup of the previous full file: `backups/images/community_flame-before-2026-10-26.png`.
 
 ### Images hotlinked from another site
 Images loading from `images.squarespace-cdn.com` or the dead dev server `emersondev1.bloomenterprises.org` break when those sites go away. Import them into the Media Library instead (see `CHANGELOG.md`).

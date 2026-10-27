@@ -389,7 +389,7 @@ function emerson_custom_modals_dialogs(): void {
 		}
 		$dialog_id = 'emerson-modal-' . $modal['id'];
 		echo '<dialog id="' . esc_attr( $dialog_id ) . '" class="emerson-recommit emerson-modal" data-emerson-modal-id="' . esc_attr( $modal['id'] ) . '">';
-		echo '<div class="emerson-recommit__bar"><button type="button" class="emerson-recommit__close">Close</button></div>';
+		echo '<div class="emerson-recommit__bar">' . emerson_modal_close_button( 'emerson-recommit__close' ) . '</div>';
 		if ( $modal['heading'] !== '' ) {
 			echo '<h2 class="emerson-modal__heading">' . esc_html( $modal['heading'] ) . '</h2>';
 		}
@@ -518,7 +518,7 @@ function emerson_pledge_dialog(): void {
 	?>
 	<dialog id="emerson-pledge" class="emerson-recommit">
 		<div class="emerson-recommit__bar">
-			<button type="button" class="emerson-recommit__close">Close</button>
+			<?php echo emerson_modal_close_button( 'emerson-recommit__close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML. ?>
 		</div>
 		<?php if ( $src !== '' ) : ?>
 		<div class="emerson-recommit__fit" data-emerson-frame-fit>
@@ -618,8 +618,10 @@ function emerson_paypal_dialog(): void {
 	$heading = emerson_paypal_dialog_heading();
 	?>
 	<dialog id="emerson-paypal-fees" class="emerson-paypal-fees">
-		<button type="button" class="emerson-paypal-fees__close">Close</button>
-		<h2><?php echo esc_html( $heading ); ?></h2>
+		<div class="emerson-recommit__bar">
+			<h2><?php echo esc_html( $heading ); ?></h2>
+			<?php echo emerson_modal_close_button( 'emerson-paypal-fees__close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML. ?>
+		</div>
 		<?php echo do_shortcode( '[CP_CALCULATED_FIELDS id="' . EMERSON_PAYPAL_FORM_ID . '"]' ); ?>
 	</dialog>
 	<?php

@@ -409,7 +409,7 @@ function emerson_recommit_dialog(): void {
 	<dialog id="emerson-recommit" class="emerson-recommit emerson-recommit--form">
 		<div class="emerson-recommit__bar">
 			<h2><?php echo esc_html( $label ); ?></h2>
-			<button type="button" class="emerson-recommit__close">Close</button>
+			<?php echo emerson_modal_close_button( 'emerson-recommit__close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML. ?>
 		</div>
 		<?php if ( $form_id > 0 ) : ?>
 			<?php echo do_shortcode( '[CP_CALCULATED_FIELDS id="' . $form_id . '"]' ); ?>

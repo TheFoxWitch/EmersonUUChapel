@@ -33,6 +33,23 @@ function emerson_chapel_url( string $relative = '' ): string {
 	return $relative === '' ? EMERSON_CHAPEL_URL : EMERSON_CHAPEL_URL . $relative;
 }
 
+/**
+ * Shared circular dismiss control for dialogs (survey, pledge, custom Modals, PayPal).
+ * SVG X is geometrically centred — the × glyph sits optically low in most fonts.
+ */
+function emerson_modal_close_button( string $class ): string {
+	$class = sanitize_html_class( $class );
+	return '<button type="button" class="' . esc_attr( $class ) . '" aria-label="Close">'
+		. '<svg class="emerson-modal-close__icon" viewBox="0 0 12 12" width="14" height="14" aria-hidden="true" focusable="false">'
+		/* Two bars through the viewBox centre — fill, not stroke, so edges stay even. */
+		. '<g fill="currentColor" transform="translate(6 6) rotate(45)">'
+		. '<rect x="-5" y="-0.85" width="10" height="1.7" rx="0.85"/>'
+		. '<rect x="-0.85" y="-5" width="1.7" height="10" rx="0.85"/>'
+		. '</g>'
+		. '</svg>'
+		. '</button>';
+}
+
 add_action(
 	'wp_enqueue_scripts',
 	static function (): void {

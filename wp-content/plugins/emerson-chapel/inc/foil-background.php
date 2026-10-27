@@ -283,7 +283,8 @@ add_action(
 		/* Wash on immediately; keep the icon sheet masked shut until custom.css wipe runs. */
 		$wash = esc_attr( $style['layer_color'] );
 		echo '<style id="emerson-foil-critical">'
-			. '.emerson-foil-layer{position:fixed!important;inset:0!important;z-index:0;overflow:hidden!important;pointer-events:none;contain:paint;transform:translateZ(0);background:' . $wash . ';opacity:0;visibility:hidden}'
+			/* contain:paint broke mask wipe; leave it off here and in custom.css. */
+			. '.emerson-foil-layer{position:fixed!important;inset:0!important;z-index:0;overflow:hidden!important;pointer-events:none;contain:none;transform:translateZ(0);background:' . $wash . ';opacity:0;visibility:hidden}'
 			/* Layer stays hidden on bare emerson-foil; wipe/ready classes reveal it. */
 			. 'html.emerson-foil.emerson-foil-ready .emerson-foil-layer,html.emerson-foil.emerson-foil-wiping-in .emerson-foil-layer,html.emerson-foil.emerson-foil-wiping-out .emerson-foil-layer{opacity:1;visibility:visible}'
 			. 'html.emerson-foil.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in),html.emerson-foil.emerson-foil-ready:not(.emerson-foil-wiping-out):not(.emerson-foil-wiping-in) body{background-color:' . $wash . '!important;background-image:none!important}'

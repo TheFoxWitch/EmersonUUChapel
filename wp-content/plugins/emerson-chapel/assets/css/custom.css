@@ -3,7 +3,8 @@
  * Loaded on the front end via functions.php.
  *
  * Block/page-specific markup lives in WordPress posts (use Code editor in admin)
- * or in ../templates/*.html and ../parts/*.html in this theme.
+ * or in this theme's templates/ and parts/ HTML files.
+ * (Avoid star-slash globs in this comment — they look like CSS comment tokens.)
  */
 /* Brand colours (blue sampled from the logo lettering) */
 :root {
@@ -846,27 +847,17 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	background: rgba(20, 24, 50, 0.35);
 }
 
-.emerson-paypal-fees__close {
-	position: absolute;
-	top: 1.25rem;
-	right: 1.35rem;
-	min-height: 44px;
-	margin: 0;
-	padding: 0.35rem 0.9rem;
-	border: 2px solid #1e1e1e;
-	border-radius: 999px;
-	background: #fff;
-	font: inherit;
-	cursor: pointer;
-}
-
+/* Same header bar as survey/builder — close at top/right 0 inside the bar. */
 .emerson-paypal-fees h2 {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 44px;
-	margin: 0 0 0.75rem;
-	padding-inline: 6.75rem;
+	box-sizing: border-box;
+	max-width: 100%;
+	min-height: 2.2rem;
+	margin: 0;
+	/* Room for the X close control. */
+	padding-inline: 3.25rem;
 	font-size: 1.35rem;
 	text-align: center;
 }
@@ -924,28 +915,37 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 }
 @media (max-width: 1000px) {
 	#emerson-recommit.emerson-recommit--form {
-		height: calc(100dvh - 1rem);
-		max-height: calc(100dvh - 1rem);
-		overflow: hidden;
+		/* Inset on the viewport — more reliable than 100vw/% on iOS Safari dialogs. */
+		position: fixed;
+		inset: 0.5rem;
+		width: auto;
+		max-width: none;
+		margin: 0;
+		box-sizing: border-box;
+		height: auto;
+		max-height: none;
+		overflow-x: clip;
+		overflow-y: hidden;
 		padding: 0.5rem 0.7rem 0.45rem;
 	}
 	#emerson-recommit.emerson-recommit--form .emerson-recommit__bar {
-		min-height: 2.25rem;
+		min-height: 2.2rem;
 		margin-bottom: 0.35rem;
 	}
-	#emerson-recommit.emerson-recommit--form .emerson-recommit__close,
 	#emerson-recommit.emerson-recommit--form h2 {
-		min-height: 2.25rem;
-	}
-	#emerson-recommit.emerson-recommit--form h2 {
+		min-height: 2.2rem;
 		font-size: 1.05rem;
+		padding-inline: 2.75rem;
 	}
 }
 .emerson-recommit {
-	width: min(46rem, calc(100vw - 1.5rem));
+	width: min(46rem, calc(100% - 1.5rem));
+	max-width: min(46rem, calc(100% - 1.5rem));
+	box-sizing: border-box;
 	height: calc(100vh - 1.5rem);
 	max-height: calc(100vh - 1.5rem);
 	overflow: hidden;
+	overflow-x: clip;
 	padding: 1rem 1rem 0.75rem;
 	border: 0;
 	border-radius: 16px;
@@ -968,29 +968,50 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 }
 .emerson-recommit__bar {
 	position: relative;
-	min-height: 44px;
+	min-height: 2.2rem;
 	margin-bottom: 0.75rem;
 }
-.emerson-recommit__close {
+/*
+ * Shared dialog dismiss control (survey, pledge, custom Modals, PayPal fees).
+ * ~20% smaller than the old “Close” pill. SVG mark (not ×) so it centres true.
+ */
+.emerson-recommit__close,
+.emerson-paypal-fees__close {
 	position: absolute;
 	top: 0;
 	right: 0;
-	min-height: 44px;
+	box-sizing: border-box;
+	width: 2.2rem;
+	height: 2.2rem;
+	min-width: 2.2rem;
+	min-height: 2.2rem;
 	margin: 0;
-	padding: 0.35rem 0.9rem;
+	padding: 0;
 	border: 2px solid #1e1e1e;
 	border-radius: 999px;
 	background: #fff;
-	font: inherit;
+	color: #1e1e1e;
+	line-height: 0;
 	cursor: pointer;
+}
+.emerson-recommit__close .emerson-modal-close__icon,
+.emerson-paypal-fees__close .emerson-modal-close__icon {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	display: block;
+	transform: translate(-50%, -50%);
 }
 .emerson-recommit h2 {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 44px;
+	box-sizing: border-box;
+	max-width: 100%;
+	min-height: 2.2rem;
 	margin: 0;
-	padding-inline: 6.75rem;
+	/* Room for the X close control. */
+	padding-inline: 3.25rem;
 	font-size: 1.35rem;
 	text-align: center;
 }
@@ -1155,39 +1176,136 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	justify-content: space-between;
 	gap: 0.75rem 1rem;
 	margin: 0 0 1rem;
+	min-width: 0;
+	max-width: 100%;
 }
 .emerson-recommit__sign-actions {
-	flex: 1 1 auto;
 	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.35rem;
+	min-width: 0;
+	max-width: 100%;
+	width: 100%;
+	margin: 0 0 1rem;
+	line-height: 1.4;
+	box-sizing: border-box;
+}
+.emerson-recommit__date-line {
+	display: block;
+	min-width: 0;
+	max-width: 100%;
+	width: 100%;
+	margin: 0;
+	box-sizing: border-box;
+}
+#emerson-recommit .emerson-recommit__signature,
+#emerson-recommit .emerson-recommit__pad,
+#emerson-recommit .emerson-recommit__fit,
+#emerson-recommit form.cff-form,
+#emerson-recommit #fbuilder,
+#emerson-recommit #fbuilder .fields,
+#emerson-recommit #fbuilder .dfield,
+#emerson-recommit #fbuilder [id^="fieldlist"],
+#emerson-recommit #fbuilder [id^="fbuilder_"] {
+	max-width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+}
+/*
+ * CFF public CSS uses width:auto; max-width:none on inputs and .medium at 50%.
+ * Inside this phone dialog those rules let fields grow past the viewport.
+ */
+#emerson-recommit #fbuilder .small,
+#emerson-recommit #fbuilder .medium,
+#emerson-recommit #fbuilder .large,
+#emerson-recommit #fbuilder .fields,
+#emerson-recommit #fbuilder .dfield {
+	width: 100% !important;
+	max-width: 100% !important;
+	min-width: 0 !important;
+	box-sizing: border-box !important;
+	float: none !important;
+}
+#emerson-recommit #fbuilder input[type="text"],
+#emerson-recommit #fbuilder input[type="email"],
+#emerson-recommit #fbuilder input[type="tel"],
+#emerson-recommit #fbuilder input[type="number"],
+#emerson-recommit #fbuilder input[type="date"],
+#emerson-recommit #fbuilder input[type="datetime"],
+#emerson-recommit #fbuilder input.date-component,
+#emerson-recommit #fbuilder select,
+#emerson-recommit #fbuilder textarea {
+	display: block !important;
+	width: 100% !important;
+	max-width: 100% !important;
+	min-width: 0 !important;
+	box-sizing: border-box !important;
+}
+#emerson-recommit #fbuilder .cff-currency-field,
+#emerson-recommit #fbuilder .currency,
+#emerson-recommit .emerson-recommit__money {
+	display: flex !important;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.35rem 0.5rem;
+	gap: 0.25rem;
+	max-width: 100%;
 	min-width: 0;
-	margin: 0;
-	line-height: 2.2;
+	white-space: normal;
+	box-sizing: border-box;
+}
+#emerson-recommit #fbuilder .cff-currency-field input,
+#emerson-recommit #fbuilder .currency input,
+#emerson-recommit .emerson-recommit__money input {
+	flex: 1 1 8rem;
+	width: auto !important;
+	min-width: 0 !important;
+	max-width: 100% !important;
 }
 #emerson-recommit .emerson-recommit__sign-actions [class*="fieldname7_"],
-#emerson-recommit .emerson-recommit__sign-actions [class*="fieldname7_"] .dfield {
-	display: inline-flex;
-	align-items: center;
-	width: auto;
-	flex: 0 0 auto;
+#emerson-recommit .emerson-recommit__sign-actions [class*="fieldname7_"] .dfield,
+#emerson-recommit .emerson-recommit__date-line [class*="fieldname7_"],
+#emerson-recommit .emerson-recommit__date-line [class*="fieldname7_"] .dfield {
+	display: block;
+	width: 100% !important;
+	max-width: 100% !important;
+	min-width: 0;
 	margin: 0;
+	box-sizing: border-box;
 }
-#emerson-recommit .emerson-recommit__sign-actions [class*="fieldname7_"] input {
-	width: 11rem;
+#emerson-recommit .emerson-recommit__date-line [class*="fieldname7_"] input,
+#emerson-recommit .emerson-recommit__date-line input.date-component,
+#emerson-recommit .emerson-recommit__date-line input[type="text"],
+#emerson-recommit .emerson-recommit__date-line input[type="date"] {
+	width: 100% !important;
+	max-width: 100% !important;
+	min-width: 0 !important;
+	margin: 0.15rem 0;
+	box-sizing: border-box;
 }
 #emerson-recommit button.emerson-recommit__clear {
+	align-self: flex-start;
 	background: #fff !important;
 	color: var(--emerson-blue) !important;
 }
+#emerson-recommit .emerson-recommit__date-line input::placeholder {
+	color: #6b7280;
+	opacity: 1;
+}
 .emerson-recommit__sign-actions [class*="fieldname7_"] label,
-.emerson-recommit__sign-actions [class*="fieldname7_"] .uh {
+.emerson-recommit__sign-actions [class*="fieldname7_"] .uh,
+.emerson-recommit__date-line [class*="fieldname7_"] label,
+.emerson-recommit__date-line [class*="fieldname7_"] .uh {
 	position: absolute;
 	width: 1px;
 	height: 1px;
 	overflow: hidden;
 	clip: rect(0, 0, 0, 0);
+}
+/* Keep the page itself from scrolling sideways while the survey is open. */
+html:has(#emerson-recommit[open]),
+body:has(#emerson-recommit[open]) {
+	overflow-x: clip;
 }
 .emerson-recommit__clear,
 .emerson-recommit__submit {
@@ -3183,12 +3301,52 @@ blockquote {
 	pointer-events: none;
 	background: var(--emerson-foil-layer-color, #f4f7f1);
 	/* contain:paint broke CSS mask clipping — wipe ran but showed everything. */
+	contain: none;
 	transform: translateZ(0);
 	opacity: 0;
 	visibility: hidden;
 	transition:
 		opacity 0.5s ease,
 		visibility 0s linear 0.5s;
+	/* Soft rim width; phones bump this in the media query below. */
+	--emerson-foil-edge-fade: 3.25rem;
+}
+/*
+ * Soft rim over the sheet (not a mask — wipe already uses mask on this layer).
+ * Hides mid-glyph hard cuts where the viewport clips the drifting field, especially
+ * on phones where iOS Color Emoji also refuses canvas clip().
+ */
+.emerson-foil-layer::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+	background:
+		linear-gradient(
+			to right,
+			var(--emerson-foil-layer-color, #f4f7f1) 0,
+			transparent var(--emerson-foil-edge-fade),
+			transparent calc(100% - var(--emerson-foil-edge-fade)),
+			var(--emerson-foil-layer-color, #f4f7f1) 100%
+		),
+		linear-gradient(
+			to bottom,
+			var(--emerson-foil-layer-color, #f4f7f1) 0,
+			transparent var(--emerson-foil-edge-fade),
+			transparent calc(100% - var(--emerson-foil-edge-fade)),
+			var(--emerson-foil-layer-color, #f4f7f1) 100%
+		);
+}
+@media (max-width: 782px) {
+	.emerson-foil-layer {
+		/* ~half a stamped cell — phone glyphs are large; short fades still looked sliced. */
+		--emerson-foil-edge-fade: 5.5rem;
+	}
+}
+html.emerson-foil,
+html.emerson-foil body {
+	overflow-x: hidden;
 }
 /*
  * Layer only visible once a wipe/ready class is on. Bare html.emerson-foil used to

@@ -1834,10 +1834,18 @@
 			foilOrder = foilRandomizeOn() ? foilShuffle(symbolsSource) : symbolsSource.slice();
 		}
 		var symbols = foilOrder;
-		var cols = 36;
-		var rows = 24;
-		var cell = 88;
-		var gap = 6;
+		/*
+		 * Stamp each glyph into a cell-sized bitmap, then drawImage onto the field.
+		 * iOS Color Emoji ignores ctx.clip(), and the purple religious “plate” symbols
+		 * (peace, dharma, star of David, …) paint larger than font-size on iPhone while
+		 * fitting fine on desktop — so we shrink per unique symbol until ink stays
+		 * inside a padded box.
+		 */
+		var cols = 30;
+		var rows = 20;
+		var cell = 120;
+		var gap = 16;
+		var glyph = 52;
 		var width = cols * cell + (cols - 1) * gap;
 		var height = rows * cell + (rows - 1) * gap;
 		var layer = foilCanvas.closest('.emerson-foil-layer');
@@ -1851,18 +1859,89 @@
 		foilCanvas.width = width;
 		foilCanvas.height = height;
 		var ctx = foilCanvas.getContext('2d');
-		ctx.font = '67px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
-		ctx.textAlign = 'center';
-		ctx.textBaseline = 'middle';
+		var fontStack = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+		var pad = Math.max(8, Math.round(cell * 0.12));
+		var stampCache = Object.create(null);
+
+		/*
+		 * Purple “plate” religious symbols (peace, dharma, om, …). On iPhone these
+		 * paint as solid squares larger than font-size; colorful emoji do not.
+		 */
+		function foilIsPlateSymbol(sym) {
+			var cp = sym.codePointAt(0);
+			return (
+				cp === 0x262f ||
+				cp === 0x2638 ||
+				cp === 0x262e ||
+				cp === 0x262a ||
+				cp === 0x271d ||
+				cp === 0x2721 ||
+				cp === 0x1f549 ||
+				cp === 0x267b ||
+				cp === 0x2626
+			);
+		}
+
+		function foilInkHitsPad(sctx) {
+			var img = sctx.getImageData(0, 0, cell, cell).data;
+			var x;
+			var y;
+			var row;
+			function alpha(px, py) {
+				return img[(py * cell + px) * 4 + 3];
+			}
+			for (y = 0; y < pad; y++) {
+				row = y;
+				for (x = 0; x < cell; x++) {
+					if (alpha(x, row) > 10 || alpha(x, cell - 1 - row) > 10) {
+						return true;
+					}
+				}
+			}
+			for (x = 0; x < pad; x++) {
+				for (y = pad; y < cell - pad; y++) {
+					if (alpha(x, y) > 10 || alpha(cell - 1 - x, y) > 10) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		function foilStampFor(sym) {
+			if (stampCache[sym]) {
+				return stampCache[sym];
+			}
+			var stamp = document.createElement('canvas');
+			stamp.width = cell;
+			stamp.height = cell;
+			var sctx = stamp.getContext('2d');
+			/* Plates start smaller — iOS still grows them past font-size. */
+			var size = foilIsPlateSymbol(sym) ? Math.floor(glyph * 0.72) : glyph;
+			sctx.textAlign = 'center';
+			sctx.textBaseline = 'middle';
+			do {
+				sctx.clearRect(0, 0, cell, cell);
+				sctx.font = size + 'px ' + fontStack;
+				sctx.fillText(sym, cell / 2, cell / 2);
+				if (!foilInkHitsPad(sctx)) {
+					break;
+				}
+				size = Math.floor(size * 0.82);
+			} while (size >= 22);
+			stampCache[sym] = stamp;
+			return stamp;
+		}
+
 		var index = 0;
 		var row;
 		var col;
 		for (row = 0; row < rows; row++) {
 			for (col = 0; col < cols; col++) {
-				ctx.fillText(
-					symbols[index % symbols.length],
-					col * (cell + gap) + cell / 2,
-					row * (cell + gap) + cell / 2
+				ctx.drawImage(
+					foilStampFor(symbols[index % symbols.length]),
+					col * (cell + gap),
+					row * (cell + gap)
 				);
 				index++;
 			}

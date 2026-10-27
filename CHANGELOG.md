@@ -10,6 +10,31 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-27
+
+### Modal close: shared centred X
+- Survey, pledge, custom Modals builder dialogs, and Approximate PayPal Fees share one circular **×** control (`emerson_modal_close_button()`), about 20% smaller than the old “Close” pill, with an SVG mark so it sits true in the circle. PayPal uses the same header bar slot as the survey.
+- **File:** `wp-content/plugins/emerson-chapel/emerson-chapel.php`, `inc/modals.php`, `inc/recommitment.php`, `assets/css/custom.css`.
+
+### Foil on iPhone: purple plates no longer clip
+- Religious “plate” symbols (peace, dharma, Star of David, …) paint larger than font-size on iOS. Each glyph is stamped into a padded cell bitmap and shrunk until it fits; soft edge fade on the foil layer; CSS file header no longer uses `*.html` globs inside comments.
+- **File:** `wp-content/plugins/emerson-chapel/assets/js/custom.js`, `assets/css/custom.css`, `inc/foil-background.php`.
+
+### LAN phone preview (local Docker only)
+- Mu-plugin rewrites `localhost:8080` asset URLs only for private LAN IPs so a phone on the same Wi‑Fi can load CSS/JS. Desktop `localhost:8080` is left alone (an earlier rewrite dropped `:8080` and broke styles).
+- **File:** `wp-content/mu-plugins/emerson-lan-preview.php`, `TROUBLESHOOTING.md`.
+
+## 2026-10-26
+
+### Survey modal: no sideways scroll on a phone
+- Emerson Community Survey no longer overflows horizontally on narrow screens. Date signed stacks under **Clear signature** with placeholder `mm/dd/yyyy` (the “and date” label is gone). CFF’s `max-width: none` / `.medium` / `width:auto` inputs are forced to the dialog width; on phones the dialog uses viewport insets instead of `100vw`.
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `assets/js/recommitment.js`.
+
+### community_flame: stop the “old image stuck forever” loop
+- W3 Total Cache was telling browsers to keep upload URLs for one year, so re-uploading `community_flame.png` looked like the old art came back.
+- Installed the updated graphic as `community_flame-v2.png` (attachment 1184), pointed Church Leadership at it, enabled browser-cache URL replace for media, flushed W3TC. Working copy: `images/community_flame.png`. Backup: `backups/images/community_flame-before-2026-10-26.png`.
+- **File:** uploads `2026/10/community_flame-v2*.png`, `images/community_flame.png`, `wp-content/w3tc-config/master.php`, `TROUBLESHOOTING.md`. **Local DB:** page 192.
+
 ## 2026-10-25
 
 ### Calendar: show today’s details without a click

@@ -66,12 +66,20 @@
 		}
 		var block = document.createElement('div');
 		block.className = 'emerson-recommit__signature';
-		block.innerHTML = '<p class="emerson-recommit__sign">Signed<label class="screen-reader-text" for="emerson-recommit-pad">Draw your signature</label><canvas class="emerson-recommit__pad" id="emerson-recommit-pad"></canvas></p><p class="emerson-recommit__sign-actions"><button type="button" class="emerson-recommit__clear">Clear signature</button><span class="emerson-recommit__and-date">and date</span></p><p class="emerson-recommit__status" role="status"></p>';
+		block.innerHTML = '<p class="emerson-recommit__sign">Signed<label class="screen-reader-text" for="emerson-recommit-pad">Draw your signature</label><canvas class="emerson-recommit__pad" id="emerson-recommit-pad"></canvas></p><div class="emerson-recommit__sign-actions"><button type="button" class="emerson-recommit__clear">Clear signature</button><div class="emerson-recommit__date-line"></div></div><p class="emerson-recommit__status" role="status"></p>';
 		anchor.parentNode.insertBefore(block, anchor);
-		var actions = block.querySelector('.emerson-recommit__sign-actions');
+		var dateLine = block.querySelector('.emerson-recommit__date-line');
 		var dateField = dialog.querySelector('.fields[class*="fieldname7_"]');
-		if (dateField && actions) {
-			actions.appendChild(dateField);
+		if (dateField && dateLine) {
+			dateLine.appendChild(dateField);
+			var dateInput = dateField.querySelector('input.date-component, input[id$="_date"], input[type="text"], input');
+			if (dateInput) {
+				/* CFF Date signed uses mm/dd/yyyy — placeholder is the format explainer. */
+				dateInput.setAttribute('placeholder', 'mm/dd/yyyy');
+				if (!dateInput.getAttribute('aria-label')) {
+					dateInput.setAttribute('aria-label', 'Date signed, mm/dd/yyyy');
+				}
+			}
 		}
 		var canvas = block.querySelector('.emerson-recommit__pad');
 		var status = block.querySelector('.emerson-recommit__status');

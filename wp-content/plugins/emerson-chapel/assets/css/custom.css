@@ -820,13 +820,19 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	box-sizing: border-box;
 	max-height: min(85vh, 40rem);
 	overflow: auto;
-	padding: 1rem 1rem 0.75rem;
+	/* No side padding on the scrollport — keeps the scrollbar on the dialog edge. */
+	padding: 1rem 0 0.75rem;
 	border: 0;
 	border-radius: 16px;
 	box-shadow: 0 12px 36px rgba(20, 24, 50, 0.22);
 	transform: translateY(0);
 	opacity: 1;
 	transition: transform 0.45s ease, opacity 0.45s ease;
+}
+.emerson-paypal-fees .emerson-recommit__bar,
+.emerson-paypal-fees form.cff-form {
+	padding-inline: 1rem;
+	box-sizing: border-box;
 }
 
 .emerson-paypal-fees.is-opening {
@@ -929,7 +935,14 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 		max-height: none;
 		overflow-x: clip;
 		overflow-y: hidden;
-		padding: 0.5rem 0.7rem 0.45rem;
+		padding: 0.5rem 0 0.45rem;
+	}
+	#emerson-recommit.emerson-recommit--form .emerson-recommit__bar,
+	#emerson-recommit.emerson-recommit--form form.cff-form {
+		padding-inline: 0.7rem;
+	}
+	#emerson-recommit.emerson-recommit--form .emerson-recommit__close {
+		right: 0.7rem;
 	}
 	#emerson-recommit.emerson-recommit--form .emerson-recommit__bar {
 		min-height: 2.2rem;
@@ -949,13 +962,24 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	max-height: calc(100vh - 1.5rem);
 	overflow: hidden;
 	overflow-x: clip;
-	padding: 1rem 1rem 0.75rem;
+	/* Side padding lives on bar + form so the form scrollbar sits on the modal edge. */
+	padding: 1rem 0 0.75rem;
 	border: 0;
 	border-radius: 16px;
 	box-shadow: 0 12px 36px rgba(20, 24, 50, 0.22);
 	transform: translateY(0);
 	opacity: 1;
 	transition: transform 0.45s ease, opacity 0.45s ease;
+}
+.emerson-recommit .emerson-recommit__bar {
+	padding-inline: 1rem;
+	box-sizing: border-box;
+}
+.emerson-recommit form.cff-form,
+.emerson-recommit .emerson-modal__form,
+.emerson-recommit .emerson-recommit__form {
+	padding-inline: 1rem;
+	box-sizing: border-box;
 }
 .emerson-recommit.is-opening {
 	transform: translateY(calc(-50vh - 50%));
@@ -982,7 +1006,8 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 .emerson-paypal-fees__close {
 	position: absolute;
 	top: 0;
-	right: 0;
+	/* Match former dialog side padding now that the scrollport is edge-to-edge. */
+	right: 1rem;
 	box-sizing: border-box;
 	width: 2.2rem;
 	height: 2.2rem;
@@ -1290,6 +1315,18 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	align-self: flex-start;
 	background: #fff !important;
 	color: var(--emerson-blue) !important;
+}
+/* CFF .pbSubmit is often width:100% on phone; default text-align left leaves “Submit” flush left. */
+#emerson-recommit #fbuilder .pbSubmit,
+#emerson-recommit .pbSubmit,
+#emerson-paypal-fees #fbuilder .pbSubmit,
+#emerson-paypal-fees .pbSubmit {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	margin-left: 0;
+	margin-right: 0;
+	text-align: center;
 }
 #emerson-recommit .emerson-recommit__date-line input::placeholder {
 	color: #6b7280;
@@ -1807,7 +1844,7 @@ input.ca-search-submit:focus-visible {
 	}
 }
 
-/* Visit Us: OpenStreetMap embed */
+/* Visit Us: Google Maps embed (keyless output=embed) + contact copy */
 iframe.emerson-map {
 	display: block;
 	width: 100%;
@@ -1820,6 +1857,13 @@ iframe.emerson-map {
 .emerson-map-link {
 	margin-top: 0.4em;
 	font-size: 0.9em;
+	text-align: center;
+}
+
+/* Address / email column and the Sunday-services line under the map. */
+.page-id-58 .gb-layout-columns-2 .gb-block-layout-column:last-child .gb-block-layout-column-inner,
+.page-id-58 .entry-content > p,
+.page-id-58 .wp-block-post-content > p {
 	text-align: center;
 }
 
@@ -1966,6 +2010,7 @@ iframe.emerson-map {
 .emerson-latest-sermon {
 	position: relative;
 	margin: 1.25rem 0;
+	/* No transform/isolation here — Safari blacks out YouTube under those. */
 }
 
 .emerson-latest-sermon::before {
@@ -1974,13 +2019,77 @@ iframe.emerson-map {
 	padding-top: 56.25%;
 }
 
-.emerson-latest-sermon iframe {
+.emerson-latest-sermon iframe,
+.emerson-latest-sermon__play {
 	position: absolute;
 	top: 0;
 	left: 0;
 	width: 100%;
 	height: 100%;
 	border: 0;
+}
+
+.emerson-latest-sermon__play {
+	display: block;
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+	background: #111;
+	color: inherit;
+	appearance: none;
+	-webkit-appearance: none;
+}
+
+.emerson-latest-sermon__poster {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.emerson-latest-sermon__play-icon {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 4.25rem;
+	height: 3rem;
+	margin: -1.5rem 0 0 -2.125rem;
+	border-radius: 0.85rem;
+	background: rgba(0, 0, 0, 0.72);
+	pointer-events: none;
+	transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.emerson-latest-sermon__play-icon::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin: -0.55rem 0 0 -0.25rem;
+	border-style: solid;
+	border-width: 0.55rem 0 0.55rem 0.95rem;
+	border-color: transparent transparent transparent #fff;
+}
+
+.emerson-latest-sermon__play:hover .emerson-latest-sermon__play-icon,
+.emerson-latest-sermon__play:focus-visible .emerson-latest-sermon__play-icon {
+	background: rgba(200, 0, 0, 0.9);
+	transform: scale(1.06);
+}
+
+.emerson-latest-sermon__play:focus-visible {
+	outline: 2px solid var(--emerson-blue, #1e4d7b);
+	outline-offset: 3px;
+}
+
+/*
+ * Foil’s page text-shadow inherits onto iframes (black video + audio in WebKit).
+ * Same idea as the Zoom button exception above.
+ */
+html.emerson-foil .wp-site-blocks .emerson-latest-sermon,
+html.emerson-foil .wp-site-blocks .emerson-latest-sermon iframe,
+html.emerson-foil .wp-site-blocks iframe {
+	text-shadow: none;
 }
 
 /* Church Admin registration "Next" button: same size as the Log In button above, keeping its light grey */
@@ -3364,9 +3473,10 @@ blockquote {
 
 /* Heading lives in .emerson-recommit__bar (same as survey) — shared h2 rules apply. */
 .emerson-modal .emerson-modal__form {
-	padding: 0 0 0.75rem;
+	padding: 0 1rem 0.75rem;
 	overflow: auto;
 	max-height: min(70vh, 36rem);
+	box-sizing: border-box;
 }
 
 /* Overflow scroll hint (Modals → Display). Absolute over the dialog (UA position:fixed). */
@@ -3412,6 +3522,7 @@ blockquote {
 	background: var(--emerson-foil-layer-color, #f4f7f1);
 	/* contain:paint broke CSS mask clipping — wipe ran but showed everything. */
 	contain: none;
+	/* Layer promotion for wipe/stamps; must not keep a CSS mask while idle (Safari). */
 	transform: translateZ(0);
 	opacity: 0;
 	visibility: hidden;
@@ -3573,12 +3684,11 @@ html.emerson-foil-drifting:not(.emerson-foil-wiping-out):not(.emerson-foil-wipin
 	animation-delay: var(--emerson-foil-drift-delay, 0s);
 }
 /*
- * Same wipe mask on wipe-in, wipe-out, AND ready. 300% size parks the soft edge
- * off-screen at 0% and 100% so handoffs do not leave a fringe jump.
+ * Wipe mask only while wiping. Keeping it on ready (parked “open”) made Safari
+ * play the homepage YouTube embed as a black frame with audio still working.
  */
 html.emerson-foil-wiping-in .emerson-foil-layer,
-html.emerson-foil-wiping-out .emerson-foil-layer,
-html.emerson-foil-ready:not(.emerson-foil-wiping-out) .emerson-foil-layer {
+html.emerson-foil-wiping-out .emerson-foil-layer {
 	-webkit-mask-image: linear-gradient(
 		calc(90deg + var(--emerson-foil-shine-angle, 0deg)),
 		#000 0%,
@@ -3599,12 +3709,16 @@ html.emerson-foil-ready:not(.emerson-foil-wiping-out) .emerson-foil-layer {
 	mask-repeat: no-repeat;
 }
 /*
- * Wipe travel follows --emerson-foil-wipe-closed/open (set from shine angle in JS).
- * Defaults match shine 0° (horizontal). Shine 90° needs a vertical axis — X-only broke.
+ * Steady foil: no mask on the full-viewport layer (Safari video compositing).
+ * Wipe travel uses --emerson-foil-wipe-closed/open (set from shine angle in JS).
  */
 html.emerson-foil-ready:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping-out) .emerson-foil-layer {
-	-webkit-mask-position: var(--emerson-foil-wipe-open, 0% 50%);
-	mask-position: var(--emerson-foil-wipe-open, 0% 50%);
+	-webkit-mask-image: none;
+	mask-image: none;
+	-webkit-mask-size: auto;
+	mask-size: auto;
+	-webkit-mask-position: unset;
+	mask-position: unset;
 	animation: none;
 }
 html.emerson-foil-wiping-in .emerson-foil-layer {
@@ -3739,6 +3853,26 @@ html.emerson-foil-drifting:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping
 	to {
 		transform: translate3d(-8%, -6%, 0);
 	}
+}
+/*
+ * Pause ambient GPU work without tearing animations down (that reset drift/shine
+ * to frame 0). Used for Safari+playing video and for hidden tabs.
+ * Drop layer translateZ while paused so WebKit is less likely to black out YouTube.
+ */
+html.emerson-foil-safari-static .emerson-foil-layer,
+html.emerson-foil-tab-hidden .emerson-foil-layer {
+	transform: none;
+}
+html.emerson-foil-safari-static .emerson-foil__sheet,
+html.emerson-foil-tab-hidden .emerson-foil__sheet,
+html.emerson-foil-safari-static .emerson-foil__shine span,
+html.emerson-foil-tab-hidden .emerson-foil__shine span {
+	animation-play-state: paused !important;
+	will-change: auto;
+}
+/* Shine band still composites while paused; hide it for the video-safe path only. */
+html.emerson-foil-safari-static .emerson-foil__shine {
+	visibility: hidden;
 }
 .emerson-foil-toggle {
 	position: fixed;

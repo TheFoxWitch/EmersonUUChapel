@@ -402,16 +402,12 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
   - The public **Service Schedule** page (437, `/schedule/`) is a month calendar of Sunday services. Monday ticks do not appear there.
 - [ ] **Visit Us: which address?** The page's text says **122 North Fifth Street, St Charles, MO 63301**, but the footer, homepage and Sunday Services say services are at the **St. Charles YMCA, 3900 Shady Springs Ln, St Peters, MO 63376**. The new map (2026-10-02) shows the YMCA. Is Fifth Street still used for anything, such as an office or mail? Then update the text, or the map, to match. There's also an unpublished draft, "Come Visit Us" (page 220): keep or delete?
   - The **Service Schedule** page says **Emerson Chapel** and links that name to Visit Us. Update Visit Us when the address is confirmed; the schedule page follows it. Change the words "Emerson Chapel" only if the church wants a different label (`EMERSON_SERVICE_PLACE` in `inc/service-schedule.php`).
-- [ ] **Visit Us: which map service?** The page uses an **OpenStreetMap** embed (added 2026-10-02): free, no account or API key, and no tracking cookies. Would the church prefer **Google Maps** instead?
-  - **A plain Google map embed** needs no key either, but Google may set cookies, so the Privacy Policy would need a line about it.
-  - **With their own Google Maps API key** (see "Google Maps" below), the same key would also turn on Church Admin's directory map and registration address lookup.
-  - **To switch:** replace the `<iframe class="emerson-map">` on Visit Us (page 58) with Google's **Share → Embed a map** code. Keep `class="emerson-map"` so the styling stays.
+- [x] **Visit Us: which map service?** Switched to a **keyless Google Maps** embed on page 58 (2026-10-30). Privacy Policy and Cookies pages mention it. Still no Google API key — that is only for Church Admin (directory map / registration lookup); ask the church separately (see next item).
 - [ ] **Religious Education: photo of Lauren.** The board would like to add a photo of the RE teacher, if she agrees. Get her written OK and the photo, then add it near the teacher sentence at the top of the page.
-- [ ] **Google Maps.** Do they want maps, and who would own the Google account?
-  - Church Admin can show a map on the registration form and in the member directory, but only with a Google Maps API key.
-  - That needs a Google Cloud account with billing turned on; normal church use should stay within the free allowance.
+- [ ] **Google Maps API key (Church Admin only).** The Visit Us page already uses a keyless Google embed. A paid/restricted **Google Maps API key** is still only needed if they want Church Admin's directory map and registration address lookup.
+  - That needs a Google Cloud account with billing turned on; normal church use should stay within the free allowance. Who would own the account?
   - If yes: restrict the key to the church's domain and paste it into **Church Admin → Settings**. Then test the registration form's address map, and turn the directory map on (`map="1"` in the address-list shortcode on the Members page).
-  - Until then, Maps isn't loaded at all (`inc/members.php`), so there's no console warning and no request to Google.
+  - Until then, Church Admin Maps isn't loaded at all (`inc/members.php`), so there's no console warning and no Maps JavaScript request from CA.
 - [x] **Spreadsheets for certain members** (local test 2026-10-05). Files live in `private-files/` (not Media). The Members hub lists them only for **administrators** and the **Finance** role. Still confirm with the church who should have Finance, whether they need to *edit* as well as view, and what is in the files.
   - **Ask:** who needs to see them? View only, or editing too? What information is in them (giving by person, pledge totals, budget, attendance)? How often is it updated?
   - Church Admin **Giving** stays separate (`/giving/`, Church Admin permissions).

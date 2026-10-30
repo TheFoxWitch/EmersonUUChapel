@@ -1,6 +1,10 @@
 <?php
 /**
- * Early hints for CSS, key images, and video thumbnails.
+ * Early hints for late-discovered assets (images, etc.).
+ *
+ * Do not preload chapel / Blossom CSS here: those already load as normal
+ * <link rel="stylesheet"> tags from wp_enqueue_style. A matching preload still
+ * makes Chromium warn that the preload was unused.
  *
  * Add entries to emerson_preload_manifest() — each item needs href + as.
  * Optional: pages ('all', 'home', page id, or list of ids), type (preload|preconnect), crossorigin.
@@ -12,35 +16,25 @@ declare( strict_types=1 );
  * @return list<array{href:string,as?:string,type?:string,pages?:string|int|list<int|string>,crossorigin?:bool}>
  */
 function emerson_preload_manifest(): array {
-	$css_path = emerson_chapel_path( 'assets/css/custom.css' );
-	$css_ver  = is_readable( $css_path ) ? (string) filemtime( $css_path ) : '1';
-	$css_href = emerson_chapel_url( 'assets/css/custom.css' ) . '?v=' . rawurlencode( $css_ver );
-
-	$blossom_path = emerson_chapel_path( 'assets/vendor/blossom/blossom-carousel-web.css' );
-	$blossom_href = '';
-	if ( is_readable( $blossom_path ) ) {
-		$blossom_href = emerson_chapel_url( 'assets/vendor/blossom/blossom-carousel-web.css' )
-			. '?v=' . rawurlencode( (string) filemtime( $blossom_path ) );
-	}
-
-	$list = array(
-		array(
-			'href'  => $css_href,
-			'as'    => 'style',
-			'pages' => 'all',
-		),
-	);
-
-	if ( $blossom_href !== '' ) {
-		$list[] = array(
-			'href'  => $blossom_href,
-			'as'    => 'style',
-			'pages' => 'home',
-		);
-	}
-
-	return $list;
+	return array();
 }
+
+/**
+ * WordPress preloads @wordpress/interactivity for the navigation block, but the
+ * nav view module often runs late (footer + fetchpriority=low), so Chromium
+ * warns the modulepreload was unused. Enqueue the library itself so it prints
+ * as a real module script instead of a head-only preload.
+ */
+add_action(
+	'wp_enqueue_scripts',
+	static function (): void {
+		if ( is_admin() || ! function_exists( 'wp_enqueue_script_module' ) ) {
+			return;
+		}
+		wp_enqueue_script_module( '@wordpress/interactivity' );
+	},
+	20
+);
 
 /**
  * @param string|int|list<int|string>|null $pages
@@ -64,24 +58,6 @@ function emerson_preload_pages_match( $pages ): bool {
 		return is_page( (int) $pages );
 	}
 	return is_page( (string) $pages );
-}
-
-/**
- * YouTube poster for the homepage sermon iframe (when we know the video id).
- */
-function emerson_preload_homepage_sermon_thumb(): string {
-	if ( ! function_exists( 'emerson_homepage_sermon_url' ) || ! function_exists( 'emerson_youtube_id' ) ) {
-		return '';
-	}
-	$url = emerson_homepage_sermon_url();
-	if ( emerson_youtube_id( $url ) === '' && function_exists( 'emerson_latest_gallery_sermon' ) ) {
-		$url = emerson_latest_gallery_sermon()['url'] ?? '';
-	}
-	$id = emerson_youtube_id( $url );
-	if ( $id === '' ) {
-		return '';
-	}
-	return 'https://i.ytimg.com/vi/' . rawurlencode( $id ) . '/hqdefault.jpg';
 }
 
 /** PayPal’s hosted Donate button GIF (the slow CDN asset). */
@@ -143,23 +119,18 @@ add_action(
 			);
 		}
 		if ( is_front_page() ) {
-			$thumb = emerson_preload_homepage_sermon_thumb();
-			if ( $thumb !== '' ) {
-				$items[] = array(
-					'href'  => $thumb,
-					'as'    => 'image',
-					'pages' => 'home',
-				);
-				$items[] = array(
-					'href'  => 'https://i.ytimg.com',
-					'type'  => 'preconnect',
-					'pages' => 'home',
-				);
-			}
 			/*
 			 * Critical rainbow heading so “You Are Welcome!” does not wait on
 			 * the full stylesheet (transparent text until clip CSS arrives).
+			 * Sermon is click-to-load: preload the YouTube poster the page shows.
 			 */
+			if ( function_exists( 'emerson_latest_sermon_resolved' ) ) {
+				$sermon = emerson_latest_sermon_resolved();
+				if ( $sermon['id'] !== '' && function_exists( 'emerson_youtube_poster_url' ) ) {
+					$poster = emerson_youtube_poster_url( $sermon['id'] );
+					echo '<link rel="preload" href="' . esc_url( $poster ) . '" as="image">'."\n";
+				}
+			}
 			echo "<style id=\"emerson-welcome-rainbow-critical\">"
 				. ".emerson-welcome__rainbow{"
 				. "color:#6d28d9;"

@@ -5,8 +5,9 @@
 	'use strict';
 
 	/**
-	 * Brief bounce-down arrow when a form-maker dialog’s content overflows.
-	 * Toggle: Emerson Chapel → Modals → Display.
+	 * Brief bounce-down arrow when a form-maker dialog’s content overflows and
+	 * more is still below. Shared by survey, PayPal fees, and custom CFF modals
+	 * (not WPForms). Toggle: Emerson Chapel → Modals → Display.
 	 */
 	function modalOverflowArrowEnabled() {
 		return !!(window.emersonModals && window.emersonModals.overflowArrow);
@@ -64,6 +65,10 @@
 		}
 		var root = findModalScrollRoot(dialog);
 		if (!root) {
+			return;
+		}
+		/* Only cue “more below.” No up-arrow when reopened already scrolled down. */
+		if (root.scrollTop + root.clientHeight >= root.scrollHeight - 4) {
 			return;
 		}
 		var hint = document.createElement('div');
@@ -2016,8 +2021,77 @@
 			'emerson-foil-drifting',
 			'emerson-foil-shining',
 			'emerson-foil-fading-out',
-			'emerson-foil-hiding'
+			'emerson-foil-hiding',
+			'emerson-foil-safari-static'
 		);
+	}
+	/**
+	 * Safari / iOS WebKit (not Chrome/Edge/Firefox). Foil’s fixed overlay is a
+	 * sibling of the page — not a parent of the YouTube iframe — so this is not a
+	 * z-index fight. WebKit still blacks out HTML5/YouTube video when a
+	 * full-viewport fixed layer keeps translateZ + continuous transform
+	 * animations (drift sheet + shine) in the same compositor as the player.
+	 *
+	 * Homepage sermon is click-to-load. Ambient motion pauses only while that
+	 * video is actually playing (YouTube API); pause/end resumes drift+shine.
+	 * Other pages’ YouTube iframes still count as risk while present.
+	 */
+	var foilLiveVideoPlaying = false;
+	function foilIsSafariWebKit() {
+		var ua = navigator.userAgent || '';
+		if (/CriOS|FxiOS|EdgiOS|Chrome|Chromium|Edg\/|OPR\//i.test(ua)) {
+			return false;
+		}
+		return /Safari/i.test(ua) || (/AppleWebKit/i.test(ua) && /Mobile/i.test(ua));
+	}
+	/** Gallery/other embeds, HTML5 video, or homepage sermon currently playing. */
+	function foilPageHasWebKitVideoRisk() {
+		if (foilLiveVideoPlaying) {
+			return true;
+		}
+		var iframes = document.querySelectorAll(
+			'iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"], iframe[src*="youtu.be"]'
+		);
+		var i;
+		for (i = 0; i < iframes.length; i++) {
+			if (!iframes[i].closest('.emerson-latest-sermon')) {
+				return true;
+			}
+		}
+		return !!document.querySelector('video');
+	}
+	function foilNeedsSafariVideoSafe() {
+		return foilIsSafariWebKit() && foilPageHasWebKitVideoRisk();
+	}
+	/**
+	 * Pause ambient motion in place (CSS animation-play-state) so resume does not
+	 * restart drift/shine at 0% and so the GPU stops advancing frames.
+	 */
+	function foilApplySafariVideoSafe() {
+		var root = foilRoot();
+		var layer = foilLayerEl();
+		var sheet = foilSheetEl();
+		root.classList.add('emerson-foil-safari-static');
+		foilClearMaskHold(layer);
+		foilClearMaskHold(sheet);
+		if (layer) {
+			layer.style.setProperty('transform', 'none');
+		}
+		if (sheet) {
+			sheet.style.setProperty('will-change', 'auto');
+		}
+	}
+	function foilClearSafariVideoSafe() {
+		var root = foilRoot();
+		var layer = foilLayerEl();
+		var sheet = foilSheetEl();
+		root.classList.remove('emerson-foil-safari-static');
+		if (layer) {
+			layer.style.removeProperty('transform');
+		}
+		if (sheet) {
+			sheet.style.removeProperty('will-change');
+		}
 	}
 	function foilEffectiveOn() {
 		var root = foilRoot();
@@ -2026,6 +2100,81 @@
 			!root.classList.contains('emerson-foil-wiping-out')
 		);
 	}
+	function foilSyncTabHidden() {
+		foilRoot().classList.toggle('emerson-foil-tab-hidden', !!document.hidden);
+	}
+	document.addEventListener('visibilitychange', foilSyncTabHidden);
+	foilSyncTabHidden();
+	/** Resume drift+shine when Safari video risk clears (e.g. sermon paused). */
+	function foilResumeAmbient() {
+		var root = foilRoot();
+		var sheet = foilSheetEl();
+		if (!foilEffectiveOn() || !root.classList.contains('emerson-foil-ready')) {
+			return;
+		}
+		if (
+			root.classList.contains('emerson-foil-wiping-in') ||
+			root.classList.contains('emerson-foil-wiping-out')
+		) {
+			return;
+		}
+		if (foilNeedsSafariVideoSafe()) {
+			foilApplySafariVideoSafe();
+			return;
+		}
+		foilClearSafariVideoSafe();
+		/* Keep existing drifting/shining classes — only un-pause play-state. */
+		if (!root.classList.contains('emerson-foil-drifting')) {
+			root.classList.add('emerson-foil-drifting');
+		}
+		if (!root.classList.contains('emerson-foil-shining')) {
+			root.classList.add('emerson-foil-shining');
+		}
+		window.requestAnimationFrame(function () {
+			if (!sheet || !foilEffectiveOn()) {
+				return;
+			}
+			sheet.style.removeProperty('transform');
+		});
+	}
+	/** After wipe-in: drift+shine, unless Safari has active video risk. */
+	function foilEnterAmbient(seq) {
+		var root = foilRoot();
+		var sheet = foilSheetEl();
+		if (!foilStill(seq) || !root.classList.contains('emerson-foil-ready')) {
+			return;
+		}
+		root.classList.add('emerson-foil-drifting');
+		root.classList.add('emerson-foil-shining');
+		if (foilNeedsSafariVideoSafe()) {
+			foilApplySafariVideoSafe();
+			return;
+		}
+		foilClearSafariVideoSafe();
+		window.requestAnimationFrame(function () {
+			if (!foilStill(seq) || !sheet) {
+				return;
+			}
+			sheet.style.removeProperty('transform');
+		});
+	}
+	/**
+	 * Homepage YouTube API (detail.playing) or late inject: pause/resume ambient
+	 * in Safari for the current play state.
+	 */
+	function foilOnLiveVideoEvent(event) {
+		var detail = event && event.detail ? event.detail : {};
+		foilLiveVideoPlaying = !!detail.playing;
+		if (!foilIsSafariWebKit() || !foilEffectiveOn()) {
+			return;
+		}
+		if (foilLiveVideoPlaying) {
+			foilApplySafariVideoSafe();
+		} else {
+			foilResumeAmbient();
+		}
+	}
+	document.addEventListener('emerson-live-video', foilOnLiveVideoEvent);
 	/** Same gradient the CSS wipe uses — keep holds visually identical to the animation. */
 	function foilWipeMaskImage() {
 		return (
@@ -2353,6 +2502,7 @@
 		if (foilReduceMotion() || !layer) {
 			foilClearLayerSnap(layer);
 			root.classList.add('emerson-foil-ready');
+			foilEnterAmbient(seq);
 			if (typeof done === 'function') {
 				done();
 			}
@@ -2381,7 +2531,7 @@
 				root.classList.add('emerson-foil-ready');
 				root.classList.remove('emerson-foil-wiping-in');
 				foilClearSheetTransform(sheet);
-				if (sheet) {
+				if (sheet && !foilNeedsSafariVideoSafe()) {
 					sheet.style.transform = 'translate3d(0, 0, 0)';
 				}
 				window.requestAnimationFrame(function () {
@@ -2393,18 +2543,7 @@
 						done();
 					}
 					window.setTimeout(function () {
-						if (!foilStill(seq) || !root.classList.contains('emerson-foil-ready')) {
-							return;
-						}
-						root.classList.add('emerson-foil-drifting');
-						root.classList.add('emerson-foil-shining');
-						window.requestAnimationFrame(function () {
-							if (!foilStill(seq) || !sheet) {
-								return;
-							}
-							/* Hand off to the CSS animation from the matching 0,0 park. */
-							sheet.style.removeProperty('transform');
-						});
+						foilEnterAmbient(seq);
 					}, 280);
 				});
 			});
@@ -2416,7 +2555,15 @@
 		var layer = foilLayerEl();
 		if (foilReduceMotion() || !layer) {
 			foilHoldMaskClosed(layer || sheet);
-			root.classList.remove('emerson-foil-ready', 'emerson-foil-wiping-in', 'emerson-foil-wiping-out', 'emerson-foil-drifting', 'emerson-foil-shining');
+			foilClearSafariVideoSafe();
+			root.classList.remove(
+				'emerson-foil-ready',
+				'emerson-foil-wiping-in',
+				'emerson-foil-wiping-out',
+				'emerson-foil-drifting',
+				'emerson-foil-shining',
+				'emerson-foil-safari-static'
+			);
 			if (typeof done === 'function') {
 				done();
 			}
@@ -2436,11 +2583,18 @@
 			return;
 		}
 		/* Freeze drift; hold open → wiping-out → drop ready (same open mask). */
+		foilClearSafariVideoSafe();
 		foilSyncWipeAxis();
 		foilFreezeSheetTransform(sheet);
 		foilHoldMaskOpen(layer);
 		root.classList.add('emerson-foil-wiping-out');
-		root.classList.remove('emerson-foil-ready', 'emerson-foil-drifting', 'emerson-foil-shining', 'emerson-foil-wiping-in');
+		root.classList.remove(
+			'emerson-foil-ready',
+			'emerson-foil-drifting',
+			'emerson-foil-shining',
+			'emerson-foil-wiping-in',
+			'emerson-foil-safari-static'
+		);
 		window.requestAnimationFrame(function () {
 			if (!foilStill(seq)) {
 				return;
@@ -2519,6 +2673,7 @@
 			/* Mask still shut from afterOut; ensure opacity is 0 before unmasking. */
 			foilHoldMaskClosed(layer);
 			foilSnapLayerHidden(layer);
+			foilClearSafariVideoSafe();
 			root.classList.remove(
 				'emerson-foil',
 				'emerson-foil-fading-out',
@@ -2526,7 +2681,8 @@
 				'emerson-foil-wiping-in',
 				'emerson-foil-wiping-out',
 				'emerson-foil-drifting',
-				'emerson-foil-shining'
+				'emerson-foil-shining',
+				'emerson-foil-safari-static'
 			);
 			/* Clear mask/holds on the next frame while layer stays opacity 0. */
 			window.requestAnimationFrame(function () {
@@ -2591,7 +2747,12 @@
 				}
 			}
 			foilForceMaskClosed();
-			root.classList.add('emerson-foil-ready', 'emerson-foil-drifting', 'emerson-foil-shining');
+			root.classList.add('emerson-foil-ready');
+			if (foilNeedsSafariVideoSafe()) {
+				foilApplySafariVideoSafe();
+			} else {
+				root.classList.add('emerson-foil-drifting', 'emerson-foil-shining');
+			}
 			foilFlightDone();
 			return;
 		}
@@ -2601,7 +2762,8 @@
 			return;
 		}
 		foilForceMaskClosed();
-		root.classList.remove('emerson-foil');
+		foilClearSafariVideoSafe();
+		root.classList.remove('emerson-foil', 'emerson-foil-safari-static');
 		foilFlightDone();
 	}
 
@@ -2653,6 +2815,117 @@
 			foilStartToward(wantOn);
 		});
 	}
+})();
+
+/**
+ * Homepage sermon: poster until click, then inject YouTube iframe (autoplay).
+ * YouTube IFrame API reports play/pause so Safari foil can freeze only while
+ * playing and resume ambient motion when the visitor pauses or the video ends.
+ */
+(function () {
+	var ytApiLoading = false;
+	var ytApiWaiters = [];
+
+	function notifyFoilPlaying(playing) {
+		try {
+			document.dispatchEvent(
+				new CustomEvent('emerson-live-video', { detail: { playing: !!playing } })
+			);
+		} catch (error) {}
+	}
+
+	function whenYtApiReady(done) {
+		if (window.YT && window.YT.Player) {
+			done();
+			return;
+		}
+		ytApiWaiters.push(done);
+		if (ytApiLoading) {
+			return;
+		}
+		ytApiLoading = true;
+		var previous = window.onYouTubeIframeAPIReady;
+		window.onYouTubeIframeAPIReady = function () {
+			if (typeof previous === 'function') {
+				previous();
+			}
+			var waiters = ytApiWaiters.slice();
+			ytApiWaiters = [];
+			waiters.forEach(function (fn) {
+				fn();
+			});
+		};
+		if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+			var script = document.createElement('script');
+			script.src = 'https://www.youtube.com/iframe_api';
+			document.head.appendChild(script);
+		}
+	}
+
+	function bindPlayer(iframe) {
+		whenYtApiReady(function () {
+			if (!iframe || !iframe.parentNode) {
+				return;
+			}
+			try {
+				new window.YT.Player(iframe, {
+					events: {
+						onStateChange: function (event) {
+							var state = event && typeof event.data === 'number' ? event.data : null;
+							/* 1 = playing; 2 = paused; 0 = ended; 3 = buffering stays “on”. */
+							if (state === 1 || state === 3) {
+								notifyFoilPlaying(true);
+							} else if (state === 0 || state === 2 || state === 5) {
+								notifyFoilPlaying(false);
+							}
+						}
+					}
+				});
+			} catch (error) {
+				notifyFoilPlaying(true);
+			}
+		});
+	}
+
+	function loadSermon(figure) {
+		if (!figure || figure.classList.contains('is-playing')) {
+			return;
+		}
+		var src = figure.getAttribute('data-embed-src') || '';
+		var title = figure.getAttribute('data-embed-title') || 'Sunday service';
+		if (!src) {
+			return;
+		}
+		var iframe = document.createElement('iframe');
+		iframe.id = 'emerson-latest-sermon-player';
+		iframe.title = title;
+		iframe.src = src;
+		iframe.setAttribute(
+			'allow',
+			'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+		);
+		iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+		iframe.setAttribute('allowfullscreen', '');
+		iframe.setAttribute('playsinline', '');
+		figure.classList.add('is-playing');
+		while (figure.firstChild) {
+			figure.removeChild(figure.firstChild);
+		}
+		figure.appendChild(iframe);
+		/* Optimistic freeze until the API confirms; pause/end clears it. */
+		notifyFoilPlaying(true);
+		bindPlayer(iframe);
+	}
+
+	document.querySelectorAll('.emerson-latest-sermon').forEach(function (figure) {
+		var play = figure.querySelector('.emerson-latest-sermon__play');
+		if (!play) {
+			return;
+		}
+		play.addEventListener('click', function () {
+			loadSermon(figure);
+		});
+	});
 })();
 
 (function () {

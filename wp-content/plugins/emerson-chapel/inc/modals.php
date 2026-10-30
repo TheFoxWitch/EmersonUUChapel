@@ -20,7 +20,7 @@ const EMERSON_CUSTOM_MODALS_OPTION  = 'emerson_custom_modals';
 const EMERSON_MODAL_OVERFLOW_ARROW_OPTION = 'emerson_modal_overflow_arrow';
 
 /**
- * Whether overflowing form-maker dialogs show a brief bounce-down scroll hint.
+ * Whether overflowing form-maker dialogs show a brief bounce scroll hint.
  */
 function emerson_modal_overflow_arrow_enabled(): bool {
 	return get_option( EMERSON_MODAL_OVERFLOW_ARROW_OPTION, '1' ) === '1';
@@ -794,7 +794,7 @@ function emerson_modals_admin_page(): void {
 	echo '<input name="modal_overflow_arrow" id="emerson-modal-overflow-arrow" type="checkbox" value="1"'
 		. checked( emerson_modal_overflow_arrow_enabled(), true, false ) . '> ';
 	echo 'Show an animated scroll arrow when the form is taller than the dialog</label>';
-	echo '<p class="description">The arrow sits over the bottom of the dialog, bounces three times, then disappears. It also disappears as soon as someone scrolls. Turned off when the visitor prefers reduced motion.</p>';
+	echo '<p class="description">When more of the form is below, the arrow sits over the bottom, points down, bounces three times, then disappears — or as soon as someone scrolls. It does not show if the form already fits, or if it is already scrolled to the end. Turned off when the visitor prefers reduced motion.</p>';
 	echo '</td></tr></table>';
 	echo '<p class="submit"><button type="submit" name="emerson_modal_display_save" value="1" class="button button-primary">Save display</button></p>';
 	echo '</form>';

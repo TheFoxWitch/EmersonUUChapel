@@ -58,9 +58,36 @@ function emerson_latest_gallery_sermon(): array {
 }
 
 /**
- * Player for the dashboard video, or the newest gallery sermon when none is saved.
+ * YouTube poster image for a video id (hqdefault is reliably present).
  */
-function emerson_latest_sermon_html(): string {
+function emerson_youtube_poster_url( string $id ): string {
+	return 'https://i.ytimg.com/vi/' . rawurlencode( $id ) . '/hqdefault.jpg';
+}
+
+/**
+ * Embed URL for the homepage sermon (autoplay for click-to-load).
+ * enablejsapi lets Safari foil resume when the visitor pauses.
+ */
+function emerson_latest_sermon_embed_src( string $id ): string {
+	$args = array(
+		'playsinline'  => '1',
+		'rel'          => '0',
+		'autoplay'     => '1',
+		'enablejsapi'  => '1',
+	);
+	$origin = home_url();
+	if ( $origin !== '' ) {
+		$args['origin'] = $origin;
+	}
+	return add_query_arg( $args, 'https://www.youtube.com/embed/' . rawurlencode( $id ) );
+}
+
+/**
+ * Resolved homepage sermon: YouTube id + title, or empty id when none.
+ *
+ * @return array{id:string, title:string}
+ */
+function emerson_latest_sermon_resolved(): array {
 	$url   = emerson_homepage_sermon_url();
 	$title = 'Sunday service';
 	if ( emerson_youtube_id( $url ) === '' ) {
@@ -70,16 +97,38 @@ function emerson_latest_sermon_html(): string {
 			$title = $sermon['title'];
 		}
 	}
-	$id = emerson_youtube_id( $url );
+	return array(
+		'id'    => emerson_youtube_id( $url ),
+		'title' => $title,
+	);
+}
+
+/**
+ * Click-to-load player: poster until play, then YouTube iframe.
+ * Keeps Safari foil animating on the homepage until someone starts the video.
+ */
+function emerson_latest_sermon_html(): string {
+	$sermon = emerson_latest_sermon_resolved();
+	$id     = $sermon['id'];
+	$title  = $sermon['title'];
 	if ( $id === '' ) {
 		return '';
 	}
-	$src = 'https://www.youtube.com/embed/' . rawurlencode( $id );
+	$src    = emerson_latest_sermon_embed_src( $id );
+	$poster = emerson_youtube_poster_url( $id );
+	$label  = sprintf(
+		/* translators: %s: sermon title */
+		__( 'Play %s', 'emerson-chapel' ),
+		$title
+	);
 
-	return '<figure class="emerson-latest-sermon">'
-		. '<iframe title="' . esc_attr( $title ) . '" src="' . esc_url( $src ) . '"'
-		. ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
-		. ' referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
+	return '<figure class="emerson-latest-sermon"'
+		. ' data-embed-src="' . esc_url( $src ) . '"'
+		. ' data-embed-title="' . esc_attr( $title ) . '">'
+		. '<button type="button" class="emerson-latest-sermon__play" aria-label="' . esc_attr( $label ) . '">'
+		. '<img class="emerson-latest-sermon__poster" src="' . esc_url( $poster ) . '" alt="" width="480" height="360" decoding="async" fetchpriority="high">'
+		. '<span class="emerson-latest-sermon__play-icon" aria-hidden="true"></span>'
+		. '</button>'
 		. '</figure>';
 }
 

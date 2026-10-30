@@ -661,6 +661,9 @@
 			var extras = ymd ? otherEvents(ymd) : [];
 			var mark = ymd ? servingMark(ymd) : null;
 			if (!row && !extras.length && !mark) {
+				window.requestAnimationFrame(function () {
+					limitSidebarScroll(list);
+				});
 				return;
 			}
 			var title = list.querySelector('strong');
@@ -704,6 +707,185 @@
 				}
 			});
 			shrinkPlaces(list, places);
+			window.requestAnimationFrame(function () {
+				limitSidebarScroll(list);
+			});
+		}
+
+		/**
+		 * Church Admin packs every event into one <li> as <p style="border-left…"> blocks
+		 * (plus &nbsp; spacers). Cap at three of those; scroll + bounce chevron when more.
+		 */
+		function sidebarEventBlocks(list) {
+			if (!list) {
+				return [];
+			}
+			return Array.prototype.filter.call(list.querySelectorAll(':scope > li > p'), function (p) {
+				var text = (p.textContent || '').replace(/\s+/g, ' ').trim();
+				if (!text) {
+					return false;
+				}
+				var style = p.getAttribute('style') || '';
+				if (/border-left/i.test(style)) {
+					return true;
+				}
+				return !!p.querySelector('strong');
+			});
+		}
+
+		function clearSidebarFade(sidebar, list) {
+			if (sidebar) {
+				sidebar.classList.remove('emerson-ca-sidebar--scroll');
+				sidebar.style.height = '';
+				sidebar.style.maxHeight = '';
+			}
+			if (list) {
+				list.classList.remove('emerson-ca-sidebar-scroll');
+				list.style.maxHeight = '';
+				list._emersonScrollKey = '';
+				if (list._emersonFadeOnScroll) {
+					list.removeEventListener('scroll', list._emersonFadeOnScroll);
+					list._emersonFadeOnScroll = null;
+				}
+			}
+			if (!sidebar) {
+				return;
+			}
+			var fade = sidebar.querySelector('.emerson-ca-sidebar-fade');
+			if (fade && fade.parentNode) {
+				fade.parentNode.removeChild(fade);
+			}
+		}
+
+		/**
+		 * Height of the month grid alone (top bar + weeks). Do not use the stretched
+		 * .ca-calendar-render box — flex stretch makes that match a tall sidebar.
+		 */
+		function calendarGridContentHeight(render) {
+			if (!render) {
+				return 0;
+			}
+			var h = 0;
+			var top = render.querySelector('.ca-calendar-top-bar');
+			if (top) {
+				h += top.getBoundingClientRect().height;
+			}
+			Array.prototype.forEach.call(render.querySelectorAll('.ca-week'), function (week) {
+				h += week.getBoundingClientRect().height;
+			});
+			return Math.round(h);
+		}
+
+		function updateSidebarFade(sidebar, list) {
+			if (!sidebar || !list) {
+				return;
+			}
+			var fade = sidebar.querySelector('.emerson-ca-sidebar-fade');
+			if (!fade) {
+				return;
+			}
+			var atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 4;
+			fade.classList.toggle('is-hidden', atBottom);
+		}
+
+		function ensureSidebarFade(sidebar, list) {
+			if (!sidebar || !list) {
+				return;
+			}
+			var fade = sidebar.querySelector('.emerson-ca-sidebar-fade');
+			var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			if (!fade) {
+				fade = document.createElement('div');
+				fade.className = 'emerson-ca-sidebar-fade';
+				fade.setAttribute('aria-hidden', 'true');
+				fade.innerHTML = '<span class="emerson-ca-sidebar-fade__arrow"></span>';
+				sidebar.appendChild(fade);
+				if (!reduced) {
+					fade.classList.add('emerson-ca-sidebar-fade--bounce');
+					var arrow = fade.querySelector('.emerson-ca-sidebar-fade__arrow');
+					if (arrow) {
+						arrow.addEventListener(
+							'animationend',
+							function () {
+								fade.classList.remove('emerson-ca-sidebar-fade--bounce');
+							},
+							{ once: true }
+						);
+					}
+				}
+			}
+			if (!list._emersonFadeOnScroll) {
+				list._emersonFadeOnScroll = function () {
+					updateSidebarFade(sidebar, list);
+				};
+				list.addEventListener('scroll', list._emersonFadeOnScroll, { passive: true });
+			}
+			updateSidebarFade(sidebar, list);
+		}
+
+		function limitSidebarScroll(list) {
+			if (!list) {
+				return;
+			}
+			var sidebar = list.closest('.ca-calendar-sidebar');
+			var events = sidebarEventBlocks(list);
+			if (events.length <= 3) {
+				clearSidebarFade(sidebar, list);
+				return;
+			}
+
+			var render = document.querySelector('.ca-calendar-render');
+			var title = sidebar ? sidebar.querySelector('.ca-sidebar-title-area') : null;
+			var titleH = title ? title.getBoundingClientRect().height : 0;
+			var stacked = window.matchMedia('(max-width: 1000px)').matches;
+			var gridH = calendarGridContentHeight(render);
+			var listH;
+			var shellH;
+
+			if (stacked) {
+				// Compact week grid is short; give the info pane enough room under Today/date.
+				listH = Math.max(320, Math.min(Math.floor(window.innerHeight * 0.58), 480));
+				shellH = 0;
+			} else {
+				if (gridH < 160) {
+					clearSidebarFade(sidebar, list);
+					return;
+				}
+				listH = Math.max(160, gridH - Math.ceil(titleH) - 8);
+				shellH = gridH;
+			}
+
+			// Avoid tear-down/rebuild on MutationObserver passes (that was the scroll jitter).
+			var key = String(events.length) + ':' + listH + ':' + (stacked ? 's' : 'd');
+			if (list._emersonScrollKey === key && list.classList.contains('emerson-ca-sidebar-scroll')) {
+				updateSidebarFade(sidebar, list);
+				return;
+			}
+			list._emersonScrollKey = key;
+			if (sidebar) {
+				sidebar.classList.add('emerson-ca-sidebar--scroll');
+				if (shellH > 0) {
+					// Desktop: lock the column to the grid so event text cannot lengthen the row.
+					sidebar.style.height = shellH + 'px';
+					sidebar.style.maxHeight = shellH + 'px';
+				} else {
+					sidebar.style.height = '';
+					sidebar.style.maxHeight = '';
+				}
+			}
+			list.style.maxHeight = listH + 'px';
+			list.classList.add('emerson-ca-sidebar-scroll');
+
+			window.requestAnimationFrame(function () {
+				if (!list.classList.contains('emerson-ca-sidebar-scroll')) {
+					return;
+				}
+				if (list.scrollHeight <= list.clientHeight + 2) {
+					clearSidebarFade(sidebar, list);
+					return;
+				}
+				ensureSidebarFade(sidebar, list);
+			});
 		}
 
 		function shrinkPlaces(root, places) {
@@ -1170,6 +1352,11 @@
 			fitTimer = setTimeout(function () {
 				applyCompactWeek();
 				fitDayCopy();
+				var sideList = document.querySelector('.ca-sidebar-list');
+				if (sideList) {
+					sideList._emersonScrollKey = '';
+					limitSidebarScroll(sideList);
+				}
 				if (requestsPanel) {
 					placeRequests();
 				}

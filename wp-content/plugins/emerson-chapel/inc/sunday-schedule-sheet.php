@@ -816,14 +816,14 @@ function emerson_schedule_admin_seed_groups(): ?string {
 	}
 	$added = emerson_calendar_seed_listed_events();
 	if ( $added === 0 ) {
-		return 'Womyn’s Web, Men’s Night, and Board Meeting already have upcoming dates on the calendar.';
+		return 'Event Places series already have upcoming dates on the calendar.';
 	}
-	return 'Added ' . $added . ' group date' . ( 1 === $added ? '' : 's' ) . ' to Church Admin. Edit a date there to set this month’s host.';
+	return 'Added ' . $added . ' group date' . ( 1 === $added ? '' : 's' ) . ' to Church Admin. Edit places in Event Places.';
 }
 
 function emerson_schedule_admin_groups_form(): void {
-	echo '<h2>Womyn’s Web, Men’s Night, and Board Meeting</h2>';
-	echo '<p>These are Church Admin calendar events, so a click on the month grid offers an iCal download like Sunday Service. Womyn’s Web, Men’s Night, and Board Meeting default to <strong>Rotating location — check This Week at Emerson</strong>. To name this month’s host for a group, edit that date in <strong>Church Admin → Calendar</strong>. To name a board place for one Monday, use <strong>Board Location</strong>.</p>';
+	echo '<h2>Recurring Event Places series</h2>';
+	echo '<p>Office-managed series (Womyn’s Web, Men’s Night, Board Meeting, and any added in <strong>Event Places</strong>) are Church Admin calendar events, so a click on the month grid offers an iCal download like Sunday Service. They default to <strong>Rotating location — check This Week at Emerson</strong>. Add, edit, or remove series and name this month’s host in <strong>Event Places</strong>.</p>';
 	echo '<form method="post">';
 	wp_nonce_field( 'emerson_schedule_save' );
 	echo '<p class="submit"><button type="submit" name="emerson_schedule_seed_groups" value="1" class="button">Add missing group dates</button></p>';

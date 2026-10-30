@@ -12,6 +12,13 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-27
 
+### Event Places: office-managed recurring series
+- Office can add, edit, and remove monthly recurring series on **Event Places** (Nth weekday + times + description). Sunday Service stays built-in and locked. Series live in the `emerson_listed_series` option; per-date places stay in `emerson_group_exceptions` keyed by series id (Board folds into the same path).
+- Creating or updating a series creates/refreshes matching Church Admin calendar rows (same Interest Group seed path as before); removing a series deletes **all** CA dates for that title (not only future — a same-month leftover made Remove look broken).
+- After Add/Update/Remove, the page redirects back to **Add series** (edit form does not stick open). Calendar day sidebar scrolls after three events, with a bottom fade into a bounce chevron (stable on scroll — no rebuild jitter).
+- Series schedule edits purge non-matching Church Admin dates from the **1st of the current month** forward (not only from today), so a weekday change cannot leave an orphan earlier in the month.
+- **File:** `wp-content/plugins/emerson-chapel/inc/calendar-listed-events.php`, `inc/event-places.php`, `inc/board-location.php`, `inc/sunday-schedule-sheet.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+
 ### Modal close: shared centred X
 - Survey, pledge, custom Modals builder dialogs, and Approximate PayPal Fees share one circular **×** control (`emerson_modal_close_button()`), about 20% smaller than the old “Close” pill, with an SVG mark so it sits true in the circle. PayPal uses the same header bar slot as the survey.
 - **File:** `wp-content/plugins/emerson-chapel/emerson-chapel.php`, `inc/modals.php`, `inc/recommitment.php`, `assets/css/custom.css`.

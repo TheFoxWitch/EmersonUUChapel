@@ -1,25 +1,31 @@
 <?php
 /**
- * Recurring groups the site already advertises (Engage), plus other Church Admin events.
+ * Recurring groups the site advertises (Engage / Event Places), plus other Church Admin events.
  *
- * These are also written into Church Admin so a click on the month grid gets the same
+ * Series live in the emerson_listed_series option so the office can add/edit/remove them.
+ * They are also written into Church Admin so a click on the month grid gets the same
  * sidebar as Sunday Service (time, location, iCal). Circle Suppers stay off the grid —
  * the host picks each date.
  */
 
 declare( strict_types=1 );
 
-const EMERSON_GROUP_LOCATION_ROTATES   = 'Rotating location — check This Week at Emerson';
-const EMERSON_GROUP_EXCEPTIONS_OPTION  = 'emerson_group_exceptions';
-const EMERSON_GROUP_DEFAULT_VENUE      = 'Rotating';
+const EMERSON_GROUP_LOCATION_ROTATES  = 'Rotating location — check This Week at Emerson';
+const EMERSON_GROUP_EXCEPTIONS_OPTION = 'emerson_group_exceptions';
+const EMERSON_GROUP_DEFAULT_VENUE     = 'Rotating';
+const EMERSON_LISTED_SERIES_OPTION    = 'emerson_listed_series';
+const EMERSON_LISTED_SERIES_MIGRATED  = 'emerson_listed_series_v1';
 
 /**
- * @return list<array{title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}>
+ * Built-in Engage / Board series used on first install and migration.
+ *
+ * @return list<array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}>
  */
-function emerson_listed_event_rules(): array {
+function emerson_listed_series_defaults(): array {
 	$engage = home_url( '/engage/' );
 	return array(
 		array(
+			'id'          => 'womyns-web',
 			'title'       => "Womyn's Web",
 			'time'        => '19:00:00',
 			'end'         => '21:00:00',
@@ -32,6 +38,7 @@ function emerson_listed_event_rules(): array {
 			'link_title'  => 'Engage',
 		),
 		array(
+			'id'          => 'mens-night',
 			'title'       => "Men's Night",
 			'time'        => '18:00:00',
 			'end'         => '20:00:00',
@@ -44,6 +51,7 @@ function emerson_listed_event_rules(): array {
 			'link_title'  => 'Engage',
 		),
 		array(
+			'id'          => 'board',
 			'title'       => 'Board Meeting',
 			'time'        => '18:30:00',
 			'end'         => '20:00:00',
@@ -58,26 +66,254 @@ function emerson_listed_event_rules(): array {
 	);
 }
 
+/**
+ * Church Admin recurring code: n{nth}{weekday} with weekday 1=Mon … 7=Sun.
+ */
+function emerson_listed_recurring_code( int $nth, int $wday ): string {
+	$nth  = max( 1, min( 4, $nth ) );
+	$ca_d = $wday === 0 ? 7 : max( 1, min( 6, $wday ) );
+	return 'n' . $nth . $ca_d;
+}
+
+/**
+ * @param array<string, mixed> $raw
+ * @return array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}|null
+ */
+function emerson_listed_series_normalize( array $raw ): ?array {
+	$title = trim( (string) ( $raw['title'] ?? '' ) );
+	if ( $title === '' || emerson_calendar_is_sunday_service( $title ) ) {
+		return null;
+	}
+	$id = sanitize_title( (string) ( $raw['id'] ?? '' ) );
+	if ( $id === '' || $id === 'sunday' ) {
+		$id = sanitize_title( $title );
+	}
+	if ( $id === '' || $id === 'sunday' ) {
+		return null;
+	}
+	$nth  = max( 1, min( 4, (int) ( $raw['nth'] ?? 1 ) ) );
+	$wday = (int) ( $raw['wday'] ?? 1 );
+	if ( $wday < 0 || $wday > 6 ) {
+		$wday = 1;
+	}
+	$time = (string) ( $raw['time'] ?? '19:00:00' );
+	$end  = (string) ( $raw['end'] ?? '21:00:00' );
+	if ( preg_match( '/^\d{1,2}:\d{2}$/', $time ) ) {
+		$time .= ':00';
+	}
+	if ( preg_match( '/^\d{1,2}:\d{2}$/', $end ) ) {
+		$end .= ':00';
+	}
+	if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $time ) ) {
+		$time = '19:00:00';
+	}
+	if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $end ) ) {
+		$end = '21:00:00';
+	}
+	$location = trim( (string) ( $raw['location'] ?? '' ) );
+	if ( $location === '' ) {
+		$location = EMERSON_GROUP_LOCATION_ROTATES;
+	}
+	$link = trim( (string) ( $raw['link'] ?? '' ) );
+	if ( $link === '' ) {
+		$link = home_url( '/engage/' );
+	}
+	$link_title = trim( (string) ( $raw['link_title'] ?? '' ) );
+	if ( $link_title === '' ) {
+		$link_title = 'Engage';
+	}
+	$recurring = trim( (string) ( $raw['recurring'] ?? '' ) );
+	if ( $recurring === '' || ! preg_match( '/^n[1-4][1-7]$/', $recurring ) ) {
+		$recurring = emerson_listed_recurring_code( $nth, $wday );
+	}
+	return array(
+		'id'          => $id,
+		'title'       => $title,
+		'time'        => $time,
+		'end'         => $end,
+		'nth'         => $nth,
+		'wday'        => $wday,
+		'recurring'   => $recurring,
+		'location'    => $location,
+		'description' => trim( (string) ( $raw['description'] ?? '' ) ),
+		'link'        => $link,
+		'link_title'  => $link_title,
+	);
+}
+
+/**
+ * One-time: seed option, rekey exceptions by series id, fold Board exceptions in.
+ */
+function emerson_listed_series_maybe_migrate(): void {
+	if ( get_option( EMERSON_LISTED_SERIES_MIGRATED ) ) {
+		return;
+	}
+
+	$stored = get_option( EMERSON_LISTED_SERIES_OPTION, null );
+	if ( ! is_array( $stored ) || $stored === array() ) {
+		update_option( EMERSON_LISTED_SERIES_OPTION, emerson_listed_series_defaults(), false );
+	} else {
+		$normalized = array();
+		$seen       = array();
+		foreach ( $stored as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$rule = emerson_listed_series_normalize( $row );
+			if ( ! $rule || isset( $seen[ $rule['id'] ] ) ) {
+				continue;
+			}
+			$seen[ $rule['id'] ] = true;
+			$normalized[]        = $rule;
+		}
+		if ( $normalized === array() ) {
+			$normalized = emerson_listed_series_defaults();
+		}
+		update_option( EMERSON_LISTED_SERIES_OPTION, $normalized, false );
+	}
+
+	$by_id = array();
+	foreach ( emerson_listed_series_all( false ) as $rule ) {
+		$by_id[ $rule['id'] ] = $rule;
+	}
+
+	$all = emerson_group_exceptions_all();
+	$next = array();
+	foreach ( $all as $key => $rows ) {
+		if ( ! is_array( $rows ) ) {
+			continue;
+		}
+		$key = (string) $key;
+		if ( isset( $by_id[ $key ] ) ) {
+			$next[ $key ] = $rows;
+			continue;
+		}
+		$matched = null;
+		foreach ( $by_id as $rule ) {
+			if ( strcasecmp( $rule['title'], $key ) === 0 ) {
+				$matched = $rule['id'];
+				break;
+			}
+		}
+		if ( $matched !== null ) {
+			$merged = isset( $next[ $matched ] ) && is_array( $next[ $matched ] ) ? $next[ $matched ] : array();
+			$next[ $matched ] = array_merge( $merged, $rows );
+		} else {
+			$next[ $key ] = $rows;
+		}
+	}
+
+	if ( defined( 'EMERSON_BOARD_OPTION' ) ) {
+		$board_rows = get_option( EMERSON_BOARD_OPTION, array() );
+		if ( is_array( $board_rows ) && $board_rows !== array() ) {
+			$board_id = 'board';
+			foreach ( $by_id as $rule ) {
+				if ( strcasecmp( $rule['title'], 'Board Meeting' ) === 0 ) {
+					$board_id = $rule['id'];
+					break;
+				}
+			}
+			$merged           = isset( $next[ $board_id ] ) && is_array( $next[ $board_id ] ) ? $next[ $board_id ] : array();
+			$next[ $board_id ] = array_merge( $merged, $board_rows );
+		}
+	}
+
+	update_option( EMERSON_GROUP_EXCEPTIONS_OPTION, $next, false );
+	update_option( EMERSON_LISTED_SERIES_MIGRATED, 1, false );
+}
+
+/**
+ * @param bool $migrate Run one-time migration when true.
+ * @return list<array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}>
+ */
+function emerson_listed_series_all( bool $migrate = true ): array {
+	if ( $migrate ) {
+		emerson_listed_series_maybe_migrate();
+	}
+	$stored = get_option( EMERSON_LISTED_SERIES_OPTION, array() );
+	if ( ! is_array( $stored ) || $stored === array() ) {
+		return emerson_listed_series_defaults();
+	}
+	$out  = array();
+	$seen = array();
+	foreach ( $stored as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$rule = emerson_listed_series_normalize( $row );
+		if ( ! $rule || isset( $seen[ $rule['id'] ] ) ) {
+			continue;
+		}
+		$seen[ $rule['id'] ] = true;
+		$out[]               = $rule;
+	}
+	return $out !== array() ? $out : emerson_listed_series_defaults();
+}
+
+/**
+ * Persist the full series list.
+ *
+ * @param list<array<string, mixed>> $series
+ * @return list<array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}>
+ */
+function emerson_listed_series_save_all( array $series ): array {
+	$out  = array();
+	$seen = array();
+	foreach ( $series as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$rule = emerson_listed_series_normalize( $row );
+		if ( ! $rule || isset( $seen[ $rule['id'] ] ) ) {
+			continue;
+		}
+		$seen[ $rule['id'] ] = true;
+		$out[]               = $rule;
+	}
+	update_option( EMERSON_LISTED_SERIES_OPTION, $out, false );
+	update_option( EMERSON_LISTED_SERIES_MIGRATED, 1, false );
+	return $out;
+}
+
+/**
+ * @return array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}|null
+ */
+function emerson_listed_series_by_id( string $id ): ?array {
+	$id = sanitize_title( $id );
+	foreach ( emerson_listed_series_all() as $rule ) {
+		if ( $rule['id'] === $id ) {
+			return $rule;
+		}
+	}
+	return null;
+}
+
+/**
+ * @return list<array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}>
+ */
+function emerson_listed_event_rules(): array {
+	return emerson_listed_series_all();
+}
+
 function emerson_calendar_is_sunday_service( string $title ): bool {
 	return strcasecmp( trim( $title ), 'Sunday Service' ) === 0;
 }
 
 /**
- * Engage groups edited in Event Places (not Board — that keeps its own option).
+ * Every non-Sunday listed series is editable in Event Places.
  *
  * @return list<string>
  */
 function emerson_group_editable_titles(): array {
-	return array( "Womyn's Web", "Men's Night" );
+	$titles = array();
+	foreach ( emerson_listed_series_all() as $rule ) {
+		$titles[] = $rule['title'];
+	}
+	return $titles;
 }
 
 function emerson_group_is_editable( string $title ): bool {
-	foreach ( emerson_group_editable_titles() as $known ) {
-		if ( strcasecmp( trim( $title ), $known ) === 0 ) {
-			return true;
-		}
-	}
-	return false;
+	return emerson_group_rule_by_title( $title ) !== null;
 }
 
 /**
@@ -89,23 +325,54 @@ function emerson_group_exceptions_all(): array {
 }
 
 /**
+ * Resolve the series id used as the exceptions option key.
+ */
+function emerson_group_exception_key( string $id_or_title ): string {
+	$raw = trim( $id_or_title );
+	if ( $raw === '' ) {
+		return '';
+	}
+	$by_id = emerson_listed_series_by_id( $raw );
+	if ( $by_id ) {
+		return $by_id['id'];
+	}
+	$by_title = emerson_group_rule_by_title( $raw );
+	if ( $by_title ) {
+		return $by_title['id'];
+	}
+	return sanitize_title( $raw );
+}
+
+/**
  * @return array<string, array{status:string,time:string,venue:string,address:string,note:string}>
  */
-function emerson_group_exceptions( string $title ): array {
+function emerson_group_exceptions( string $id_or_title ): array {
 	$all = emerson_group_exceptions_all();
-	foreach ( $all as $key => $rows ) {
-		if ( strcasecmp( (string) $key, $title ) === 0 && is_array( $rows ) ) {
+	$key = emerson_group_exception_key( $id_or_title );
+	if ( $key !== '' && isset( $all[ $key ] ) && is_array( $all[ $key ] ) ) {
+		return $all[ $key ];
+	}
+	foreach ( $all as $stored_key => $rows ) {
+		if ( strcasecmp( (string) $stored_key, $id_or_title ) === 0 && is_array( $rows ) ) {
 			return $rows;
+		}
+	}
+	$rule = emerson_group_rule_by_title( $id_or_title );
+	if ( $rule ) {
+		foreach ( $all as $stored_key => $rows ) {
+			if ( strcasecmp( (string) $stored_key, $rule['title'] ) === 0 && is_array( $rows ) ) {
+				return $rows;
+			}
 		}
 	}
 	return array();
 }
 
 /**
- * @return array{title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}|null
+ * @return array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}|null
  */
 function emerson_group_rule_by_title( string $title ): ?array {
-	foreach ( emerson_listed_event_rules() as $rule ) {
+	foreach ( emerson_listed_series_all() as $rule ) {
 		if ( strcasecmp( $rule['title'], $title ) === 0 ) {
 			return $rule;
 		}
@@ -128,13 +395,16 @@ function emerson_group_venue_rotates( string $venue ): bool {
 }
 
 /**
- * Next nth-weekday dates for one Engage group, oldest first.
+ * Next nth-weekday dates for one series, oldest first.
  *
  * @return list<array{date:string,time:string,venue:string,address:string,title:string}>
  */
 function emerson_group_upcoming( string $title, int $limit = 12 ): array {
 	$rule = emerson_group_rule_by_title( $title );
-	if ( ! $rule || ! emerson_group_is_editable( $title ) ) {
+	if ( ! $rule ) {
+		$rule = emerson_listed_series_by_id( $title );
+	}
+	if ( ! $rule ) {
 		return array();
 	}
 	$out   = array();
@@ -167,7 +437,9 @@ function emerson_group_upcoming( string $title, int $limit = 12 ): array {
  * @return array{status:string,time:string,venue:string,address:string,place:string,note:string}
  */
 function emerson_group_display( string $title, array $base ): array {
-	$saved  = emerson_group_exceptions( $title )[ $base['date'] ] ?? array();
+	$rule   = emerson_group_rule_by_title( $title ) ?? emerson_listed_series_by_id( $title );
+	$key    = $rule['id'] ?? $title;
+	$saved  = emerson_group_exceptions( $key )[ $base['date'] ] ?? array();
 	$saved  = is_array( $saved ) ? $saved : array();
 	$status = (string) ( $saved['status'] ?? 'regular' );
 	if ( ! in_array( $status, array( 'regular', 'cancelled', 'moved' ), true ) ) {
@@ -194,13 +466,13 @@ function emerson_group_display( string $title, array $base ): array {
 }
 
 function emerson_group_location_line( string $title, string $ymd ): string {
-	$rule = emerson_group_rule_by_title( $title );
+	$rule = emerson_group_rule_by_title( $title ) ?? emerson_listed_series_by_id( $title );
 	$base = array(
 		'date'    => $ymd,
 		'time'    => $rule['time'] ?? '19:00:00',
 		'venue'   => EMERSON_GROUP_DEFAULT_VENUE,
 		'address' => '',
-		'title'   => $title,
+		'title'   => $rule['title'] ?? $title,
 	);
 	$shown = emerson_group_display( $title, $base );
 	if ( 'cancelled' === $shown['status'] ) {
@@ -251,25 +523,25 @@ function emerson_group_apply_locations( array $events ): array {
 }
 
 /**
- * Save Event Places rows for one Engage group. Expects POST field group[date][…].
+ * Save Event Places rows for one series. Expects POST field group[date][…].
  */
 function emerson_group_admin_save( string $title ): ?string {
 	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_group_save'] ) ) {
 		return null;
 	}
-	if ( ! emerson_group_is_editable( $title ) ) {
-		return null;
-	}
-	check_admin_referer( 'emerson_group_save' );
 	$rule = emerson_group_rule_by_title( $title );
+	if ( ! $rule ) {
+		$rule = emerson_listed_series_by_id( $title );
+	}
 	if ( ! $rule ) {
 		return null;
 	}
+	check_admin_referer( 'emerson_group_save' );
 	$posted = isset( $_POST['group'] ) && is_array( $_POST['group'] ) ? wp_unslash( $_POST['group'] ) : array();
 	$all    = emerson_group_exceptions_all();
-	$next   = emerson_group_exceptions( $title );
+	$next   = emerson_group_exceptions( $rule['id'] );
 	$canon  = $rule['title'];
-	$event  = strcasecmp( $canon, "Men's Night" ) === 0 ? 'mens-night' : 'womyns-web';
+	$event  = $rule['id'];
 	$rows   = function_exists( 'emerson_event_places_rows' )
 		? emerson_event_places_rows( $event )
 		: emerson_group_upcoming( $canon, 12 );
@@ -317,9 +589,112 @@ function emerson_group_admin_save( string $title ): ?string {
 			emerson_sync_calendar_row( $canon, $date, $line, $time );
 		}
 	}
-	$all[ $canon ] = $next;
+	$all[ $rule['id'] ] = $next;
+	// Drop legacy title-keyed bucket if present.
+	unset( $all[ $canon ] );
 	update_option( EMERSON_GROUP_EXCEPTIONS_OPTION, $all, false );
 	return $canon . ' places saved.';
+}
+
+/**
+ * Add or update one series in the option and sync Church Admin.
+ *
+ * @param array<string, mixed> $raw
+ * @return array{ok:bool,message:string,rule?:array}
+ */
+function emerson_listed_series_upsert( array $raw, string $old_id = '' ): array {
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		return array( 'ok' => false, 'message' => 'Permission denied.' );
+	}
+	$rule = emerson_listed_series_normalize( $raw );
+	if ( ! $rule ) {
+		return array( 'ok' => false, 'message' => 'Enter a series title (Sunday Service stays built-in).' );
+	}
+	$series   = emerson_listed_series_all();
+	$old_id   = sanitize_title( $old_id );
+	$old      = $old_id !== '' ? emerson_listed_series_by_id( $old_id ) : null;
+	$replaced = false;
+	$next     = array();
+	foreach ( $series as $existing ) {
+		if ( $old && $existing['id'] === $old['id'] ) {
+			$rule['id'] = $old['id']; // Keep a stable id across renames.
+			$next[]     = $rule;
+			$replaced   = true;
+			continue;
+		}
+		if ( ! $old && $existing['id'] === $rule['id'] ) {
+			return array( 'ok' => false, 'message' => 'A series with that id already exists.' );
+		}
+		if ( strcasecmp( $existing['title'], $rule['title'] ) === 0 && ( ! $old || $existing['id'] !== $old['id'] ) ) {
+			return array( 'ok' => false, 'message' => 'A series with that title already exists.' );
+		}
+		$next[] = $existing;
+	}
+	if ( ! $replaced ) {
+		$base = $rule['id'];
+		$n    = 2;
+		$ids  = array();
+		foreach ( $series as $existing ) {
+			$ids[ $existing['id'] ] = true;
+		}
+		while ( isset( $ids[ $rule['id'] ] ) ) {
+			$rule['id'] = $base . '-' . $n;
+			++$n;
+		}
+		$next[] = $rule;
+	}
+	emerson_listed_series_save_all( $next );
+
+	if ( $old && $old['id'] !== $rule['id'] ) {
+		$all = emerson_group_exceptions_all();
+		if ( isset( $all[ $old['id'] ] ) ) {
+			$all[ $rule['id'] ] = $all[ $old['id'] ];
+			unset( $all[ $old['id'] ] );
+			update_option( EMERSON_GROUP_EXCEPTIONS_OPTION, $all, false );
+		}
+	}
+
+	$old_title = $old['title'] ?? '';
+	emerson_calendar_upsert_series( $rule, $old_title );
+
+	$verb = $replaced ? 'updated' : 'added';
+	return array(
+		'ok'      => true,
+		'message' => $rule['title'] . ' series ' . $verb . '.',
+		'rule'    => $rule,
+	);
+}
+
+/**
+ * Remove a series, its exceptions, and future Church Admin rows.
+ *
+ * @return array{ok:bool,message:string}
+ */
+function emerson_listed_series_remove( string $id ): array {
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		return array( 'ok' => false, 'message' => 'Permission denied.' );
+	}
+	$id   = sanitize_title( $id );
+	$rule = emerson_listed_series_by_id( $id );
+	if ( ! $rule ) {
+		return array( 'ok' => false, 'message' => 'Series not found.' );
+	}
+	$next = array();
+	foreach ( emerson_listed_series_all() as $existing ) {
+		if ( $existing['id'] === $id ) {
+			continue;
+		}
+		$next[] = $existing;
+	}
+	emerson_listed_series_save_all( $next );
+
+	$all = emerson_group_exceptions_all();
+	unset( $all[ $id ], $all[ $rule['title'] ] );
+	update_option( EMERSON_GROUP_EXCEPTIONS_OPTION, $all, false );
+
+	emerson_calendar_remove_series( $rule['title'] );
+
+	return array( 'ok' => true, 'message' => $rule['title'] . ' series removed.' );
 }
 
 function emerson_nth_weekday( int $year, int $month, int $nth, int $wday ): string {
@@ -368,6 +743,109 @@ function emerson_calendar_interest_cat_id(): int {
 }
 
 /**
+ * Expected Y-m-d dates for a rule over the next N months from the current month.
+ *
+ * @param array{nth:int,wday:int} $rule
+ * @return list<string>
+ */
+function emerson_calendar_series_expected_dates( array $rule, int $months = 36 ): array {
+	$cursor = strtotime( current_time( 'Y-m-01' ) . ' 12:00:00' );
+	if ( ! $cursor ) {
+		return array();
+	}
+	$out = array();
+	for ( $i = 0; $i < $months; $i++ ) {
+		$when  = strtotime( '+' . $i . ' month', $cursor );
+		$ymd   = emerson_nth_weekday( (int) gmdate( 'Y', $when ), (int) gmdate( 'n', $when ), (int) $rule['nth'], (int) $rule['wday'] );
+		if ( $ymd !== '' ) {
+			$out[] = $ymd;
+		}
+	}
+	return $out;
+}
+
+/**
+ * Create/update Church Admin calendar rows for one series.
+ *
+ * @param array{title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string} $rule
+ */
+function emerson_calendar_upsert_series( array $rule, string $old_title = '', int $months = 36 ): int {
+	global $wpdb;
+	$table = $wpdb->prefix . 'church_admin_calendar_date';
+	if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+		return 0;
+	}
+	$title     = $rule['title'];
+	$old_title = trim( $old_title );
+	// From the 1st of this month forward — not “today” — so a weekday change does not
+	// leave an orphan earlier in the current month (e.g. Sat leftover after switching to Fri).
+	$window_start = gmdate( 'Y-m-01', strtotime( current_time( 'Y-m-d' ) . ' 12:00:00' ) );
+
+	if ( $old_title !== '' && strcasecmp( $old_title, $title ) !== 0 ) {
+		$wpdb->update(
+			$table,
+			array( 'title' => $title ),
+			array( 'title' => $old_title )
+		);
+	}
+
+	$expected        = emerson_calendar_series_expected_dates( $rule, $months );
+	$expected_lookup = array_fill_keys( $expected, true );
+
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT date_id, start_date FROM {$table} WHERE title = %s AND start_date >= %s",
+			$title,
+			$window_start
+		)
+	);
+	foreach ( $rows as $row ) {
+		$ymd = substr( (string) $row->start_date, 0, 10 );
+		if ( ! isset( $expected_lookup[ $ymd ] ) ) {
+			$wpdb->delete( $table, array( 'date_id' => (int) $row->date_id ) );
+		} else {
+			$wpdb->update(
+				$table,
+				array(
+					'description' => $rule['description'],
+					'location'    => $rule['location'],
+					'start_time'  => $rule['time'],
+					'end_time'    => $rule['end'],
+					'link'        => $rule['link'],
+					'link_title'  => $rule['link_title'],
+					'recurring'   => $rule['recurring'],
+				),
+				array( 'date_id' => (int) $row->date_id )
+			);
+		}
+	}
+
+	return emerson_calendar_seed_listed_events( $months );
+}
+
+/**
+ * Delete every Church Admin calendar row for a removed series (past and future).
+ * Leaving past dates made “Remove” look broken on the current month’s grid.
+ */
+function emerson_calendar_remove_series( string $title ): int {
+	global $wpdb;
+	$table = $wpdb->prefix . 'church_admin_calendar_date';
+	if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+		return 0;
+	}
+	$title = trim( $title );
+	if ( $title === '' || emerson_calendar_is_sunday_service( $title ) ) {
+		return 0;
+	}
+	return (int) $wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$table} WHERE title = %s",
+			$title
+		)
+	);
+}
+
+/**
  * Write missing Engage-group dates into Church Admin so the sidebar can offer iCal.
  *
  * @return int Number of date rows added.
@@ -396,6 +874,16 @@ function emerson_calendar_seed_listed_events( int $months = 36 ): int {
 		);
 		if ( $existing > 0 ) {
 			$event_ids[ $rule['title'] ] = $existing;
+			continue;
+		}
+		$past = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT event_id FROM {$table} WHERE title = %s ORDER BY start_date DESC LIMIT 1",
+				$rule['title']
+			)
+		);
+		if ( $past > 0 ) {
+			$event_ids[ $rule['title'] ] = $past;
 			continue;
 		}
 		++$next;
@@ -523,11 +1011,7 @@ function emerson_calendar_other_events( string $first, string $last ): array {
 		}
 	}
 	ksort( $out );
-	$out = emerson_group_apply_locations( $out );
-	if ( function_exists( 'emerson_board_apply_locations' ) ) {
-		$out = emerson_board_apply_locations( $out );
-	}
-	return $out;
+	return emerson_group_apply_locations( $out );
 }
 
 function emerson_calendar_event_label( array $event ): string {

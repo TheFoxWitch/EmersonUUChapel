@@ -1,9 +1,9 @@
 <?php
 /**
- * Board meeting location, edited like Sunday Location.
+ * Board meeting helpers kept for redirects and older call sites.
  *
- * A regular meeting is at a rotating location. Moved names a place for that
- * Monday. The calendar, its sidebar, and the stored Church Admin row follow.
+ * Board Meeting is now a normal Event Places series (emerson_listed_series).
+ * Per-date places live in emerson_group_exceptions under the board series id.
  */
 
 declare( strict_types=1 );
@@ -20,35 +20,35 @@ const EMERSON_BOARD_LOCATION_LINE   = 'Rotating location — check This Week at 
  * Empty, legacy “Rotating”, or the public rotating line all mean “no fixed place yet”.
  */
 function emerson_board_venue_rotates( string $venue ): bool {
-	$venue = trim( $venue );
-	if ( $venue === '' ) {
-		return true;
-	}
-	if ( strcasecmp( $venue, EMERSON_BOARD_DEFAULT_VENUE ) === 0 ) {
-		return true;
-	}
-	if ( strcasecmp( $venue, EMERSON_BOARD_LOCATION_LINE ) === 0 ) {
-		return true;
-	}
-	if ( defined( 'EMERSON_GROUP_LOCATION_ROTATES' ) && strcasecmp( $venue, EMERSON_GROUP_LOCATION_ROTATES ) === 0 ) {
-		return true;
-	}
-	return false;
+	return emerson_group_venue_rotates( $venue );
 }
 
+/**
+ * Legacy Board option, or the migrated group-exceptions bucket for Board Meeting.
+ *
+ * @return array<string, array{status:string,time:string,venue:string,address:string,note:string}>
+ */
 function emerson_board_exceptions(): array {
+	$rows = emerson_group_exceptions( 'board' );
+	if ( $rows !== array() ) {
+		return $rows;
+	}
 	$stored = get_option( EMERSON_BOARD_OPTION, array() );
 	return is_array( $stored ) ? $stored : array();
 }
 
 /**
- * Next third Mondays, oldest first. Skip today once the meeting hour has passed.
+ * Next Board Meeting dates from the listed series (falls back to 3rd Monday).
  *
- * @return list<array{date:string,time:string,venue:string,address:string}>
+ * @return list<array{date:string,time:string,venue:string,address:string,title?:string}>
  */
 function emerson_board_upcoming( int $limit = 12 ): array {
-	$out = array();
-	$day = new DateTime( current_time( 'Y-m-01' ) );
+	$rows = emerson_group_upcoming( 'Board Meeting', $limit );
+	if ( $rows !== array() ) {
+		return $rows;
+	}
+	$out   = array();
+	$day   = new DateTime( current_time( 'Y-m-01' ) );
 	$today = current_time( 'Y-m-d' );
 	$now   = current_time( 'H:i:s' );
 	for ( $guard = 0; count( $out ) < $limit && $guard < 36; $guard++ ) {
@@ -65,6 +65,7 @@ function emerson_board_upcoming( int $limit = 12 ): array {
 			'time'    => EMERSON_BOARD_DEFAULT_TIME,
 			'venue'   => EMERSON_BOARD_DEFAULT_VENUE,
 			'address' => EMERSON_BOARD_DEFAULT_ADDRESS,
+			'title'   => 'Board Meeting',
 		);
 	}
 	return $out;
@@ -80,56 +81,11 @@ function emerson_board_format_date( string $ymd ): string {
  * @return array{status:string,time:string,venue:string,address:string,place:string,note:string}
  */
 function emerson_board_display( array $base ): array {
-	$saved  = emerson_board_exceptions()[ $base['date'] ] ?? array();
-	$saved  = is_array( $saved ) ? $saved : array();
-	$status = (string) ( $saved['status'] ?? 'regular' );
-	if ( ! in_array( $status, array( 'regular', 'cancelled', 'moved' ), true ) ) {
-		$status = 'regular';
-	}
-	$time = (string) ( $saved['time'] ?? $base['time'] );
-	if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $time ) ) {
-		$time = $base['time'];
-	}
-	$venue   = trim( (string) ( $saved['venue'] ?? '' ) );
-	$address = trim( (string) ( $saved['address'] ?? '' ) );
-	if ( $venue === '' ) {
-		$venue = EMERSON_BOARD_DEFAULT_VENUE;
-	}
-	$place = $address !== '' ? $venue . ', ' . $address : $venue;
-	return array(
-		'status'  => $status,
-		'time'    => $time,
-		'venue'   => $venue,
-		'address' => $address,
-		'place'   => $place,
-		'note'    => trim( (string) ( $saved['note'] ?? '' ) ),
-	);
+	return emerson_group_display( 'Board Meeting', $base );
 }
 
 function emerson_board_location_line( string $ymd ): string {
-	$base = array(
-		'date'    => $ymd,
-		'time'    => EMERSON_BOARD_DEFAULT_TIME,
-		'venue'   => EMERSON_BOARD_DEFAULT_VENUE,
-		'address' => EMERSON_BOARD_DEFAULT_ADDRESS,
-	);
-	$shown = emerson_board_display( $base );
-	if ( 'cancelled' === $shown['status'] ) {
-		return 'Cancelled';
-	}
-	$venue   = trim( $shown['venue'] );
-	$address = trim( $shown['address'] );
-	$rotates = emerson_board_venue_rotates( $venue );
-	if ( $address !== '' && ! $rotates ) {
-		return $venue . ', ' . $address;
-	}
-	if ( $address !== '' ) {
-		return $address;
-	}
-	if ( ! $rotates ) {
-		return $venue;
-	}
-	return EMERSON_BOARD_LOCATION_LINE;
+	return emerson_group_location_line( 'Board Meeting', $ymd );
 }
 
 function emerson_board_is_meeting( string $title ): bool {
@@ -137,27 +93,12 @@ function emerson_board_is_meeting( string $title ): bool {
 }
 
 /**
+ * Board locations are applied via emerson_group_apply_locations(); kept as a no-op for older callers.
+ *
  * @param array<string, list<array{title:string,time:string,location?:string}>> $events
  * @return array<string, list<array{title:string,time:string,location?:string}>>
  */
 function emerson_board_apply_locations( array $events ): array {
-	foreach ( $events as $ymd => $items ) {
-		foreach ( $items as $index => $item ) {
-			if ( ! emerson_board_is_meeting( (string) ( $item['title'] ?? '' ) ) ) {
-				continue;
-			}
-			$shown = emerson_board_display(
-				array(
-					'date'    => $ymd,
-					'time'    => (string) ( $item['time'] ?? EMERSON_BOARD_DEFAULT_TIME ),
-					'venue'   => EMERSON_BOARD_DEFAULT_VENUE,
-					'address' => EMERSON_BOARD_DEFAULT_ADDRESS,
-				)
-			);
-			$events[ $ymd ][ $index ]['location'] = emerson_board_location_line( $ymd );
-			$events[ $ymd ][ $index ]['time']     = $shown['time'];
-		}
-	}
 	return $events;
 }
 
@@ -234,20 +175,19 @@ function emerson_board_seed_twe_location_line(): void {
 }
 add_action( 'init', 'emerson_board_seed_twe_location_line' );
 
+/* No sidebar item — Event Places is the editor. Old bookmarks still redirect. */
 add_action(
 	'admin_menu',
 	static function (): void {
-		add_menu_page(
+		add_submenu_page(
+			'options.php',
 			'Board Location',
 			'Board Location',
 			'edit_pages',
 			'emerson-board-location',
-			'emerson_board_admin_page',
-			'dashicons-location',
-			58.2
+			'emerson_board_admin_page'
 		);
-	},
-	20
+	}
 );
 
 /** Old menu slug: send the office to Event Places with Board selected. */
@@ -259,53 +199,9 @@ function emerson_board_admin_page(): void {
 	exit;
 }
 
+/**
+ * Legacy POST handler — Event Places saves Board through emerson_group_admin_save().
+ */
 function emerson_board_admin_save(): ?string {
-	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_board_save'] ) ) {
-		return null;
-	}
-	check_admin_referer( 'emerson_board_save' );
-	$posted = isset( $_POST['board'] ) && is_array( $_POST['board'] ) ? wp_unslash( $_POST['board'] ) : array();
-	$next   = emerson_board_exceptions();
-	$rows   = function_exists( 'emerson_event_places_rows' )
-		? emerson_event_places_rows( 'board' )
-		: emerson_board_upcoming( 12 );
-	foreach ( $rows as $base ) {
-		$date   = $base['date'];
-		$row    = is_array( $posted[ $date ] ?? null ) ? $posted[ $date ] : array();
-		$status = sanitize_key( (string) ( $row['status'] ?? 'regular' ) );
-		if ( ! in_array( $status, array( 'regular', 'cancelled', 'moved' ), true ) ) {
-			$status = 'regular';
-		}
-		$time = sanitize_text_field( (string) ( $row['time'] ?? '' ) );
-		if ( $time !== '' && preg_match( '/^\d{1,2}:\d{2}$/', $time ) ) {
-			$time .= ':00';
-		}
-		if ( ! preg_match( '/^\d{2}:\d{2}:\d{2}$/', $time ) ) {
-			$time = $base['time'];
-		}
-		$venue   = sanitize_text_field( (string) ( $row['venue'] ?? '' ) );
-		$address = sanitize_text_field( (string) ( $row['address'] ?? '' ) );
-		$note    = sanitize_text_field( (string) ( $row['note'] ?? '' ) );
-		$rotates = emerson_board_venue_rotates( $venue );
-		if ( 'regular' === $status && $time === EMERSON_BOARD_DEFAULT_TIME && $rotates && $address === '' && $note === '' ) {
-			unset( $next[ $date ] );
-			emerson_board_sync_calendar_row( $date, EMERSON_BOARD_LOCATION_LINE, EMERSON_BOARD_DEFAULT_TIME );
-			continue;
-		}
-		if ( $venue === '' ) {
-			$venue = EMERSON_BOARD_DEFAULT_VENUE;
-		}
-		$next[ $date ] = array(
-			'status'  => $status,
-			'time'    => $time,
-			'venue'   => $venue,
-			'address' => $address,
-			'note'    => $note,
-		);
-		$line = 'cancelled' === $status ? 'Cancelled' : ( $address !== '' && ! $rotates ? $venue . ', ' . $address : ( $address !== '' ? $address : ( $rotates ? EMERSON_BOARD_LOCATION_LINE : $venue ) ) );
-		emerson_board_sync_calendar_row( $date, $line, $time );
-	}
-	update_option( EMERSON_BOARD_OPTION, $next, false );
-	return 'Board Location saved.';
+	return null;
 }
-

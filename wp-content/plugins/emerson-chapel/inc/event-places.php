@@ -1,36 +1,33 @@
 <?php
 /**
- * Event Places: one admin screen for Sunday, Womyn’s Web, Men’s Night, and Board Meeting.
+ * Event Places: one admin screen for Sunday Service and office-managed recurring series.
  *
  * Dropdown picks the series; the table edits upcoming dates. Emerson stores exceptions;
  * each save also writes location and time onto the matching Church Admin calendar row.
+ * Add / Edit / Remove series creates or updates Church Admin calendar dates.
  * Old Sunday Location / Board Location menu items redirect here.
  */
 
 declare( strict_types=1 );
 
 /**
- * @return array<string, array{label:string,title:string}>
+ * @return array<string, array{label:string,title:string,locked?:bool}>
  */
 function emerson_event_places_series(): array {
-	return array(
-		'sunday'      => array(
-			'label' => 'Sunday Service',
-			'title' => 'Sunday Service',
-		),
-		'womyns-web'  => array(
-			'label' => "Womyn's Web",
-			'title' => "Womyn's Web",
-		),
-		'mens-night'  => array(
-			'label' => "Men's Night",
-			'title' => "Men's Night",
-		),
-		'board'       => array(
-			'label' => 'Board Meeting',
-			'title' => 'Board Meeting',
+	$out = array(
+		'sunday' => array(
+			'label'  => 'Sunday Service',
+			'title'  => 'Sunday Service',
+			'locked' => true,
 		),
 	);
+	foreach ( emerson_listed_series_all() as $rule ) {
+		$out[ $rule['id'] ] = array(
+			'label' => $rule['title'],
+			'title' => $rule['title'],
+		);
+	}
+	return $out;
 }
 
 function emerson_event_places_current(): string {
@@ -57,14 +54,12 @@ function emerson_event_places_win(): int {
  * @return list<array<string, mixed>>
  */
 function emerson_event_places_rows( string $event ): array {
-	$size = emerson_event_places_window_size();
-	$win  = emerson_event_places_win();
-	$need = $size * ( $win + 1 );
+	$size   = emerson_event_places_window_size();
+	$win    = emerson_event_places_win();
+	$need   = $size * ( $win + 1 );
 	$series = emerson_event_places_series();
 	if ( 'sunday' === $event ) {
 		$all = emerson_sunday_upcoming( $need );
-	} elseif ( 'board' === $event ) {
-		$all = emerson_board_upcoming( $need );
 	} elseif ( isset( $series[ $event ] ) ) {
 		$all = emerson_group_upcoming( $series[ $event ]['title'], $need );
 	} else {
@@ -79,7 +74,7 @@ function emerson_event_places_rows( string $event ): array {
  * @param list<array{date:string}> $rows
  */
 function emerson_event_places_render_nav( string $event, array $rows ): void {
-	$win  = emerson_event_places_win();
+	$win   = emerson_event_places_win();
 	$first = $rows[0]['date'] ?? '';
 	$last  = $rows[ count( $rows ) - 1 ]['date'] ?? '';
 	$label = '';
@@ -105,6 +100,117 @@ function emerson_event_places_render_nav( string $event, array $rows ): void {
 	echo '</div>';
 }
 
+/**
+ * @return list<string>
+ */
+function emerson_event_places_weekday_labels(): array {
+	return array(
+		0 => 'Sunday',
+		1 => 'Monday',
+		2 => 'Tuesday',
+		3 => 'Wednesday',
+		4 => 'Thursday',
+		5 => 'Friday',
+		6 => 'Saturday',
+	);
+}
+
+/**
+ * @return list<string>
+ */
+function emerson_event_places_nth_labels(): array {
+	return array(
+		1 => '1st',
+		2 => '2nd',
+		3 => '3rd',
+		4 => '4th',
+	);
+}
+
+function emerson_event_places_schedule_label( array $rule ): string {
+	$nths = emerson_event_places_nth_labels();
+	$days = emerson_event_places_weekday_labels();
+	$nth  = $nths[ (int) ( $rule['nth'] ?? 1 ) ] ?? '1st';
+	$day  = $days[ (int) ( $rule['wday'] ?? 1 ) ] ?? 'Monday';
+	$time = substr( (string) ( $rule['time'] ?? '' ), 0, 5 );
+	return $nth . ' ' . $day . ( $time !== '' ? ', ' . $time : '' );
+}
+
+/**
+ * Redirect back to Event Places without edit_series so the form returns to Add series.
+ */
+function emerson_event_places_series_redirect( string $message, string $event = '' ): void {
+	$args = array(
+		'page'           => 'emerson-event-places',
+		'series_notice'  => $message,
+	);
+	if ( $event !== '' && $event !== 'sunday' ) {
+		$args['event'] = $event;
+	}
+	wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+	exit;
+}
+
+/**
+ * Handle add / edit / remove series POSTs.
+ */
+function emerson_event_places_series_admin_save(): ?string {
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		return null;
+	}
+
+	if ( ! empty( $_POST['emerson_series_remove'] ) ) {
+		check_admin_referer( 'emerson_series_manage' );
+		$id     = sanitize_title( (string) wp_unslash( $_POST['series_id'] ?? '' ) );
+		$result = emerson_listed_series_remove( $id );
+		if ( ! empty( $result['ok'] ) ) {
+			emerson_event_places_series_redirect( $result['message'] );
+		}
+		return $result['message'];
+	}
+
+	if ( empty( $_POST['emerson_series_save'] ) ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_series_manage' );
+
+	$old_id = sanitize_title( (string) wp_unslash( $_POST['series_id'] ?? '' ) );
+	$nth    = (int) ( $_POST['series_nth'] ?? 1 );
+	$wday   = (int) ( $_POST['series_wday'] ?? 1 );
+	$start  = sanitize_text_field( (string) wp_unslash( $_POST['series_time'] ?? '19:00' ) );
+	$end    = sanitize_text_field( (string) wp_unslash( $_POST['series_end'] ?? '21:00' ) );
+	if ( preg_match( '/^\d{1,2}:\d{2}$/', $start ) ) {
+		$start .= ':00';
+	}
+	if ( preg_match( '/^\d{1,2}:\d{2}$/', $end ) ) {
+		$end .= ':00';
+	}
+
+	$result = emerson_listed_series_upsert(
+		array(
+			'id'          => $old_id,
+			'title'       => sanitize_text_field( (string) wp_unslash( $_POST['series_title'] ?? '' ) ),
+			'time'        => $start,
+			'end'         => $end,
+			'nth'         => $nth,
+			'wday'        => $wday,
+			'recurring'   => emerson_listed_recurring_code( $nth, $wday ),
+			'location'    => EMERSON_GROUP_LOCATION_ROTATES,
+			'description' => sanitize_textarea_field( (string) wp_unslash( $_POST['series_description'] ?? '' ) ),
+			'link'        => home_url( '/engage/' ),
+			'link_title'  => 'Engage',
+		),
+		$old_id
+	);
+
+	if ( ! empty( $result['ok'] ) ) {
+		$event = (string) ( $result['rule']['id'] ?? $old_id );
+		emerson_event_places_series_redirect( $result['message'], $event );
+	}
+
+	return $result['message'];
+}
+
 add_action(
 	'admin_menu',
 	static function (): void {
@@ -125,6 +231,7 @@ function emerson_event_places_admin_page(): void {
 		wp_die( esc_html__( 'You do not have permission to edit Event Places.' ) );
 	}
 
+	$series_notice   = emerson_event_places_series_admin_save();
 	$event           = emerson_event_places_current();
 	$series          = emerson_event_places_series();
 	$defaults_notice = null;
@@ -133,11 +240,17 @@ function emerson_event_places_admin_page(): void {
 	if ( 'sunday' === $event ) {
 		$defaults_notice = emerson_sunday_defaults_save();
 		$notice          = emerson_sunday_admin_save();
-	} elseif ( 'board' === $event ) {
-		$notice = emerson_board_admin_save();
-	} elseif ( in_array( $event, array( 'womyns-web', 'mens-night' ), true ) ) {
+	} elseif ( isset( $series[ $event ] ) && empty( $series[ $event ]['locked'] ) ) {
 		$notice = emerson_group_admin_save( $series[ $event ]['title'] );
 	}
+
+	if ( $series_notice === null && isset( $_GET['series_notice'] ) ) {
+		$series_notice = sanitize_text_field( (string) wp_unslash( $_GET['series_notice'] ) );
+	}
+
+	// After a successful save we redirect without edit_series; only open Edit from an Edit link.
+	$edit_id   = isset( $_GET['edit_series'] ) ? sanitize_title( (string) wp_unslash( $_GET['edit_series'] ) ) : '';
+	$edit_rule = $edit_id !== '' ? emerson_listed_series_by_id( $edit_id ) : null;
 
 	echo '<div class="wrap emerson-sunday-admin emerson-event-places"><h1>Event Places</h1>';
 	echo '<style>'
@@ -149,6 +262,9 @@ function emerson_event_places_admin_page(): void {
 		. '.emerson-event-places-nav{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:0.75rem 1rem;margin:0 auto 0.75rem;width:100%}'
 		. '.emerson-event-places-nav__range{margin:0;text-align:center;font-weight:600}'
 		. '.emerson-event-places-nav .button.disabled{opacity:0.45;pointer-events:none}'
+		. '.emerson-event-places-series{margin:0 0 1.5rem;padding:1rem;background:#fff;border:1px solid #c3c4c7;max-width:52rem}'
+		. '.emerson-event-places-series table{margin:0.75rem 0}'
+		. '.emerson-event-places-series .form-table th{width:10rem}'
 		. '.emerson-sunday-default{margin:1rem 0 1.5rem;padding:1rem 1rem 0;background:#fff;border:1px solid #c3c4c7}'
 		. '.emerson-sunday-default-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1.25rem}'
 		. '.emerson-sunday-default-actions label{display:inline-flex;align-items:center;gap:.4rem;margin:0}'
@@ -160,6 +276,12 @@ function emerson_event_places_admin_page(): void {
 		. '.emerson-sunday-confirm__actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}'
 		. '</style>';
 
+	if ( is_string( $series_notice ) && $series_notice !== '' ) {
+		$class = ( str_contains( $series_notice, 'already exists' ) || str_contains( $series_notice, 'not found' ) || str_contains( $series_notice, 'Enter a' ) || str_contains( $series_notice, 'Permission' ) )
+			? 'notice-error'
+			: 'notice-success';
+		echo '<div class="notice ' . esc_attr( $class ) . ' is-dismissible"><p>' . esc_html( $series_notice ) . '</p></div>';
+	}
 	if ( is_string( $defaults_notice ) && $defaults_notice !== '' ) {
 		$notice_class = str_starts_with( $defaults_notice, 'Pick a start date' ) ? 'notice-error' : 'notice-success';
 		echo '<div class="notice ' . esc_attr( $notice_class ) . ' is-dismissible"><p>' . esc_html( $defaults_notice ) . '</p></div>';
@@ -167,6 +289,8 @@ function emerson_event_places_admin_page(): void {
 	if ( is_string( $notice ) && $notice !== '' ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
 	}
+
+	emerson_event_places_render_series_manager( $edit_rule );
 
 	echo '<form method="get" class="emerson-event-places-picker">';
 	echo '<input type="hidden" name="page" value="emerson-event-places">';
@@ -176,17 +300,85 @@ function emerson_event_places_admin_page(): void {
 		echo '<option value="' . esc_attr( $key ) . '"' . selected( $event, $key, false ) . '>' . esc_html( $meta['label'] ) . '</option>';
 	}
 	echo '</select>';
-	echo '<p class="description" style="margin:0.5rem 0 0">Edit places for recurring meetings here. The calendar sidebar and iCal follow these saves. One-off events still belong in Church Admin → Calendar.</p>';
+	echo '<p class="description" style="margin:0.5rem 0 0">Edit places for recurring meetings here. The calendar sidebar and iCal follow these saves. One-off events still belong in Church Admin → Calendar. Sunday Service is built-in; other series can be added or removed above.</p>';
 	echo '</form>';
 
 	if ( 'sunday' === $event ) {
 		emerson_event_places_render_sunday();
-	} elseif ( 'board' === $event ) {
-		emerson_event_places_render_board();
-	} else {
-		emerson_event_places_render_group( $series[ $event ]['title'] );
+	} elseif ( isset( $series[ $event ] ) ) {
+		emerson_event_places_render_group( $series[ $event ]['title'], $event );
 	}
 
+	echo '</div>';
+}
+
+/**
+ * @param array{id:string,title:string,time:string,end:string,nth:int,wday:int,description:string}|null $edit_rule
+ */
+function emerson_event_places_render_series_manager( ?array $edit_rule ): void {
+	$listed = emerson_listed_series_all();
+	$nths   = emerson_event_places_nth_labels();
+	$days   = emerson_event_places_weekday_labels();
+
+	echo '<div class="emerson-event-places-series">';
+	echo '<h2>Recurring series</h2>';
+	echo '<p>Sunday Service stays built-in (homepage, mail, and rota). Add other monthly series here — each one is created or updated on the Church Admin calendar so the sidebar and iCal stay in sync.</p>';
+
+	echo '<table class="widefat striped"><thead><tr>';
+	echo '<th>Series</th><th>Schedule</th><th>Actions</th>';
+	echo '</tr></thead><tbody>';
+	echo '<tr><td><strong>Sunday Service</strong></td><td>Every Sunday (built-in)</td><td><span class="description">Locked</span></td></tr>';
+	foreach ( $listed as $rule ) {
+		$edit_url = admin_url( 'admin.php?page=emerson-event-places&event=' . rawurlencode( $rule['id'] ) . '&edit_series=' . rawurlencode( $rule['id'] ) . '#emerson-series-form' );
+		echo '<tr>';
+		echo '<td><strong>' . esc_html( $rule['title'] ) . '</strong></td>';
+		echo '<td>' . esc_html( emerson_event_places_schedule_label( $rule ) ) . '</td>';
+		echo '<td>';
+		echo '<a class="button button-small" href="' . esc_url( $edit_url ) . '">Edit</a> ';
+		echo '<form method="post" style="display:inline" onsubmit="return confirm(' . esc_attr( wp_json_encode( 'Remove “' . $rule['title'] . '”? Future Church Admin dates for this series will be deleted.' ) ) . ');">';
+		wp_nonce_field( 'emerson_series_manage' );
+		echo '<input type="hidden" name="series_id" value="' . esc_attr( $rule['id'] ) . '">';
+		echo '<button type="submit" name="emerson_series_remove" value="1" class="button button-small">Remove</button>';
+		echo '</form>';
+		echo '</td></tr>';
+	}
+	if ( $listed === array() ) {
+		echo '<tr><td colspan="3"><span class="description">No custom series yet.</span></td></tr>';
+	}
+	echo '</tbody></table>';
+
+	$is_edit = is_array( $edit_rule );
+	$title   = $is_edit ? $edit_rule['title'] : '';
+	$nth     = $is_edit ? (int) $edit_rule['nth'] : 1;
+	$wday    = $is_edit ? (int) $edit_rule['wday'] : 1;
+	$time    = $is_edit ? substr( $edit_rule['time'], 0, 5 ) : '19:00';
+	$end     = $is_edit ? substr( $edit_rule['end'], 0, 5 ) : '21:00';
+	$desc    = $is_edit ? $edit_rule['description'] : '';
+	$id      = $is_edit ? $edit_rule['id'] : '';
+
+	echo '<form method="post" id="emerson-series-form" style="margin-top:1.25rem">';
+	wp_nonce_field( 'emerson_series_manage' );
+	echo '<input type="hidden" name="series_id" value="' . esc_attr( $id ) . '">';
+	echo '<h3>' . ( $is_edit ? 'Edit series' : 'Add series' ) . '</h3>';
+	if ( $is_edit ) {
+		echo '<p class="description">Editing <strong>' . esc_html( $title ) . '</strong>. <a href="' . esc_url( admin_url( 'admin.php?page=emerson-event-places' ) ) . '">Cancel</a></p>';
+	}
+	echo '<table class="form-table" role="presentation"><tbody>';
+	echo '<tr><th scope="row"><label for="emerson-series-title">Title</label></th><td><input type="text" class="regular-text" id="emerson-series-title" name="series_title" value="' . esc_attr( $title ) . '" required maxlength="120"></td></tr>';
+	echo '<tr><th scope="row"><label for="emerson-series-nth">Which</label></th><td><select id="emerson-series-nth" name="series_nth">';
+	foreach ( $nths as $value => $label ) {
+		echo '<option value="' . esc_attr( (string) $value ) . '"' . selected( $nth, $value, false ) . '>' . esc_html( $label ) . '</option>';
+	}
+	echo '</select> <select id="emerson-series-wday" name="series_wday" aria-label="Weekday">';
+	foreach ( $days as $value => $label ) {
+		echo '<option value="' . esc_attr( (string) $value ) . '"' . selected( $wday, $value, false ) . '>' . esc_html( $label ) . '</option>';
+	}
+	echo '</select> <span class="description">of each month</span></td></tr>';
+	echo '<tr><th scope="row"><label for="emerson-series-time">Start</label></th><td><input type="time" id="emerson-series-time" name="series_time" value="' . esc_attr( $time ) . '" required> <label for="emerson-series-end">End</label> <input type="time" id="emerson-series-end" name="series_end" value="' . esc_attr( $end ) . '" required></td></tr>';
+	echo '<tr><th scope="row"><label for="emerson-series-description">Description</label></th><td><textarea class="large-text" rows="3" id="emerson-series-description" name="series_description" placeholder="Shown in the calendar sidebar">' . esc_textarea( $desc ) . '</textarea></td></tr>';
+	echo '</tbody></table>';
+	echo '<p class="submit"><button type="submit" name="emerson_series_save" value="1" class="button button-primary">' . esc_html( $is_edit ? 'Update series' : 'Add series' ) . '</button></p>';
+	echo '</form>';
 	echo '</div>';
 }
 
@@ -274,46 +466,20 @@ function emerson_event_places_render_sunday(): void {
 	echo '</form>';
 }
 
-function emerson_event_places_render_board(): void {
-	$rows = emerson_event_places_rows( 'board' );
-	$win  = emerson_event_places_win();
-	echo '<p>Board meetings are on the third Monday at 6:30 pm. Type this month’s place in <strong>Located at</strong> and save. Leave <strong>At the</strong> as Rotating (or empty) and the calendar says <strong>Rotating location — check This Week at Emerson</strong>. Choose <strong>Cancelled</strong> when there is no meeting.</p>';
-	emerson_event_places_render_nav( 'board', $rows );
-	echo '<form method="post">';
-	wp_nonce_field( 'emerson_board_save' );
-	echo '<input type="hidden" name="event" value="board">';
-	echo '<input type="hidden" name="win" value="' . esc_attr( (string) $win ) . '">';
-	echo '<table class="widefat striped"><thead><tr>';
-	echo '<th>Monday</th><th>Status</th><th>Time</th><th>At the</th><th>Located at</th><th>Note</th>';
-	echo '</tr></thead><tbody>';
-	foreach ( $rows as $base ) {
-		$shown  = emerson_board_display( $base );
-		$date   = $base['date'];
-		$time   = substr( $shown['time'], 0, 5 );
-		$status = $shown['status'];
-		echo '<tr>';
-		echo '<td><strong>' . esc_html( emerson_board_format_date( $date ) ) . '</strong></td>';
-		echo '<td><select name="board[' . esc_attr( $date ) . '][status]">';
-		foreach ( array( 'regular' => 'Regular', 'cancelled' => 'Cancelled', 'moved' => 'Moved' ) as $value => $label ) {
-			echo '<option value="' . esc_attr( $value ) . '"' . selected( $status, $value, false ) . '>' . esc_html( $label ) . '</option>';
-		}
-		echo '</select></td>';
-		echo '<td><input type="time" name="board[' . esc_attr( $date ) . '][time]" value="' . esc_attr( $time ) . '"></td>';
-		echo '<td><input type="text" class="large-text" name="board[' . esc_attr( $date ) . '][venue]" value="' . esc_attr( $shown['venue'] ) . '"></td>';
-		echo '<td><input type="text" class="large-text" name="board[' . esc_attr( $date ) . '][address]" value="' . esc_attr( $shown['address'] ) . '"></td>';
-		echo '<td><input type="text" class="large-text" name="board[' . esc_attr( $date ) . '][note]" value="' . esc_attr( $shown['note'] ) . '" placeholder="Optional"></td>';
-		echo '</tr>';
+function emerson_event_places_render_group( string $title, string $event_key = '' ): void {
+	if ( $event_key === '' ) {
+		$rule      = emerson_group_rule_by_title( $title );
+		$event_key = $rule['id'] ?? sanitize_title( $title );
 	}
-	echo '</tbody></table>';
-	echo '<p class="submit"><button type="submit" name="emerson_board_save" value="1" class="button button-primary">Save board meetings</button></p>';
-	echo '</form>';
-}
-
-function emerson_event_places_render_group( string $title ): void {
-	$event_key = strcasecmp( $title, "Men's Night" ) === 0 ? 'mens-night' : 'womyns-web';
-	$rows      = emerson_event_places_rows( $event_key );
-	$win       = emerson_event_places_win();
-	echo '<p>' . esc_html( $title ) . ' defaults to <strong>Rotating location — check This Week at Emerson</strong>. Name this month’s host in <strong>Located at</strong> (and/or <strong>At the</strong>). Choose <strong>Cancelled</strong> when that date is off.</p>';
+	$rows = emerson_event_places_rows( $event_key );
+	$win  = emerson_event_places_win();
+	$rule = emerson_group_rule_by_title( $title ) ?? emerson_listed_series_by_id( $event_key );
+	$sched = $rule ? emerson_event_places_schedule_label( $rule ) : '';
+	echo '<p>' . esc_html( $title );
+	if ( $sched !== '' ) {
+		echo ' (' . esc_html( $sched ) . ')';
+	}
+	echo ' defaults to <strong>Rotating location — check This Week at Emerson</strong>. Name this month’s host in <strong>Located at</strong> (and/or <strong>At the</strong>). Choose <strong>Cancelled</strong> when that date is off.</p>';
 	emerson_event_places_render_nav( $event_key, $rows );
 	echo '<form method="post">';
 	wp_nonce_field( 'emerson_group_save' );

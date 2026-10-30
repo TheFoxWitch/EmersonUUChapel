@@ -114,6 +114,7 @@ $emerson_chapel_modules = array(
 	'office-mail.php',
 	'home-gallery.php',
 	'latest-sermon.php',
+	'youtube-sermons.php',
 	'religious-education.php',
 	'documents.php',
 	'foil-background.php',

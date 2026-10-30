@@ -2026,42 +2026,14 @@
 		);
 	}
 	/**
-	 * Safari / iOS WebKit (not Chrome/Edge/Firefox). Foil’s fixed overlay is a
-	 * sibling of the page — not a parent of the YouTube iframe — so this is not a
-	 * z-index fight. WebKit still blacks out HTML5/YouTube video when a
-	 * full-viewport fixed layer keeps translateZ + continuous transform
-	 * animations (drift sheet + shine) in the same compositor as the player.
-	 *
-	 * Homepage sermon is click-to-load. Ambient motion pauses only while that
-	 * video is actually playing (YouTube API); pause/end resumes drift+shine.
-	 * Other pages’ YouTube iframes still count as risk while present.
+	 * Safari used to black out a *direct* YouTube iframe when foil kept
+	 * continuous translate3d loops in the same compositor. Gallery pages nest
+	 * YouTube inside same-origin /player-embed/, so foil can keep animating.
+	 * Homepage sermon now uses ?emerson_sermon_embed=… the same way, so we no
+	 * longer freeze ambient motion for video. Tab-hidden still pauses GPU work.
 	 */
-	var foilLiveVideoPlaying = false;
-	function foilIsSafariWebKit() {
-		var ua = navigator.userAgent || '';
-		if (/CriOS|FxiOS|EdgiOS|Chrome|Chromium|Edg\/|OPR\//i.test(ua)) {
-			return false;
-		}
-		return /Safari/i.test(ua) || (/AppleWebKit/i.test(ua) && /Mobile/i.test(ua));
-	}
-	/** Gallery/other embeds, HTML5 video, or homepage sermon currently playing. */
-	function foilPageHasWebKitVideoRisk() {
-		if (foilLiveVideoPlaying) {
-			return true;
-		}
-		var iframes = document.querySelectorAll(
-			'iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"], iframe[src*="youtu.be"]'
-		);
-		var i;
-		for (i = 0; i < iframes.length; i++) {
-			if (!iframes[i].closest('.emerson-latest-sermon')) {
-				return true;
-			}
-		}
-		return !!document.querySelector('video');
-	}
 	function foilNeedsSafariVideoSafe() {
-		return foilIsSafariWebKit() && foilPageHasWebKitVideoRisk();
+		return false;
 	}
 	/**
 	 * Pause ambient motion in place (CSS animation-play-state) so resume does not
@@ -2158,23 +2130,6 @@
 			sheet.style.removeProperty('transform');
 		});
 	}
-	/**
-	 * Homepage YouTube API (detail.playing) or late inject: pause/resume ambient
-	 * in Safari for the current play state.
-	 */
-	function foilOnLiveVideoEvent(event) {
-		var detail = event && event.detail ? event.detail : {};
-		foilLiveVideoPlaying = !!detail.playing;
-		if (!foilIsSafariWebKit() || !foilEffectiveOn()) {
-			return;
-		}
-		if (foilLiveVideoPlaying) {
-			foilApplySafariVideoSafe();
-		} else {
-			foilResumeAmbient();
-		}
-	}
-	document.addEventListener('emerson-live-video', foilOnLiveVideoEvent);
 	/** Same gradient the CSS wipe uses — keep holds visually identical to the animation. */
 	function foilWipeMaskImage() {
 		return (
@@ -2818,75 +2773,11 @@
 })();
 
 /**
- * Homepage sermon: poster until click, then inject YouTube iframe (autoplay).
- * YouTube IFrame API reports play/pause so Safari foil can freeze only while
- * playing and resume ambient motion when the visitor pauses or the video ends.
+ * Homepage sermon: poster until click, then same-origin wrapper iframe
+ * (?emerson_sermon_embed=…) that nests YouTube — same idea as gallery
+ * /player-embed/, so Safari foil can keep animating while the sermon plays.
  */
 (function () {
-	var ytApiLoading = false;
-	var ytApiWaiters = [];
-
-	function notifyFoilPlaying(playing) {
-		try {
-			document.dispatchEvent(
-				new CustomEvent('emerson-live-video', { detail: { playing: !!playing } })
-			);
-		} catch (error) {}
-	}
-
-	function whenYtApiReady(done) {
-		if (window.YT && window.YT.Player) {
-			done();
-			return;
-		}
-		ytApiWaiters.push(done);
-		if (ytApiLoading) {
-			return;
-		}
-		ytApiLoading = true;
-		var previous = window.onYouTubeIframeAPIReady;
-		window.onYouTubeIframeAPIReady = function () {
-			if (typeof previous === 'function') {
-				previous();
-			}
-			var waiters = ytApiWaiters.slice();
-			ytApiWaiters = [];
-			waiters.forEach(function (fn) {
-				fn();
-			});
-		};
-		if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-			var script = document.createElement('script');
-			script.src = 'https://www.youtube.com/iframe_api';
-			document.head.appendChild(script);
-		}
-	}
-
-	function bindPlayer(iframe) {
-		whenYtApiReady(function () {
-			if (!iframe || !iframe.parentNode) {
-				return;
-			}
-			try {
-				new window.YT.Player(iframe, {
-					events: {
-						onStateChange: function (event) {
-							var state = event && typeof event.data === 'number' ? event.data : null;
-							/* 1 = playing; 2 = paused; 0 = ended; 3 = buffering stays “on”. */
-							if (state === 1 || state === 3) {
-								notifyFoilPlaying(true);
-							} else if (state === 0 || state === 2 || state === 5) {
-								notifyFoilPlaying(false);
-							}
-						}
-					}
-				});
-			} catch (error) {
-				notifyFoilPlaying(true);
-			}
-		});
-	}
-
 	function loadSermon(figure) {
 		if (!figure || figure.classList.contains('is-playing')) {
 			return;
@@ -2912,9 +2803,6 @@
 			figure.removeChild(figure.firstChild);
 		}
 		figure.appendChild(iframe);
-		/* Optimistic freeze until the API confirms; pause/end clears it. */
-		notifyFoilPlaying(true);
-		bindPlayer(iframe);
 	}
 
 	document.querySelectorAll('.emerson-latest-sermon').forEach(function (figure) {

@@ -3855,9 +3855,10 @@ html.emerson-foil-drifting:not(.emerson-foil-wiping-in):not(.emerson-foil-wiping
 	}
 }
 /*
- * Pause ambient GPU work without tearing animations down (that reset drift/shine
- * to frame 0). Used for Safari+playing video and for hidden tabs.
- * Drop layer translateZ while paused so WebKit is less likely to black out YouTube.
+ * Pause ambient GPU work without tearing animations down (keeps drift/shine
+ * position). Used when the tab is hidden. emerson-foil-safari-static remains
+ * available if a future path needs an in-page freeze; video pages no longer
+ * force it (homepage nests YouTube like gallery /player-embed/).
  */
 html.emerson-foil-safari-static .emerson-foil-layer,
 html.emerson-foil-tab-hidden .emerson-foil-layer {
@@ -3870,7 +3871,6 @@ html.emerson-foil-tab-hidden .emerson-foil__shine span {
 	animation-play-state: paused !important;
 	will-change: auto;
 }
-/* Shine band still composites while paused; hide it for the video-safe path only. */
 html.emerson-foil-safari-static .emerson-foil__shine {
 	visibility: hidden;
 }

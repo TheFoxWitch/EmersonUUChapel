@@ -65,37 +65,69 @@ function emerson_youtube_poster_url( string $id ): string {
 }
 
 /**
- * Embed URL for the homepage sermon (autoplay for click-to-load).
- * enablejsapi lets Safari foil resume when the visitor pauses.
+ * Direct YouTube embed URL (used inside the same-origin wrapper frame).
  */
-function emerson_latest_sermon_embed_src( string $id ): string {
+function emerson_youtube_embed_src( string $id, bool $autoplay = true ): string {
 	$args = array(
-		'playsinline'  => '1',
-		'rel'          => '0',
-		'autoplay'     => '1',
-		'enablejsapi'  => '1',
+		'playsinline' => '1',
+		'rel'         => '0',
 	);
-	$origin = home_url();
-	if ( $origin !== '' ) {
-		$args['origin'] = $origin;
+	if ( $autoplay ) {
+		$args['autoplay'] = '1';
 	}
 	return add_query_arg( $args, 'https://www.youtube.com/embed/' . rawurlencode( $id ) );
 }
 
 /**
+ * Same-origin wrapper URL for the homepage sermon iframe.
+ *
+ * Gallery videos use AIOVG’s /player-embed/… frame so YouTube sits one level
+ * deeper than the foil layer. Safari can keep foil animating there. The
+ * homepage uses this wrapper for the same compositor boundary.
+ */
+function emerson_latest_sermon_embed_src( string $id ): string {
+	return add_query_arg(
+		array(
+			'emerson_sermon_embed' => $id,
+			'autoplay'             => '1',
+		),
+		home_url( '/' )
+	);
+}
+
+/**
  * Resolved homepage sermon: YouTube id + title, or empty id when none.
+ *
+ * Order: manual Homepage video URL → cached channel latest (YouTube sync) →
+ * newest Video Gallery sermon.
  *
  * @return array{id:string, title:string}
  */
 function emerson_latest_sermon_resolved(): array {
 	$url   = emerson_homepage_sermon_url();
 	$title = 'Sunday service';
-	if ( emerson_youtube_id( $url ) === '' ) {
-		$sermon = emerson_latest_gallery_sermon();
-		$url    = $sermon['url'];
-		if ( $sermon['title'] !== '' ) {
-			$title = $sermon['title'];
+	$id    = emerson_youtube_id( $url );
+	if ( $id !== '' ) {
+		return array(
+			'id'    => $id,
+			'title' => $title,
+		);
+	}
+
+	if ( function_exists( 'emerson_youtube_homepage_cached' ) ) {
+		$cached = emerson_youtube_homepage_cached();
+		if ( $cached['id'] !== '' ) {
+			return array(
+				'id'    => $cached['id'],
+				'title' => $cached['title'] !== '' ? $cached['title'] : $title,
+			);
 		}
+	}
+
+	$sermon = emerson_latest_gallery_sermon();
+	$url    = $sermon['url'];
+	if ( $sermon['title'] !== '' ) {
+		$title = $sermon['title'];
 	}
 	return array(
 		'id'    => emerson_youtube_id( $url ),
@@ -104,8 +136,8 @@ function emerson_latest_sermon_resolved(): array {
 }
 
 /**
- * Click-to-load player: poster until play, then YouTube iframe.
- * Keeps Safari foil animating on the homepage until someone starts the video.
+ * Click-to-load player: poster until play, then same-origin wrapper iframe
+ * (YouTube nested inside), matching gallery pages so Safari foil can keep moving.
  */
 function emerson_latest_sermon_html(): string {
 	$sermon = emerson_latest_sermon_resolved();
@@ -131,6 +163,62 @@ function emerson_latest_sermon_html(): string {
 		. '</button>'
 		. '</figure>';
 }
+
+/**
+ * Minimal same-origin HTML shell that only hosts the YouTube iframe.
+ */
+function emerson_sermon_embed_output( string $id, bool $autoplay ): void {
+	$title = 'Sunday service';
+	$src   = emerson_youtube_embed_src( $id, $autoplay );
+	if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+		define( 'DONOTCACHEPAGE', true );
+	}
+	nocache_headers();
+	header( 'Content-Type: text/html; charset=utf-8' );
+	/* Keep the shell clean — cache plugins must not append after </html>. */
+	add_filter( 'w3tc_can_print_comment', '__return_false', 100 );
+	remove_all_actions( 'shutdown' );
+	$html = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+		. '<meta name="viewport" content="width=device-width, initial-scale=1">'
+		. '<title>' . esc_html( $title ) . '</title>'
+		. '<style>'
+		. 'html,body{margin:0;height:100%;background:#000;overflow:hidden}'
+		. 'iframe{position:absolute;inset:0;width:100%;height:100%;border:0}'
+		. '</style></head><body>'
+		. '<iframe title="' . esc_attr( $title ) . '" src="' . esc_url( $src ) . '"'
+		. ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
+		. ' referrerpolicy="strict-origin-when-cross-origin" allowfullscreen playsinline></iframe>'
+		. '</body></html>';
+	echo $html;
+	exit;
+}
+
+add_filter(
+	'query_vars',
+	static function ( array $vars ): array {
+		$vars[] = 'emerson_sermon_embed';
+		return $vars;
+	}
+);
+
+add_action(
+	'template_redirect',
+	static function (): void {
+		$raw = get_query_var( 'emerson_sermon_embed', '' );
+		if ( ! is_string( $raw ) || $raw === '' ) {
+			return;
+		}
+		$id = preg_match( '/^[A-Za-z0-9_-]{11}$/', $raw ) ? $raw : '';
+		if ( $id === '' ) {
+			status_header( 404 );
+			nocache_headers();
+			exit;
+		}
+		$autoplay = (string) ( $_GET['autoplay'] ?? '1' ) !== '0';
+		emerson_sermon_embed_output( $id, $autoplay );
+	},
+	0
+);
 
 /**
  * @param array<string,string>|string $attributes
@@ -195,8 +283,8 @@ function emerson_homepage_sermon_admin_page(): void {
 		$bad = 0 !== strpos( $notice, 'Saved.' );
 		echo '<div class="notice ' . ( $bad ? 'notice-error' : 'notice-success' ) . ' is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
 	}
-	echo '<p>The homepage plays this video between the two lines under <strong>Sign up for our Newsletter!</strong>. The player stays the same size. Change the address here instead of editing the shortcode on the page.</p>';
-	echo '<p>Paste the address from the browser while the video is open. It looks like <code>https://www.youtube.com/watch?v=&hellip;</code>. Clear the field and save to use the newest sermon in <strong>Video Gallery</strong> again.</p>';
+	echo '<p>The homepage plays <strong>one</strong> video between the two lines under <strong>Sign up for our Newsletter!</strong> — it never stacks more players. Leave this field empty to follow the newest dated sermon from the chapel YouTube channels (see <strong>YouTube sync</strong>). Paste a watch URL here only to pin a specific video.</p>';
+	echo '<p>Paste the address from the browser while the video is open. It looks like <code>https://www.youtube.com/watch?v=&hellip;</code>. Clear the field and save to return to automatic channel latest (then Video Gallery if sync has not run yet).</p>';
 	echo '<form method="post">';
 	wp_nonce_field( 'emerson_homepage_sermon_save' );
 	echo '<table class="form-table" role="presentation"><tr><th scope="row"><label for="emerson-homepage-sermon">YouTube URL</label></th><td>';

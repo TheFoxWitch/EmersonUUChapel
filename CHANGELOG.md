@@ -12,12 +12,16 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-30
 
-### Homepage sermon click-to-load + Safari foil stays animated
-- **Why foil froze in Safari:** WebKit blacks out YouTube (audio still plays) when a full-viewport fixed foil layer keeps continuous `translate3d` drift/shine in the same compositor as a live video iframe. Freezing ambient motion fixed the video but killed the home-page vibe.
-- **Homepage:** `[emerson_latest_sermon]` now shows a YouTube poster + play control; the iframe is injected only on click (`autoplay=1`). Foil keeps full drift + shine in Safari until someone plays.
-- While the sermon plays, Safari pauses ambient foil; **pause or end resumes** drift/shine (YouTube IFrame API + `enablejsapi`). Idle homepage iframe alone no longer leaves foil stuck static.
-- Pause uses `animation-play-state` (keeps drift/shine classes) so resume does not restart at frame 0, and the GPU stops advancing frames. Hidden tabs get the same pause (`emerson-foil-tab-hidden`).
-- Gallery pages that already embed YouTube still treat those iframes as risk while present.
+### YouTube sermon sync (homepage swap + dual-channel archive)
+- **Homepage:** still one player. With Homepage video URL empty, it uses the newest dated sermon from the chapel YouTube feeds (Sunday parsed from the title). No extra homepage blocks — the iframe target is replaced in place.
+- **Archive:** twice-daily cron (and **Homepage video → YouTube sync → Sync now**) imports missing dated videos from **both** `@EmersonUUChapel` and `@emersonunitarianuniversali1222` into Video Gallery (`/video/…` pages). Dedupes by YouTube id; publish date is the title Sunday at 10:00.
+- Public Atom feeds only (no Google API key). RSS shows recent uploads (~15/channel), not a full historical backfill.
+- **File:** `inc/youtube-sermons.php`, `inc/latest-sermon.php`, checklist.
+
+### Homepage sermon nests YouTube like gallery (Safari foil keeps moving)
+- **Why gallery pages were fine:** AIOVG’s `/player-embed/` is a same-origin iframe; YouTube sits one level deeper, so Safari foil can keep animating while the sermon plays.
+- **Homepage:** click-to-load poster still; play injects `/?emerson_sermon_embed=VIDEO_ID` (minimal same-origin shell with the YouTube iframe inside), not a direct `youtube.com` embed. No more pause-foil-while-playing trade-off.
+- Hidden tabs still pause ambient foil (`emerson-foil-tab-hidden`) to save GPU.
 - Poster is preloaded on the front page (`inc/preload.php`).
 - **File:** `inc/latest-sermon.php`, `assets/js/custom.js`, `assets/css/custom.css`, `inc/preload.php`.
 

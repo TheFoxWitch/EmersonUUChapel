@@ -18,6 +18,8 @@ declare( strict_types=1 );
 const EMERSON_SERVING_DB_VERSION = '2';
 // Church Admin's auto-fill offers up to 6 months ahead.
 const EMERSON_SERVING_MONTHS = 6;
+/** '1' = on (default). Office can turn off under Emerson Monday Filter. */
+const EMERSON_MONDAY_FILTER_OPTION = 'emerson_monday_filter_on';
 
 function emerson_serving_table(): string {
 	global $wpdb;
@@ -100,6 +102,11 @@ add_action(
 	}
 );
 
+/** Whether Emerson Monday Filter is on (default yes). */
+function emerson_monday_filter_enabled(): bool {
+	return get_option( EMERSON_MONDAY_FILTER_OPTION, '1' ) === '1';
+}
+
 /**
  * Emerson Monday Filter — service frequencies for Members serving dates.
  *
@@ -109,35 +116,50 @@ add_action(
  * frequency doubled the checkbox list (Sun + Mon). Members who ticked both saw
  * about half their marks missing on the Sunday-only calendar.
  *
- * What: Use the same site join as Sites & Services, and drop any remaining
- * "Sunday Service" wrongly set to weekly Monday (frequency 71). Extensible via
- * the `emerson_monday_filter` hook.
+ * What (when on): Use the same site join as Sites & Services, and drop any
+ * remaining "Sunday Service" wrongly set to weekly Monday (frequency 71).
+ * Office can turn this off under Emerson Monday Filter. Extensible via the
+ * `emerson_monday_filter` hook.
  *
  * @return list<string>
  */
 function emerson_monday_filter(): array {
 	global $wpdb;
-	$rows = $wpdb->get_results(
-		"SELECT s.service_id, s.service_name, s.service_frequency
-		FROM {$wpdb->prefix}church_admin_services s
-		INNER JOIN {$wpdb->prefix}church_admin_sites site ON site.site_id = s.site_id
-		ORDER BY s.service_day, s.service_id"
-	);
 	$frequencies = array();
-	if ( is_array( $rows ) ) {
-		foreach ( $rows as $row ) {
-			$frequency = (string) ( $row->service_frequency ?? '' );
-			$name      = (string) ( $row->service_name ?? '' );
-			if ( '71' === $frequency && false !== stripos( $name, 'Sunday' ) ) {
-				continue;
+	if ( ! emerson_monday_filter_enabled() ) {
+		$cols = $wpdb->get_col(
+			"SELECT service_frequency FROM {$wpdb->prefix}church_admin_services ORDER BY service_day"
+		);
+		if ( is_array( $cols ) ) {
+			foreach ( $cols as $frequency ) {
+				$frequency = (string) $frequency;
+				if ( '' !== $frequency ) {
+					$frequencies[] = $frequency;
+				}
 			}
-			if ( '' !== $frequency ) {
-				$frequencies[] = $frequency;
+		}
+	} else {
+		$rows = $wpdb->get_results(
+			"SELECT s.service_id, s.service_name, s.service_frequency
+			FROM {$wpdb->prefix}church_admin_services s
+			INNER JOIN {$wpdb->prefix}church_admin_sites site ON site.site_id = s.site_id
+			ORDER BY s.service_day, s.service_id"
+		);
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$frequency = (string) ( $row->service_frequency ?? '' );
+				$name      = (string) ( $row->service_name ?? '' );
+				if ( '71' === $frequency && false !== stripos( $name, 'Sunday' ) ) {
+					continue;
+				}
+				if ( '' !== $frequency ) {
+					$frequencies[] = $frequency;
+				}
 			}
 		}
 	}
 	/**
-	 * Frequencies after Emerson Monday Filter (site-linked services only).
+	 * Frequencies after Emerson Monday Filter (or raw CA list when the filter is off).
 	 *
 	 * @param list<string> $frequencies Church Admin service_frequency values.
 	 */
@@ -501,16 +523,18 @@ add_filter(
 			},
 			$output
 		);
-		// Church Admin still prints every service (including orphan Mondays). Drop
-		// dates Emerson Monday Filter does not allow before role boxes are added.
-		$allowed_dates = emerson_serving_form_dates();
-		$output        = preg_replace_callback(
-			'#<div class="church-admin-form-group"><input type="checkbox" name="can_serve\[\]" id="can-serve-(\d{4}-\d{2}-\d{2})"[^>]*> <label for="can-serve-\1">.*?</label></div>#s',
-			static function ( array $m ) use ( $allowed_dates ): string {
-				return in_array( $m[1], $allowed_dates, true ) ? $m[0] : '';
-			},
-			$output
-		) ?? $output;
+		// Church Admin still prints every service (including orphan Mondays). When
+		// the filter is on, drop dates it does not allow before role boxes are added.
+		if ( emerson_monday_filter_enabled() ) {
+			$allowed_dates = emerson_serving_form_dates();
+			$output        = preg_replace_callback(
+				'#<div class="church-admin-form-group"><input type="checkbox" name="can_serve\[\]" id="can-serve-(\d{4}-\d{2}-\d{2})"[^>]*> <label for="can-serve-\1">.*?</label></div>#s',
+				static function ( array $m ) use ( $allowed_dates ): string {
+					return in_array( $m[1], $allowed_dates, true ) ? $m[0] : '';
+				},
+				$output
+			) ?? $output;
+		}
 		if ( function_exists( 'emerson_sunday_exception' ) ) {
 			foreach ( emerson_serving_form_dates() as $serve_date ) {
 				$ex = emerson_sunday_exception( $serve_date );
@@ -645,19 +669,52 @@ add_action(
 );
 
 /**
- * Admin screen for Emerson Monday Filter — status, orphans, dates in use.
+ * Save On/Off for Emerson Monday Filter. Returns a notice string, or null.
+ */
+function emerson_monday_filter_admin_save(): ?string {
+	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_monday_filter_save'] ) ) {
+		return null;
+	}
+	check_admin_referer( 'emerson_monday_filter_save' );
+	$on = ! empty( $_POST['emerson_monday_filter_on'] );
+	update_option( EMERSON_MONDAY_FILTER_OPTION, $on ? '1' : '0', false );
+	if ( function_exists( 'emerson_serving_sync' ) ) {
+		emerson_serving_sync();
+	}
+	return $on
+		? 'Emerson Monday Filter is on. Members → Dates I can serve uses site-linked services only.'
+		: 'Emerson Monday Filter is off. The form again follows every Church Admin service row (including orphans).';
+}
+
+/**
+ * Admin screen for Emerson Monday Filter — toggle, status, orphans, dates in use.
  */
 function emerson_monday_filter_admin_page(): void {
 	if ( ! current_user_can( 'edit_pages' ) ) {
 		wp_die( esc_html__( 'You do not have permission to view Emerson Monday Filter.' ) );
 	}
-	$frequencies = function_exists( 'emerson_monday_filter' ) ? emerson_monday_filter() : array();
-	$form_dates  = function_exists( 'emerson_serving_form_dates' ) ? emerson_serving_form_dates() : array();
+	$notice      = emerson_monday_filter_admin_save();
+	$enabled     = emerson_monday_filter_enabled();
+	$frequencies = emerson_monday_filter();
+	$form_dates  = emerson_serving_form_dates();
 	$orphans     = emerson_monday_filter_orphan_services();
 
 	echo '<div class="wrap"><h1>Emerson Monday Filter</h1>';
+	if ( $notice ) {
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
+	}
 	echo '<p>Keeps <strong>Members → Dates I can serve</strong> aligned with <strong>Sites &amp; Services</strong>. Church Admin can leave an orphan “Sunday Service” on Mondays (no site) in the database; that row never appears under Sites &amp; Services but used to double the checkbox list. The public calendar only marks Sundays, so about half of a member’s ticks looked missing.</p>';
-	echo '<p><strong>What this does:</strong> only site-linked service frequencies feed the form and the 6-month sync; any “Sunday Service” on weekly Monday (frequency <code>71</code>) is skipped; Monday checkboxes Church Admin still prints are stripped from the Members form.</p>';
+	echo '<p><strong>When on:</strong> only site-linked service frequencies feed the form and the 6-month sync; any “Sunday Service” on weekly Monday (frequency <code>71</code>) is skipped; Monday checkboxes Church Admin still prints are stripped from the Members form.</p>';
+
+	echo '<h2>On or off</h2>';
+	echo '<div class="notice notice-warning inline"><p><strong>Leave this on</strong> unless you have fixed or removed the orphan Monday service in Church Admin, or you intentionally want Mondays on the Members form again. Turning it off can bring back “I ticked dates that do not show on the Sunday calendar.” Prefer adding a real Monday service with a site under Sites &amp; Services if you need Monday volunteers.</p></div>';
+	echo '<form method="post" action="">';
+	wp_nonce_field( 'emerson_monday_filter_save' );
+	echo '<p><label><input type="checkbox" name="emerson_monday_filter_on" value="1"' . checked( $enabled, true, false ) . '> Emerson Monday Filter is <strong>on</strong></label></p>';
+	echo '<p class="description">Unchecked = off (use every row in <code>church_admin_services</code>, same as Church Admin’s own list).</p>';
+	echo '<p><button type="submit" class="button button-primary" name="emerson_monday_filter_save" value="1">Save</button></p>';
+	echo '</form>';
+	echo '<p>Status: <strong>' . ( $enabled ? 'On' : 'Off' ) . '</strong></p>';
 
 	echo '<h2>Frequencies in use</h2>';
 	if ( $frequencies ) {
@@ -667,7 +724,7 @@ function emerson_monday_filter_admin_page(): void {
 		}
 		echo '</ul>';
 	} else {
-		echo '<p>None — check that a service is linked to a site under Sites &amp; Services.</p>';
+		echo '<p>None — check that a service is linked to a site under Sites &amp; Services' . ( $enabled ? '' : ', or that services exist in Church Admin' ) . '.</p>';
 	}
 
 	echo '<h2>Dates on the Members form (' . count( $form_dates ) . ')</h2>';
@@ -683,14 +740,14 @@ function emerson_monday_filter_admin_page(): void {
 
 	echo '<h2>Orphan services (hidden from Sites &amp; Services)</h2>';
 	if ( $orphans ) {
-		echo '<p>These rows have no site, so the Church Admin list hides them. Emerson ignores them for serving dates. Optional cleanup: back up the database, then delete the row in phpMyAdmin / SQL if you are sure nothing else needs it.</p>';
+		echo '<p>These rows have no site, so the Church Admin list hides them.' . ( $enabled ? ' Emerson ignores them for serving dates while the filter is on.' : ' The filter is off, so their frequencies may appear on Members again.' ) . ' Optional cleanup: back up the database, then delete the row in phpMyAdmin / SQL if you are sure nothing else needs it.</p>';
 		echo '<table class="widefat striped"><thead><tr><th>ID</th><th>Name</th><th>Frequency</th><th>Day</th><th>Active</th></tr></thead><tbody>';
 		foreach ( $orphans as $row ) {
 			echo '<tr><td>' . (int) $row->service_id . '</td><td>' . esc_html( (string) $row->service_name ) . '</td><td><code>' . esc_html( (string) $row->service_frequency ) . '</code></td><td>' . esc_html( (string) ( $row->service_day ?? '' ) ) . '</td><td>' . ( (int) $row->active === 1 ? 'Yes' : 'No' ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
 	} else {
-		echo '<p>None found. The filter still guards the form if an orphan appears later.</p>';
+		echo '<p>None found. The filter still guards the form if an orphan appears later (when on).</p>';
 	}
 	echo '</div>';
 }

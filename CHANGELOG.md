@@ -12,6 +12,30 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-30
 
+### Homepage sermon click-to-load + Safari foil stays animated
+- **Why foil froze in Safari:** WebKit blacks out YouTube (audio still plays) when a full-viewport fixed foil layer keeps continuous `translate3d` drift/shine in the same compositor as a live video iframe. Freezing ambient motion fixed the video but killed the home-page vibe.
+- **Homepage:** `[emerson_latest_sermon]` now shows a YouTube poster + play control; the iframe is injected only on click (`autoplay=1`). Foil keeps full drift + shine in Safari until someone plays.
+- While the sermon plays, Safari pauses ambient foil; **pause or end resumes** drift/shine (YouTube IFrame API + `enablejsapi`). Idle homepage iframe alone no longer leaves foil stuck static.
+- Pause uses `animation-play-state` (keeps drift/shine classes) so resume does not restart at frame 0, and the GPU stops advancing frames. Hidden tabs get the same pause (`emerson-foil-tab-hidden`).
+- Gallery pages that already embed YouTube still treat those iframes as risk while present.
+- Poster is preloaded on the front page (`inc/preload.php`).
+- **File:** `inc/latest-sermon.php`, `assets/js/custom.js`, `assets/css/custom.css`, `inc/preload.php`.
+
+### Visit Us: keyless Google Maps embed
+- Replaced the OpenStreetMap iframe on **Visit Us** (page 58) with Google’s keyless `output=embed` map (YMCA address) and a “View larger map” link to Google Maps. Same `iframe.emerson-map` styling.
+- **Privacy Policy** (page 3) and **Cookies** (page 1075) now list the Visit Us Google Maps embed among third-party embeds; Privacy links to Google’s privacy policy. Last-updated dates set to October 30, 2026.
+- Church Admin still needs its own API key for directory / registration maps — not part of this change.
+- **Where:** **Local DB** (pages 58, 3, 1075). **File:** CSS comment in `custom.css`; checklist.
+- **Backup:** `backups/pages/page-58-before-google-map.html`, `privacy-policy-3-before-google-map.html`, `cookies-1075-before-google-map.html`.
+
+### Recurring events (renamed Event Places menu)
+- The admin sidebar label and screen title are **Recurring events**. Slug `emerson-event-places`, PHP helpers, and CSS classes are unchanged so old Sunday Location / Board Location bookmarks still work.
+- **File:** `wp-content/plugins/emerson-chapel/inc/event-places.php`, `inc/sunday-schedule-sheet.php`, `TEST-AND-LAUNCH-CHECKLIST.md`.
+
+### Emerson Monday Filter: On / Off for handoff
+- wp-admin → **Emerson Monday Filter** has a checkbox (default **on**) with a warning: leave it on unless the orphan Monday service is fixed, or Mondays on Members will return and calendar ticks can look “missing” again. Saving re-runs the serving sync. Prefer a real Monday service with a site if they need Monday volunteers.
+- **File:** `wp-content/plugins/emerson-chapel/inc/serving-dates.php`. Option: `emerson_monday_filter_on`.
+
 ### Serving dates: Choose person summary matches the form
 - **Why:** After renaming Alice/Fox, Choose person → **Fox Metz** still looked like “only three dates” because the **You can serve…** line under My serving schedule is always the **logged-in** account. Admins logged in as Alice saw her three Sundays there while editing Fox’s checkboxes below.
 - **What:** The Serving dates form now prints a summary for the person on the form (Fox’s eight Sundays, etc.). If that person is not you, a short note says My serving schedule above is still yours. That block is labeled **Your serving dates**.

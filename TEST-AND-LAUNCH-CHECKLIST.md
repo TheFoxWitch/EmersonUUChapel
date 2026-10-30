@@ -30,7 +30,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [x] **Ways to Connect form** (`/ways-to-connect/`): same results as the pop-up
 - [ ] **Re-commitment Form** (homepage). How to change the Microsoft Form is in **Re-commitment Form — how to update the link**.
 - [ ] **Office mail copies.** How to change who receives messages sent to `office@emersonuuchapel.org` is in **Office mail — who receives a copy**.
-- [ ] **Sunday Location** (homepage + **Sunday Location** in the WordPress admin). How to update it is in the section after this one.
+- [ ] **Sunday place** (homepage + **Recurring events** → **Sunday Service**). How to update it is in the section after this one.
   - Homepage says **This week, meet us at 10 am, at the St. Charles YMCA located at …**, then moves on after that service
   - Marking a Sunday **Cancelled** or **Moved** updates the homepage and the Service Schedule
   - Anyone assigned that day, or who ticked they can serve, gets an email (redirected locally), and the office gets a copy
@@ -86,7 +86,7 @@ The homepage heading **Sunday Service Location** can still be edited on the page
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
-**Where:** WordPress admin (the left-hand menu) → **Sunday Location**. It is a calendar icon, below the usual Pages / Posts items.
+**Where:** WordPress admin (the left-hand menu) → **Recurring events** → choose **Sunday Service**. (Old bookmarks to Sunday Location still open this screen.)
 
 The screen lists the next 12 Sundays. Each row has **Status**, **Time**, **At the** (the building name), **Located at** (the street address), **Note**, and **Signed up** (who would be emailed).
 
@@ -102,7 +102,7 @@ Do nothing. The homepage already says:
 
 ### The service moved (different time and/or building)
 
-1. Open **Sunday Location**.
+1. Open **Recurring events** → **Sunday Service**.
 2. Find that Sunday.
 3. Set **Status** to **Moved**.
 4. Change **Time**, **At the**, and **Located at** as needed (for example 2:00 pm, Fifth Street chapel, 122 North Fifth Street, St Charles, MO 63301).
@@ -113,7 +113,7 @@ The homepage then uses the same sentence with those new blanks. The Service Sche
 
 ### The service is cancelled
 
-1. Open **Sunday Location**.
+1. Open **Recurring events** → **Sunday Service**.
 2. Find that Sunday.
 3. Set **Status** to **Cancelled**.
 4. Optional: add a **Note** (“No service — building closed”).
@@ -135,11 +135,11 @@ Board meetings are the third Monday at 6:30 pm. A regular meeting is at a **Rota
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
-**Where:** WordPress admin (the left-hand menu) → **Board Location**. It is a location pin, directly under **Sunday Location**.
+**Where:** WordPress admin (the left-hand menu) → **Recurring events** → choose **Board Meeting**. (Old bookmarks to Board Location still open this screen.)
 
-The screen lists the next 12 board Mondays. Each row has **Status**, **Time**, **At the**, **Located at**, and **Note**.
+The screen lists upcoming board Mondays. Each row has **Status**, **Time**, **At the**, **Located at**, and **Note**.
 
-Type this month’s place in **Located at** and click **Save board meetings**. The calendar uses that place as soon as you save. Leave **Located at** empty and the calendar says **Rotating**. Choose **Cancelled** when there is no meeting.
+Type this month’s place in **Located at** and click **Save**. The calendar uses that place as soon as you save. Leave **Located at** empty and the calendar says **Rotating**. Choose **Cancelled** when there is no meeting.
 
 ## Serving sign-ups — where admins see them
 
@@ -149,7 +149,7 @@ Type this month’s place in **Located at** and click **Save board meetings**. T
 
 ### If the church’s usual meeting place changes for good
 
-That is not a one-Sunday Moved. Open **Sunday Location** and change **Regular Sunday default**, then click **Update regular Sundays**. Visit Us (page 58) still has to match (section 4).
+That is not a one-Sunday Moved. Open **Recurring events** → **Sunday Service**, change **Regular Sunday default**, then click **Update regular Sundays**. Visit Us (page 58) still has to match (section 4).
 
 ## Homepage photo slider — how to change the pictures
 
@@ -275,7 +275,7 @@ The public **Calendar** and **Service Schedule** read the monthly theme, holiday
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
-**Where:** WordPress admin (the left-hand menu) → **Sunday Schedule**. It is a spreadsheet icon, just under **Sunday Location**.
+**Where:** WordPress admin (the left-hand menu) → **Sunday Schedule**. It is a spreadsheet icon near **Recurring events**.
 
 ### They edited the same spreadsheet (same file, same tab)
 
@@ -402,16 +402,12 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
   - The public **Service Schedule** page (437, `/schedule/`) is a month calendar of Sunday services. Monday ticks do not appear there.
 - [ ] **Visit Us: which address?** The page's text says **122 North Fifth Street, St Charles, MO 63301**, but the footer, homepage and Sunday Services say services are at the **St. Charles YMCA, 3900 Shady Springs Ln, St Peters, MO 63376**. The new map (2026-10-02) shows the YMCA. Is Fifth Street still used for anything, such as an office or mail? Then update the text, or the map, to match. There's also an unpublished draft, "Come Visit Us" (page 220): keep or delete?
   - The **Service Schedule** page says **Emerson Chapel** and links that name to Visit Us. Update Visit Us when the address is confirmed; the schedule page follows it. Change the words "Emerson Chapel" only if the church wants a different label (`EMERSON_SERVICE_PLACE` in `inc/service-schedule.php`).
-- [ ] **Visit Us: which map service?** The page uses an **OpenStreetMap** embed (added 2026-10-02): free, no account or API key, and no tracking cookies. Would the church prefer **Google Maps** instead?
-  - **A plain Google map embed** needs no key either, but Google may set cookies, so the Privacy Policy would need a line about it.
-  - **With their own Google Maps API key** (see "Google Maps" below), the same key would also turn on Church Admin's directory map and registration address lookup.
-  - **To switch:** replace the `<iframe class="emerson-map">` on Visit Us (page 58) with Google's **Share → Embed a map** code. Keep `class="emerson-map"` so the styling stays.
+- [x] **Visit Us: which map service?** Switched to a **keyless Google Maps** embed on page 58 (2026-10-30). Privacy Policy and Cookies pages mention it. Still no Google API key — that is only for Church Admin (directory map / registration lookup); ask the church separately (see next item).
 - [ ] **Religious Education: photo of Lauren.** The board would like to add a photo of the RE teacher, if she agrees. Get her written OK and the photo, then add it near the teacher sentence at the top of the page.
-- [ ] **Google Maps.** Do they want maps, and who would own the Google account?
-  - Church Admin can show a map on the registration form and in the member directory, but only with a Google Maps API key.
-  - That needs a Google Cloud account with billing turned on; normal church use should stay within the free allowance.
+- [ ] **Google Maps API key (Church Admin only).** The Visit Us page already uses a keyless Google embed. A paid/restricted **Google Maps API key** is still only needed if they want Church Admin's directory map and registration address lookup.
+  - That needs a Google Cloud account with billing turned on; normal church use should stay within the free allowance. Who would own the account?
   - If yes: restrict the key to the church's domain and paste it into **Church Admin → Settings**. Then test the registration form's address map, and turn the directory map on (`map="1"` in the address-list shortcode on the Members page).
-  - Until then, Maps isn't loaded at all (`inc/members.php`), so there's no console warning and no request to Google.
+  - Until then, Church Admin Maps isn't loaded at all (`inc/members.php`), so there's no console warning and no Maps JavaScript request from CA.
 - [x] **Spreadsheets for certain members** (local test 2026-10-05). Files live in `private-files/` (not Media). The Members hub lists them only for **administrators** and the **Finance** role. Still confirm with the church who should have Finance, whether they need to *edit* as well as view, and what is in the files.
   - **Ask:** who needs to see them? View only, or editing too? What information is in them (giving by person, pledge totals, budget, attendance)? How often is it updated?
   - Church Admin **Giving** stays separate (`/giving/`, Church Admin permissions).
@@ -448,7 +444,7 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
 
 The President liked some newer themes the intern showed. **Launch on this free theme first** (`emerson-uuchapel`, child of Twenty Twenty-Three). Do not change **Appearance → Themes** to get a modern look during launch.
 
-- **Emerson Chapel plugin** (`wp-content/plugins/emerson-chapel/`): Sunday Location, Documents, Modals, foil background, newsletter, members tools, serving dates, calendar helpers, and the feature CSS/JS. Keep this plugin **active**. It travels with a WPvivid backup that includes plugins, and it keeps working if the theme is swapped later.
+- **Emerson Chapel plugin** (`wp-content/plugins/emerson-chapel/`): Recurring events, Documents, Modals, foil background, newsletter, members tools, serving dates, calendar helpers, and the feature CSS/JS. Keep this plugin **active**. It travels with a WPvivid backup that includes plugins, and it keeps working if the theme is swapped later.
 - **What still lives in the child theme:** header/footer patterns, logo images, and block templates. A new theme needs those ported (or rebuilt) for the same chrome.
 - **What travels** on a theme switch without extra work: pages/posts in the database, media, Church Admin and other plugins, and the Emerson Chapel feature plugin (when active).
 - **Unused themes do nothing.** Leftover Magazine Pro CSS is still in the database; that theme is not active, so it has no effect.

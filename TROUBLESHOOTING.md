@@ -202,6 +202,34 @@ If a form contains an input named `action` (WordPress `admin-post.php` forms alw
 
 Members tick the dates they **can** serve (`inc/serving-dates.php`). Church Admin itself only stores "can't serve" dates, so the theme keeps its table filled in: every date a person hasn't ticked, for the next 6 months, counts as can't serve.
 
+### Emerson Monday Filter
+- **Symptom:** A member ticks many dates (or Mark all), saves, and only about half stay visible on the calendar / the list looks doubled with Mondays.
+- **Cause:** `wp_church_admin_services` can hold an orphan **Sunday Service** on **weekly Monday** with no `site_id`. **Premium Church Admin → Sites & Services** only lists services joined to a site, so that row is invisible in the UI but was still feeding Emerson’s date list.
+- **Fix in the plugin:** `emerson_monday_filter()` (hook `emerson_monday_filter`) limits serving form + sync dates to site-linked services, skips a “Sunday Service” with frequency `71`, and **removes** those Monday checkboxes from the Members page HTML (Church Admin still prints every service). wp-admin → **Emerson Monday Filter** shows frequencies, form dates, and orphan rows. See `CHANGELOG.md` 2026-10-29.
+- **Optional DB cleanup:** after a backup, delete the orphan row if it still exists (`service_id` 1 locally had `site_id` NULL). Not required for the form once the filter is live.
+- **Check frequencies in use:** open **Emerson Monday Filter** in the admin sidebar, or `docker compose run --rm -T wpcli eval 'print_r(emerson_monday_filter());'`
+
+### Choose person shows the wrong name / “missing” serving dates
+- **Symptom:** Choose person → **Alice Metz** only shows a few ticked Sundays; another test user has many more. Looks like the database did not save.
+- **Cause (2026-10-30):** `emerson_account_name()` prefers **WordPress first + last name** when a CA person has a `user_id`. Local test logins had **swapped** profile names: Alice’s admin test login (user #46 ↔ person #83) was labeled Fox Metz; the intern Contributor (user #47 ↔ person #84) was labeled Alice Metz. Picking “Alice Metz” edited person **#84**’s answers. Person #83 really only had three Sundays as `can_serve = 1`.
+- **Why it happened:** WP users and CA people were created separately (admin login auto-person vs hand-made “Fox Metz” test person). Friendly names were typed on the **wrong** WP profile later; CA directory names and WP names drifted.
+- **Fix:** Align both sides (done locally 2026-10-30): user #46 / person #83 = **Alice Metz**; user #47 / person #84 = **Fox Metz**. Trust **login email** + `people_id`, not the dropdown label alone.
+- **Playbook:** `~/.cursor/AGENT_MANUAL.md` → Local development → “WordPress + Church Admin: names on Choose person”.
+
+### Choose person → Fox still shows “3 dates”
+- **Symptom:** Logged in as Alice, Choose person → Fox Metz, the page still says only three Available dates.
+- **Cause:** The block under **My serving schedule** is always the **logged-in** person by design. Fox’s ticks are on the checkboxes under **Tick the dates Fox Metz can serve**.
+- **Fix (2026-10-30):** That form section now includes Fox’s own summary (and a note when you are editing someone else). Hard-refresh Members. Fox currently has **eight** Sundays checked in the DB (Mondays from the old duplicate service stay hidden by Emerson Monday Filter).
+
+### Audit: other users with Alice/Fox-style name confusion
+Ran 2026-10-30 over all CA people with a `user_id` (39 linked):
+- **No** duplicate Choose person labels
+- **No** WP first+last ≠ CA directory name mismatches
+- **No** missing WP users for a linked `user_id`
+- **No** empty labels
+- **Orphan Monday answer rows** (cleaned locally 2026-10-30): deleted all `DAYOFWEEK(serve_date)=2` rows from `wp_emerson_serving_answers` and matching `wp_emerson_serving_roles`, then `emerson_serving_sync()`. Sunday ticks left as-is. If Mondays creep back before the orphan CA service is gone, repeat that delete + sync.
+Re-check after adding test logins: compare WP profile first/last to CA `first_name`/`last_name` for the same `user_id`, and ensure Choose person labels are unique.
+
 - **Someone says they ticked a date but auto-fill still skips them.** Check their answers: `docker compose run --rm -T wpcli eval 'global $wpdb; print_r($wpdb->get_results("SELECT * FROM {$wpdb->prefix}emerson_serving_answers WHERE people_id = 80"));'` (use their Church Admin person number). Then re-run the sync for everyone: `docker compose run --rm -T wpcli eval 'emerson_serving_sync();'`
 - **An admin changed someone's dates on Church Admin's wp-admin screen (Schedules → Not available) and the change disappeared.** That screen edits Church Admin's table directly, and the daily sync puts it back to match the Members page answers. Use **Choose person** on the Members page instead.
 - **To go back to Church Admin's normal "can't serve" form:** first run `docker compose run --rm -T wpcli eval 'echo emerson_serving_undo();'`. It removes the upcoming "not answered" rows, keeps every real "can't serve" answer, and stops the daily job. Then remove the `require_once` line for `serving-dates.php` from `functions.php`. If you skip the undo step, everyone stays blocked on every unanswered date.

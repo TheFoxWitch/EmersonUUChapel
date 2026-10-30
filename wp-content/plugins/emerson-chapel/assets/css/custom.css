@@ -813,11 +813,14 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 }
 /** End Approximate Paypal Fees **/
 
+/* Match Community Survey chrome: same width, padding, and header/close layout. */
 .emerson-paypal-fees {
-	width: min(36rem, calc(100vw - 2rem));
+	width: min(46rem, calc(100% - 1.5rem));
+	max-width: min(46rem, calc(100% - 1.5rem));
+	box-sizing: border-box;
 	max-height: min(85vh, 40rem);
 	overflow: auto;
-	padding: 1.25rem 1.35rem 1.5rem;
+	padding: 1rem 1rem 0.75rem;
 	border: 0;
 	border-radius: 16px;
 	box-shadow: 0 12px 36px rgba(20, 24, 50, 0.22);
@@ -3051,6 +3054,18 @@ blockquote {
 		display: none;
 	}
 
+	/*
+	 * Weeks that cross months (e.g. Sep 27–Oct 3): Church Admin leaves the
+	 * other month’s cells empty/.ca-inactive. Compact week promotes those
+	 * padding cells so Emerson events stay visible on every day of the week.
+	 */
+	.emerson-ca-compact .ca-day.ca-inactive.is-compact-day,
+	.emerson-ca-compact .ca-day.emerson-ca-week-spill {
+		display: block;
+		background: #fff;
+		color: inherit;
+	}
+
 	.emerson-ca-compact .emerson-ca-service,
 	.emerson-ca-compact .emerson-ca-event {
 		font-size: 0.95em;
@@ -3100,12 +3115,15 @@ blockquote {
 	.emerson-ca-week-nav button {
 		box-sizing: border-box;
 		min-height: 44px;
-		padding: 0.35em 0.8em;
+		padding: 0.35em 0.65em;
 		border: 0;
 		border-radius: 3px;
 		background: #3f4fa0;
 		color: #fff;
 		font: inherit;
+		font-size: 0.8em;
+		line-height: 1.2;
+		white-space: nowrap;
 		text-align: center;
 		cursor: pointer;
 	}
@@ -3149,6 +3167,15 @@ blockquote {
 .emerson-ca-event__location {
 	font-weight: 400;
 	color: #444;
+}
+
+/* One shared rotating line when a day has multiple rotating-location events. */
+.emerson-ca-event--shared-place {
+	margin-top: 0.35em;
+	font-weight: 400;
+}
+.emerson-ca-event--shared-place .emerson-ca-event__location {
+	color: #666;
 }
 
 .emerson-ca-service__holiday,
@@ -3335,12 +3362,9 @@ blockquote {
 }
 /** End Sunday Morning Schedule sheet **/
 
-.emerson-modal .emerson-modal__heading {
-	margin: 0 1rem 0.75rem;
-	font-size: 1.25rem;
-}
+/* Heading lives in .emerson-recommit__bar (same as survey) — shared h2 rules apply. */
 .emerson-modal .emerson-modal__form {
-	padding: 0 1rem 1rem;
+	padding: 0 0 0.75rem;
 	overflow: auto;
 	max-height: min(70vh, 36rem);
 }

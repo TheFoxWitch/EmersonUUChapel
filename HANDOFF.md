@@ -1,10 +1,21 @@
 # Session handoff — UUA Church WordPress local dev
 
-Last updated: 2026-09-29
+Last updated: 2026-10-30
 
 **Full list of changes (and how to repeat each on the live site): [`CHANGELOG.md`](CHANGELOG.md).
 Problems hit and their fixes: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 Going live with a WPvivid backup of this local site: [`DEPLOY-WPVIVID.md`](DEPLOY-WPVIVID.md).** Add to these whenever something changes.
+
+### Emerson Monday Filter (2026-10-29)
+- **Why:** Serving-date checkboxes were listing Sundays *and* Mondays because of an orphan Church Admin service (Monday “Sunday Service” with no site). Sites & Services only shows site-linked services, so the orphan was invisible there. Calendar “You can serve” marks are Sunday-only, so about half of a member’s ticks (e.g. Alice Metz) looked missing.
+- **What changed:** `emerson_monday_filter()` in `wp-content/plugins/emerson-chapel/inc/serving-dates.php` — form + sync use site-linked frequencies only; Members form strips non-allowed (Monday) checkboxes CA still outputs; wp-admin sidebar **Emerson Monday Filter** shows status/orphans. Hook: `emerson_monday_filter`.
+- **Docs:** `CHANGELOG.md` (2026-10-29), `TROUBLESHOOTING.md` → Serving dates → Emerson Monday Filter, checklist note under serving schedule Monday dates.
+
+### Alice / Fox Choose person labels (2026-10-30, local DB)
+- WP + CA names were swapped: Choose person **Alice Metz** was person #84 (intern); **Fox Metz** was person #83 (Alice admin test login). Fixed to Alice=#83/#46, Fox=#84/#47.
+- **Why:** Separate WP user vs CA person creation; profile names edited on the wrong login. Not a serving-answers sync failure.
+- Playbook note: `~/.cursor/AGENT_MANUAL.md` (WordPress + Church Admin names). Project: `TROUBLESHOOTING.md`.
+- Follow-up: My serving schedule summary stayed on the login (Alice’s 3) while Choose person edited Fox’s boxes — looked like Fox only had three dates. Form now shows the **selected** person’s summary too.
 
 GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contains the docs, the Docker setup, the child theme, the mail catcher and `backups/`. No plugins, uploads or site backups (see `.gitignore`).
 

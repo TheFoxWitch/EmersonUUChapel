@@ -10,7 +10,45 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-10-30
+
+### Serving dates: Choose person summary matches the form
+- **Why:** After renaming Alice/Fox, Choose person → **Fox Metz** still looked like “only three dates” because the **You can serve…** line under My serving schedule is always the **logged-in** account. Admins logged in as Alice saw her three Sundays there while editing Fox’s checkboxes below.
+- **What:** The Serving dates form now prints a summary for the person on the form (Fox’s eight Sundays, etc.). If that person is not you, a short note says My serving schedule above is still yours. That block is labeled **Your serving dates**.
+- **File:** `wp-content/plugins/emerson-chapel/inc/serving-dates.php`.
+- **Audit:** All 39 CA people with a WordPress `user_id` checked for the same label swap — no other duplicate or mismatched Choose person names.
+
+### Serving answers: orphan Monday rows removed (local DB)
+- Deleted **1,981** Monday rows from `wp_emerson_serving_answers` and **18** Monday role rows from `wp_emerson_serving_roles` (leftover from the phantom weekly-Monday “Sunday Service”). Sunday answers unchanged (Alice still 3, Fox still 8). Re-ran `emerson_serving_sync()`.
+- **Where:** **Local DB** only.
+
+### Serving dates: Alice / Fox names unswapped (local DB)
+- **Why:** Choose person labeled the intern test login **Alice Metz** and the Alice admin test login **Fox Metz**, because WordPress first/last names were crossed. Serving ticks looked “missing” for Alice; they were on the other `people_id`.
+- **What:** WP user #46 + CA person #83 → **Alice Metz**; WP user #47 + CA person #84 → **Fox Metz**. Documented in `TROUBLESHOOTING.md` and the agent playbook (`AGENT_MANUAL.md`).
+- **Where:** **Local DB** only (Users + `church_admin_people`). Repeat on any copy that still has the swap.
+
+## 2026-10-29
+
+### Emerson Monday Filter (serving dates)
+- **Why:** Members (e.g. Alice Metz) who ticked many “Dates I can serve” boxes only saw about half of them again. Church Admin **Sites & Services** lists one Sunday service (`service_id` 2 at the YMCA). An older orphan row (`service_id` 1, also named “Sunday Service”, weekly **Monday**, `site_id` NULL) never appears in that UI but still lived in `wp_church_admin_services`. Emerson was reading every frequency, so the form listed Sunday *and* Monday. The public calendar only marks Sundays, so Monday ticks looked like they vanished.
+- **What:** `emerson_monday_filter()` — only site-linked services, skip “Sunday Service” on frequency `71`. Form + sync use it. The Members shortcode **strips** Monday checkboxes Church Admin still prints. Admin sidebar: **Emerson Monday Filter** (status, form dates, orphan rows). Hook: `emerson_monday_filter`.
+- **File:** `wp-content/plugins/emerson-chapel/inc/serving-dates.php`. Documented in `TROUBLESHOOTING.md`, `HANDOFF.md`, and the checklist Monday-dates note.
+
+### Calendar compact week: cross-month days stay visible
+- On phones, Previous/Next week for a week that spans two months (e.g. Sep 27–Oct 3) no longer drops the other month’s Emerson events. Church Admin leaves those cells empty/inactive; compact week now promotes the padding cells for the visible week and re-applies listings from the schedule sheet data.
+- Week nav buttons use a slightly smaller single-line label so **Previous week** no longer wraps on a phone.
+- Day sidebar no longer keeps Church Admin’s **No events today** when Emerson still lists a planning-sheet event for that date (e.g. Dec 24).
+- **File:** `wp-content/plugins/emerson-chapel/assets/js/custom.js`, `assets/css/custom.css`.
+
 ## 2026-10-27
+
+### Modals: shared width and close X placement
+- Approximate PayPal Fees, Commitment, and custom Modals builder dialogs use the Community Survey width (`46rem`) and put the title in the same header bar as the circular ×, so the close control lines up the same way in each dialog.
+- **File:** `wp-content/plugins/emerson-chapel/assets/css/custom.css`, `inc/modals.php`.
+
+### Calendar cells: one shared rotating-location line
+- When a day has more than one event at a rotating place, the month grid sorts those events by time, omits the per-event rotating line, and prints **Rotating location — check This Week at Emerson** once at the bottom of the cell. Fixed places still show on their own rows.
+- **File:** `wp-content/plugins/emerson-chapel/assets/js/custom.js`, `assets/css/custom.css`.
 
 ### Event Places: office-managed recurring series
 - Office can add, edit, and remove monthly recurring series on **Event Places** (Nth weekday + times + description). Sunday Service stays built-in and locked. Series live in the `emerson_listed_series` option; per-date places stay in `emerson_group_exceptions` keyed by series id (Board folds into the same path).

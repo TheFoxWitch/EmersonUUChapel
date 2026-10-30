@@ -65,6 +65,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
   - On 2026-10-02 there are 70. The five extra people are #79 alice fox, #80 test Mctest, #82 Test Testing, #83 (auto-created for the intern admin login) and #84 Fox Metz.
   - #84 Fox Metz (household #46) was added by hand so the intern's Contributor login (user #47) could test serving dates. It's hidden from the directory, with all email and text settings off.
   - Delete the person and household, but **keep user #47**. That login was made in WordPress, not through sign-up.
+  - **Names (fixed 2026-10-30):** WP #46 / CA #83 = **Alice Metz** (Alice admin test login); WP #47 / CA #84 = **Fox Metz** (intern test). They had been swapped on the WP profiles, so Choose person pointed at the wrong `people_id`.
 - [ ] **Click once to confirm these outside links** (from the 2026-09-30 broken-link scan; these sites block automated checks, so they're probably fine): Holocaust Museum (`hmlc.org`), O.A.S.I.S. Food Pantry, KIND (`supportkind.org`), the Poetry Foundation's Ralph Waldo Emerson page (FAQ), and the Intuit Mailchimp privacy statement (Privacy Policy).
 - [ ] **Questions for the church:** see section 4.
 - [x] **Last before the WPvivid backup: tidy the Mac's Docker PATH lines.** Done 2026-10-04. Housekeeping only; nothing was broken.
@@ -394,11 +395,11 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
 - [ ] **Launch date and freeze.** Agree a launch date. For a day or two before it, nobody edits Church Admin, posts or pages on the live site; urgent changes are emailed to the intern instead. The restore replaces the live database, so anything changed during the freeze would be lost.
 - [ ] **A fresh WPvivid backup from Harlan** (Database + Files) at the start of the freeze. It's used to find what changed on the live site since 2026-09-24 (`DEPLOY-WPVIVID.md` step A1), and it's a rollback point.
 
-- [ ] **Serving schedule: Monday dates.** "Dates I can't serve" lists every Monday as well as every Sunday (October 5, 12…).
-  - Church Admin has **two services, both called "Sunday Service" at 10:00 AM**. Service #1 is set to **Monday**, and service #2 has no day set.
-  - **Ask:** is there a Monday service or gathering that needs volunteers? If not, the fix is to correct service #1 to Sunday and remove the duplicate (**Church Admin → Schedules → Services**). Back up the database first, and check which service the past schedules use before removing one.
+- [x] **Serving schedule: Monday dates.** (Fixed 2026-10-29 — **Emerson Monday Filter** in `inc/serving-dates.php`.)
+  - **Was:** the Members form listed every Monday as well as every Sunday. Cause: orphan `wp_church_admin_services` row #1 (“Sunday Service”, weekly Monday, no `site_id`). **Sites & Services** only lists site-linked services (the real Sunday at the YMCA, `service_id` 2), so #1 never appeared in the UI but still fed Emerson.
+  - **Now:** `emerson_monday_filter()` only uses site-linked frequencies (and skips a “Sunday Service” on frequency `71`). Form and 6-month sync both use it. Optional: delete orphan #1 from the DB after a backup; not required for the form.
   - Also: no one is scheduled on any future date yet. Who builds the serving schedule now, and do they use Church Admin for it?
-  - The public **Service Schedule** page (437, `/schedule/`) is now its own month calendar of Sunday services from Church Admin's calendar, not the empty rota. Monday ticks on "Dates I can serve" do not appear there, because this calendar only lists Sundays.
+  - The public **Service Schedule** page (437, `/schedule/`) is a month calendar of Sunday services. Monday ticks do not appear there.
 - [ ] **Visit Us: which address?** The page's text says **122 North Fifth Street, St Charles, MO 63301**, but the footer, homepage and Sunday Services say services are at the **St. Charles YMCA, 3900 Shady Springs Ln, St Peters, MO 63376**. The new map (2026-10-02) shows the YMCA. Is Fifth Street still used for anything, such as an office or mail? Then update the text, or the map, to match. There's also an unpublished draft, "Come Visit Us" (page 220): keep or delete?
   - The **Service Schedule** page says **Emerson Chapel** and links that name to Visit Us. Update Visit Us when the address is confirmed; the schedule page follows it. Change the words "Emerson Chapel" only if the church wants a different label (`EMERSON_SERVICE_PLACE` in `inc/service-schedule.php`).
 - [ ] **Visit Us: which map service?** The page uses an **OpenStreetMap** embed (added 2026-10-02): free, no account or API key, and no tracking cookies. Would the church prefer **Google Maps** instead?

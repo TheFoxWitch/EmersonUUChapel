@@ -389,10 +389,12 @@ function emerson_custom_modals_dialogs(): void {
 		}
 		$dialog_id = 'emerson-modal-' . $modal['id'];
 		echo '<dialog id="' . esc_attr( $dialog_id ) . '" class="emerson-recommit emerson-modal" data-emerson-modal-id="' . esc_attr( $modal['id'] ) . '">';
-		echo '<div class="emerson-recommit__bar">' . emerson_modal_close_button( 'emerson-recommit__close' ) . '</div>';
+		echo '<div class="emerson-recommit__bar">';
 		if ( $modal['heading'] !== '' ) {
-			echo '<h2 class="emerson-modal__heading">' . esc_html( $modal['heading'] ) . '</h2>';
+			echo '<h2>' . esc_html( $modal['heading'] ) . '</h2>';
 		}
+		echo emerson_modal_close_button( 'emerson-recommit__close' );
+		echo '</div>';
 		if ( 'cff' === $modal['source'] ) {
 			echo '<div class="emerson-modal__form">';
 			echo do_shortcode( '[CP_CALCULATED_FIELDS id="' . (int) $modal['cff_id'] . '"]' );
@@ -518,6 +520,7 @@ function emerson_pledge_dialog(): void {
 	?>
 	<dialog id="emerson-pledge" class="emerson-recommit">
 		<div class="emerson-recommit__bar">
+			<h2><?php echo esc_html( $label ); ?></h2>
 			<?php echo emerson_modal_close_button( 'emerson-recommit__close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML. ?>
 		</div>
 		<?php if ( $src !== '' ) : ?>

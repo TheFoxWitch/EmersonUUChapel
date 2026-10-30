@@ -571,6 +571,28 @@
 			return (data.events && data.events[ymd]) || [];
 		}
 
+		var ROTATING_LOCATION_LINE = 'Rotating location — check This Week at Emerson';
+
+		function isRotatingLocation(location) {
+			var text = String(location || '')
+				.replace(/\u2014|\u2013/g, '-')
+				.replace(/\s+/g, ' ')
+				.trim()
+				.toLowerCase();
+			if (!text) {
+				return false;
+			}
+			return (
+				text.indexOf('rotating location') === 0 ||
+				text === 'rotating' ||
+				text.indexOf('check this week at emerson') !== -1
+			);
+		}
+
+		function eventTimeSortKey(item) {
+			return String((item && item.time) || '99:99:99');
+		}
+
 		function eventMark(item, showLocation) {
 			var mark = document.createElement('span');
 			mark.className = 'emerson-ca-event';
@@ -584,6 +606,16 @@
 				loc.textContent = item.location;
 				mark.appendChild(loc);
 			}
+			return mark;
+		}
+
+		function sharedRotatingMark() {
+			var mark = document.createElement('span');
+			mark.className = 'emerson-ca-event emerson-ca-event--shared-place';
+			var loc = document.createElement('span');
+			loc.className = 'emerson-ca-event__location';
+			loc.textContent = ROTATING_LOCATION_LINE;
+			mark.appendChild(loc);
 			return mark;
 		}
 
@@ -613,11 +645,26 @@
 						})
 					);
 				}
-				extras.forEach(function (item) {
-					if (item && item.title) {
-						day.appendChild(eventMark(item, true));
+				var listed = extras.filter(function (item) {
+					return item && item.title;
+				});
+				var rotatingCount = 0;
+				listed.forEach(function (item) {
+					if (isRotatingLocation(item.location)) {
+						rotatingCount += 1;
 					}
 				});
+				var collapseRotating = rotatingCount > 1;
+				listed.sort(function (a, b) {
+					return eventTimeSortKey(a).localeCompare(eventTimeSortKey(b));
+				});
+				listed.forEach(function (item) {
+					var showLoc = !(collapseRotating && isRotatingLocation(item.location));
+					day.appendChild(eventMark(item, showLoc));
+				});
+				if (collapseRotating) {
+					day.appendChild(sharedRotatingMark());
+				}
 				if (mark) {
 					day.appendChild(mark);
 				}
@@ -648,6 +695,30 @@
 			return current ? current.getAttribute('data-date') : '';
 		}
 
+		/*
+		 * Church Admin writes “No events today” when it has no calendar_date row.
+		 * Emerson still lists planning-sheet / series events in that sidebar — clear
+		 * the empty message so Dec 24 (etc.) does not contradict itself.
+		 */
+		function clearSidebarNoEventsMessage(list) {
+			if (!list) {
+				return;
+			}
+			Array.prototype.forEach.call(list.querySelectorAll(':scope > li'), function (li, index) {
+				if (index === 0) {
+					return;
+				}
+				var clone = li.cloneNode(true);
+				clone.querySelectorAll('.emerson-ca-service, .emerson-ca-roster, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-available').forEach(function (node) {
+					node.remove();
+				});
+				var text = (clone.textContent || '').replace(/\s+/g, ' ').trim();
+				if (/^no events today\.?$/i.test(text)) {
+					li.textContent = '';
+				}
+			});
+		}
+
 		function decorateSidebar() {
 			var list = document.querySelector('.ca-sidebar-list');
 			if (!list) {
@@ -666,11 +737,16 @@
 				});
 				return;
 			}
+			clearSidebarNoEventsMessage(list);
 			var title = list.querySelector('strong');
 			if (title && row && row.title && title.textContent.trim() === 'Sunday Service') {
 				title.textContent = row.title;
 			}
-			var host = title ? title.parentElement : list.querySelector('li:nth-child(2)') || list;
+			var host = title ? title.parentElement : list.querySelector('li:nth-child(2)');
+			if (!host) {
+				host = document.createElement('li');
+				list.appendChild(host);
+			}
 			if (host && row) {
 				host.appendChild(
 					detailHtml(
@@ -1097,6 +1173,91 @@
 			return !!document.querySelector('.ca-day[data-date="' + ymd + '"]:not(.ca-inactive)');
 		}
 
+		/*
+		 * Church Admin pads the month grid with empty .ca-inactive cells and does
+		 * not put adjacent-month dates on them. Compact week still needs Sun–Sat
+		 * when a week crosses months (e.g. Sep 27–Oct 3), so we temporarily
+		 * promote those padding cells for the visible week.
+		 */
+		function resetWeekSpillDays() {
+			document.querySelectorAll('.ca-day.emerson-ca-week-spill').forEach(function (day) {
+				if (day.classList.contains('emerson-ca-week-spill-host')) {
+					day.remove();
+					return;
+				}
+				day.classList.remove('emerson-ca-week-spill', 'is-compact-day', 'ca-current');
+				day.classList.add('ca-inactive');
+				day.removeAttribute('data-date');
+				day.innerHTML = '';
+			});
+		}
+
+		function markCompactDay(day, ymd) {
+			day.classList.add('is-compact-day');
+			Array.prototype.forEach.call(day.childNodes, function (node) {
+				if (node.nodeType === 3 && /^\s*\d{1,2}\s*$/.test(node.textContent || '')) {
+					var wrap = document.createElement('span');
+					wrap.className = 'emerson-ca-daynum';
+					wrap.textContent = node.textContent.trim();
+					day.replaceChild(wrap, node);
+				} else if (node.nodeType === 1 && node.classList.contains('ca-today')) {
+					node.classList.add('emerson-ca-daynum');
+				}
+			});
+			if (!day.querySelector('.emerson-ca-daynum') && !day.querySelector('.ca-today')) {
+				var num = document.createElement('span');
+				num.className = 'emerson-ca-daynum';
+				num.textContent = String(parseInt(ymd.slice(8), 10));
+				day.appendChild(num);
+			}
+			var label = day.querySelector('.emerson-ca-weekday');
+			if (!label) {
+				label = document.createElement('span');
+				label.className = 'emerson-ca-weekday';
+				day.insertBefore(label, day.firstChild);
+			}
+			label.textContent = parseYmd(ymd).toLocaleDateString(undefined, {
+				weekday: 'long',
+				month: 'short',
+				day: 'numeric'
+			});
+		}
+
+		function fillMissingCompactDays(week) {
+			var missing = week.filter(function (ymd) {
+				return !hasDatedDay(ymd);
+			});
+			if (!missing.length) {
+				return false;
+			}
+			var row =
+				document.querySelector('.ca-week:has(.is-compact-day)') ||
+				document.querySelector('.ca-week:has(.ca-day.ca-inactive)');
+			if (!row) {
+				return false;
+			}
+			// Padding cells in the same CA week row (not yet marked compact).
+			var slots = Array.prototype.filter.call(row.querySelectorAll('.ca-day'), function (day) {
+				return !day.classList.contains('is-compact-day');
+			});
+			var used = false;
+			missing.forEach(function (ymd, index) {
+				var day = slots[index];
+				if (!day) {
+					day = document.createElement('div');
+					day.className = 'ca-day emerson-ca-week-spill-host';
+					row.appendChild(day);
+				}
+				day.classList.remove('ca-inactive');
+				day.classList.add('emerson-ca-week-spill');
+				day.setAttribute('data-date', ymd);
+				day.innerHTML = '';
+				markCompactDay(day, ymd);
+				used = true;
+			});
+			return used;
+		}
+
 		function weekRangeLabel(start) {
 			var first = parseYmd(start);
 			var last = parseYmd(addDays(start, 6));
@@ -1185,8 +1346,8 @@
 			}
 			var compact = compactQuery.matches;
 			root.classList.toggle('emerson-ca-compact', compact);
-			var days = datedDays();
-			days.forEach(function (day) {
+			resetWeekSpillDays();
+			document.querySelectorAll('.ca-day[data-date], .ca-day.emerson-ca-week-spill-host').forEach(function (day) {
 				day.classList.remove('is-compact-day');
 				var label = day.querySelector('.emerson-ca-weekday');
 				if (!compact && label) {
@@ -1202,6 +1363,7 @@
 				weekStartYmd = '';
 				return;
 			}
+			var days = datedDays();
 			if (!days.length) {
 				return;
 			}
@@ -1233,29 +1395,13 @@
 				if (week.indexOf(ymd) === -1) {
 					return;
 				}
-				day.classList.add('is-compact-day');
-				Array.prototype.forEach.call(day.childNodes, function (node) {
-					if (node.nodeType === 3 && /^\s*\d{1,2}\s*$/.test(node.textContent || '')) {
-						var wrap = document.createElement('span');
-						wrap.className = 'emerson-ca-daynum';
-						wrap.textContent = node.textContent.trim();
-						day.replaceChild(wrap, node);
-					} else if (node.nodeType === 1 && node.classList.contains('ca-today')) {
-						node.classList.add('emerson-ca-daynum');
-					}
-				});
-				var label = day.querySelector('.emerson-ca-weekday');
-				if (!label) {
-					label = document.createElement('span');
-					label.className = 'emerson-ca-weekday';
-					day.insertBefore(label, day.firstChild);
-				}
-				label.textContent = parseYmd(ymd).toLocaleDateString(undefined, {
-					weekday: 'long',
-					month: 'short',
-					day: 'numeric'
-				});
+				markCompactDay(day, ymd);
 			});
+			var filled = fillMissingCompactDays(week);
+			if (filled) {
+				// Spill cells get data-date after the first decorateDays pass.
+				decorateDays();
+			}
 			if (render) {
 				ensureWeekNav(render);
 			}

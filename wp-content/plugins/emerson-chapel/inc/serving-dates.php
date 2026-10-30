@@ -100,11 +100,70 @@ add_action(
 	}
 );
 
+/**
+ * Emerson Monday Filter — service frequencies for Members serving dates.
+ *
+ * Why: Church Admin's Sites & Services list only shows services joined to a site.
+ * An orphan row (local service #1, "Sunday Service", weekly Monday, site_id NULL)
+ * never appears there, but still sat in wp_church_admin_services. Reading every
+ * frequency doubled the checkbox list (Sun + Mon). Members who ticked both saw
+ * about half their marks missing on the Sunday-only calendar.
+ *
+ * What: Use the same site join as Sites & Services, and drop any remaining
+ * "Sunday Service" wrongly set to weekly Monday (frequency 71). Extensible via
+ * the `emerson_monday_filter` hook.
+ *
+ * @return list<string>
+ */
+function emerson_monday_filter(): array {
+	global $wpdb;
+	$rows = $wpdb->get_results(
+		"SELECT s.service_id, s.service_name, s.service_frequency
+		FROM {$wpdb->prefix}church_admin_services s
+		INNER JOIN {$wpdb->prefix}church_admin_sites site ON site.site_id = s.site_id
+		ORDER BY s.service_day, s.service_id"
+	);
+	$frequencies = array();
+	if ( is_array( $rows ) ) {
+		foreach ( $rows as $row ) {
+			$frequency = (string) ( $row->service_frequency ?? '' );
+			$name      = (string) ( $row->service_name ?? '' );
+			if ( '71' === $frequency && false !== stripos( $name, 'Sunday' ) ) {
+				continue;
+			}
+			if ( '' !== $frequency ) {
+				$frequencies[] = $frequency;
+			}
+		}
+	}
+	/**
+	 * Frequencies after Emerson Monday Filter (site-linked services only).
+	 *
+	 * @param list<string> $frequencies Church Admin service_frequency values.
+	 */
+	return array_values( apply_filters( 'emerson_monday_filter', $frequencies ) );
+}
+
+/**
+ * Orphan / hidden services that Sites & Services does not list (no site_id).
+ *
+ * @return list<object>
+ */
+function emerson_monday_filter_orphan_services(): array {
+	global $wpdb;
+	$rows = $wpdb->get_results(
+		"SELECT service_id, service_name, service_frequency, service_day, site_id, active
+		FROM {$wpdb->prefix}church_admin_services
+		WHERE site_id IS NULL OR site_id = 0
+		ORDER BY service_id"
+	);
+	return is_array( $rows ) ? $rows : array();
+}
+
 /** The dates Church Admin's form lists (its next dozen or so per service), oldest first. */
 function emerson_serving_form_dates(): array {
-	global $wpdb;
 	$days = array();
-	foreach ( $wpdb->get_col( "SELECT service_frequency FROM {$wpdb->prefix}church_admin_services ORDER BY service_day" ) as $frequency ) {
+	foreach ( emerson_monday_filter() as $frequency ) {
 		$next = church_admin_premium_get_next_twelve( $frequency );
 		if ( is_array( $next ) ) {
 			$days = $days + $next;
@@ -116,11 +175,10 @@ function emerson_serving_form_dates(): array {
 
 /** The form's dates plus every weekly service date up to auto-fill's furthest reach. */
 function emerson_serving_sync_dates(): array {
-	global $wpdb;
 	$dates = emerson_serving_form_dates();
 	$today = current_time( 'Y-m-d' );
 	$end   = ( new DateTime( $today ) )->modify( '+' . EMERSON_SERVING_MONTHS . ' months' );
-	foreach ( $wpdb->get_col( "SELECT service_frequency FROM {$wpdb->prefix}church_admin_services" ) as $frequency ) {
+	foreach ( emerson_monday_filter() as $frequency ) {
 		if ( ! preg_match( '/^7([0-6])$/', (string) $frequency, $m ) ) {
 			continue;
 		}
@@ -391,6 +449,20 @@ add_filter(
 			$output = preg_replace( '#<h3>Set non availability for (.*?)</h3>#', '<h3>Tick the dates $1 can serve</h3>', $output );
 		}
 
+		// Summary must match the person on this form (Choose person), not only the login.
+		$logged_in   = emerson_serving_logged_in_person();
+		$form_is_own = $logged_in && (int) $logged_in->people_id === (int) $person->people_id;
+		$form_summary = emerson_serving_summary_html( $person, (bool) $form_is_own );
+		if ( ! $form_is_own ) {
+			$form_summary = '<p class="emerson-serving-editing-note"><strong>Editing someone else.</strong> The list under My serving schedule above is still <em>your</em> dates. These boxes and the line below are for <strong>' . $name . '</strong>.</p>' . $form_summary;
+		}
+		$output = preg_replace(
+			'#(<h3>Tick the dates .*?</h3>)#',
+			'$1' . $form_summary,
+			$output,
+			1
+		) ?? $output;
+
 		$directory = $wpdb->get_results( 'SELECT people_id, first_name, last_name, user_id FROM ' . $wpdb->prefix . 'church_admin_people' );
 		$labels    = array();
 		foreach ( $directory as $row ) {
@@ -429,6 +501,16 @@ add_filter(
 			},
 			$output
 		);
+		// Church Admin still prints every service (including orphan Mondays). Drop
+		// dates Emerson Monday Filter does not allow before role boxes are added.
+		$allowed_dates = emerson_serving_form_dates();
+		$output        = preg_replace_callback(
+			'#<div class="church-admin-form-group"><input type="checkbox" name="can_serve\[\]" id="can-serve-(\d{4}-\d{2}-\d{2})"[^>]*> <label for="can-serve-\1">.*?</label></div>#s',
+			static function ( array $m ) use ( $allowed_dates ): string {
+				return in_array( $m[1], $allowed_dates, true ) ? $m[0] : '';
+			},
+			$output
+		) ?? $output;
 		if ( function_exists( 'emerson_sunday_exception' ) ) {
 			foreach ( emerson_serving_form_dates() as $serve_date ) {
 				$ex = emerson_sunday_exception( $serve_date );
@@ -497,7 +579,8 @@ add_filter(
 		if ( ! $person ) {
 			return $output;
 		}
-		$summary = emerson_serving_summary_html( $person, true );
+		$summary = '<p class="emerson-serving-own-label"><strong>Your serving dates</strong> (always this login — Choose person does not change this block)</p>'
+			. emerson_serving_summary_html( $person, true );
 		$updated = preg_replace( '#<h2>\s*My schedule\s*</h2>#', $summary, $output, 1, $count );
 		return $count ? $updated : $output;
 	},
@@ -548,9 +631,69 @@ add_action(
 			'emerson-serving-signups',
 			'emerson_serving_signups_page'
 		);
+		add_menu_page(
+			'Emerson Monday Filter',
+			'Emerson Monday Filter',
+			'edit_pages',
+			'emerson-monday-filter',
+			'emerson_monday_filter_admin_page',
+			'dashicons-calendar-alt',
+			57.6
+		);
 	},
 	20
 );
+
+/**
+ * Admin screen for Emerson Monday Filter — status, orphans, dates in use.
+ */
+function emerson_monday_filter_admin_page(): void {
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		wp_die( esc_html__( 'You do not have permission to view Emerson Monday Filter.' ) );
+	}
+	$frequencies = function_exists( 'emerson_monday_filter' ) ? emerson_monday_filter() : array();
+	$form_dates  = function_exists( 'emerson_serving_form_dates' ) ? emerson_serving_form_dates() : array();
+	$orphans     = emerson_monday_filter_orphan_services();
+
+	echo '<div class="wrap"><h1>Emerson Monday Filter</h1>';
+	echo '<p>Keeps <strong>Members → Dates I can serve</strong> aligned with <strong>Sites &amp; Services</strong>. Church Admin can leave an orphan “Sunday Service” on Mondays (no site) in the database; that row never appears under Sites &amp; Services but used to double the checkbox list. The public calendar only marks Sundays, so about half of a member’s ticks looked missing.</p>';
+	echo '<p><strong>What this does:</strong> only site-linked service frequencies feed the form and the 6-month sync; any “Sunday Service” on weekly Monday (frequency <code>71</code>) is skipped; Monday checkboxes Church Admin still prints are stripped from the Members form.</p>';
+
+	echo '<h2>Frequencies in use</h2>';
+	if ( $frequencies ) {
+		echo '<ul>';
+		foreach ( $frequencies as $frequency ) {
+			echo '<li><code>' . esc_html( (string) $frequency ) . '</code></li>';
+		}
+		echo '</ul>';
+	} else {
+		echo '<p>None — check that a service is linked to a site under Sites &amp; Services.</p>';
+	}
+
+	echo '<h2>Dates on the Members form (' . count( $form_dates ) . ')</h2>';
+	if ( $form_dates ) {
+		echo '<ol>';
+		foreach ( $form_dates as $ymd ) {
+			echo '<li>' . esc_html( mysql2date( get_option( 'date_format' ), $ymd ) ) . ' <code>' . esc_html( $ymd ) . '</code></li>';
+		}
+		echo '</ol>';
+	} else {
+		echo '<p>No dates.</p>';
+	}
+
+	echo '<h2>Orphan services (hidden from Sites &amp; Services)</h2>';
+	if ( $orphans ) {
+		echo '<p>These rows have no site, so the Church Admin list hides them. Emerson ignores them for serving dates. Optional cleanup: back up the database, then delete the row in phpMyAdmin / SQL if you are sure nothing else needs it.</p>';
+		echo '<table class="widefat striped"><thead><tr><th>ID</th><th>Name</th><th>Frequency</th><th>Day</th><th>Active</th></tr></thead><tbody>';
+		foreach ( $orphans as $row ) {
+			echo '<tr><td>' . (int) $row->service_id . '</td><td>' . esc_html( (string) $row->service_name ) . '</td><td><code>' . esc_html( (string) $row->service_frequency ) . '</code></td><td>' . esc_html( (string) ( $row->service_day ?? '' ) ) . '</td><td>' . ( (int) $row->active === 1 ? 'Yes' : 'No' ) . '</td></tr>';
+		}
+		echo '</tbody></table>';
+	} else {
+		echo '<p>None found. The filter still guards the form if an orphan appears later.</p>';
+	}
+	echo '</div>';
+}
 
 add_action(
 	'admin_menu',

@@ -1,6 +1,7 @@
 <?php
 /**
- * Event Places: one admin screen for Sunday Service and office-managed recurring series.
+ * Recurring events (admin label): one screen for Sunday Service and office-managed series.
+ * Internal slug/page id stays emerson-event-places.
  *
  * Dropdown picks the series; the table edits upcoming dates. Emerson stores exceptions;
  * each save also writes location and time onto the matching Church Admin calendar row.
@@ -215,8 +216,8 @@ add_action(
 	'admin_menu',
 	static function (): void {
 		add_menu_page(
-			'Event Places',
-			'Event Places',
+			'Recurring events',
+			'Recurring events',
 			'edit_pages',
 			'emerson-event-places',
 			'emerson_event_places_admin_page',
@@ -228,7 +229,7 @@ add_action(
 
 function emerson_event_places_admin_page(): void {
 	if ( ! current_user_can( 'edit_pages' ) ) {
-		wp_die( esc_html__( 'You do not have permission to edit Event Places.' ) );
+		wp_die( esc_html__( 'You do not have permission to edit Recurring events.' ) );
 	}
 
 	$series_notice   = emerson_event_places_series_admin_save();
@@ -252,7 +253,7 @@ function emerson_event_places_admin_page(): void {
 	$edit_id   = isset( $_GET['edit_series'] ) ? sanitize_title( (string) wp_unslash( $_GET['edit_series'] ) ) : '';
 	$edit_rule = $edit_id !== '' ? emerson_listed_series_by_id( $edit_id ) : null;
 
-	echo '<div class="wrap emerson-sunday-admin emerson-event-places"><h1>Event Places</h1>';
+	echo '<div class="wrap emerson-sunday-admin emerson-event-places"><h1>Recurring events</h1>';
 	echo '<style>'
 		. '.emerson-sunday-admin table input.large-text,.emerson-sunday-admin .emerson-sunday-default input.large-text{min-width:16rem}'
 		. '.emerson-sunday-admin input.emerson-sunday-time{width:7.5rem}'

@@ -816,14 +816,14 @@ function emerson_schedule_admin_seed_groups(): ?string {
 	}
 	$added = emerson_calendar_seed_listed_events();
 	if ( $added === 0 ) {
-		return 'Event Places series already have upcoming dates on the calendar.';
+		return 'Recurring events series already have upcoming dates on the calendar.';
 	}
-	return 'Added ' . $added . ' group date' . ( 1 === $added ? '' : 's' ) . ' to Church Admin. Edit places in Event Places.';
+	return 'Added ' . $added . ' group date' . ( 1 === $added ? '' : 's' ) . ' to Church Admin. Edit places under Recurring events.';
 }
 
 function emerson_schedule_admin_groups_form(): void {
-	echo '<h2>Recurring Event Places series</h2>';
-	echo '<p>Office-managed series (Womyn’s Web, Men’s Night, Board Meeting, and any added in <strong>Event Places</strong>) are Church Admin calendar events, so a click on the month grid offers an iCal download like Sunday Service. They default to <strong>Rotating location — check This Week at Emerson</strong>. Add, edit, or remove series and name this month’s host in <strong>Event Places</strong>.</p>';
+	echo '<h2>Recurring events series</h2>';
+	echo '<p>Office-managed series (Womyn’s Web, Men’s Night, Board Meeting, and any added under <strong>Recurring events</strong>) are Church Admin calendar events, so a click on the month grid offers an iCal download like Sunday Service. They default to <strong>Rotating location — check This Week at Emerson</strong>. Add, edit, or remove series and name this month’s host under <strong>Recurring events</strong>.</p>';
 	echo '<form method="post">';
 	wp_nonce_field( 'emerson_schedule_save' );
 	echo '<p class="submit"><button type="submit" name="emerson_schedule_seed_groups" value="1" class="button">Add missing group dates</button></p>';

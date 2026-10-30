@@ -30,7 +30,7 @@ Use a private window (Cmd+Shift+P) for anything that should be tested logged out
 - [x] **Ways to Connect form** (`/ways-to-connect/`): same results as the pop-up
 - [ ] **Re-commitment Form** (homepage). How to change the Microsoft Form is in **Re-commitment Form — how to update the link**.
 - [ ] **Office mail copies.** How to change who receives messages sent to `office@emersonuuchapel.org` is in **Office mail — who receives a copy**.
-- [ ] **Sunday Location** (homepage + **Sunday Location** in the WordPress admin). How to update it is in the section after this one.
+- [ ] **Sunday place** (homepage + **Recurring events** → **Sunday Service**). How to update it is in the section after this one.
   - Homepage says **This week, meet us at 10 am, at the St. Charles YMCA located at …**, then moves on after that service
   - Marking a Sunday **Cancelled** or **Moved** updates the homepage and the Service Schedule
   - Anyone assigned that day, or who ticked they can serve, gets an email (redirected locally), and the office gets a copy
@@ -86,7 +86,7 @@ The homepage heading **Sunday Service Location** can still be edited on the page
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
-**Where:** WordPress admin (the left-hand menu) → **Sunday Location**. It is a calendar icon, below the usual Pages / Posts items.
+**Where:** WordPress admin (the left-hand menu) → **Recurring events** → choose **Sunday Service**. (Old bookmarks to Sunday Location still open this screen.)
 
 The screen lists the next 12 Sundays. Each row has **Status**, **Time**, **At the** (the building name), **Located at** (the street address), **Note**, and **Signed up** (who would be emailed).
 
@@ -102,7 +102,7 @@ Do nothing. The homepage already says:
 
 ### The service moved (different time and/or building)
 
-1. Open **Sunday Location**.
+1. Open **Recurring events** → **Sunday Service**.
 2. Find that Sunday.
 3. Set **Status** to **Moved**.
 4. Change **Time**, **At the**, and **Located at** as needed (for example 2:00 pm, Fifth Street chapel, 122 North Fifth Street, St Charles, MO 63301).
@@ -113,7 +113,7 @@ The homepage then uses the same sentence with those new blanks. The Service Sche
 
 ### The service is cancelled
 
-1. Open **Sunday Location**.
+1. Open **Recurring events** → **Sunday Service**.
 2. Find that Sunday.
 3. Set **Status** to **Cancelled**.
 4. Optional: add a **Note** (“No service — building closed”).
@@ -135,11 +135,11 @@ Board meetings are the third Monday at 6:30 pm. A regular meeting is at a **Rota
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
-**Where:** WordPress admin (the left-hand menu) → **Board Location**. It is a location pin, directly under **Sunday Location**.
+**Where:** WordPress admin (the left-hand menu) → **Recurring events** → choose **Board Meeting**. (Old bookmarks to Board Location still open this screen.)
 
-The screen lists the next 12 board Mondays. Each row has **Status**, **Time**, **At the**, **Located at**, and **Note**.
+The screen lists upcoming board Mondays. Each row has **Status**, **Time**, **At the**, **Located at**, and **Note**.
 
-Type this month’s place in **Located at** and click **Save board meetings**. The calendar uses that place as soon as you save. Leave **Located at** empty and the calendar says **Rotating**. Choose **Cancelled** when there is no meeting.
+Type this month’s place in **Located at** and click **Save**. The calendar uses that place as soon as you save. Leave **Located at** empty and the calendar says **Rotating**. Choose **Cancelled** when there is no meeting.
 
 ## Serving sign-ups — where admins see them
 
@@ -149,7 +149,7 @@ Type this month’s place in **Located at** and click **Save board meetings**. T
 
 ### If the church’s usual meeting place changes for good
 
-That is not a one-Sunday Moved. Open **Sunday Location** and change **Regular Sunday default**, then click **Update regular Sundays**. Visit Us (page 58) still has to match (section 4).
+That is not a one-Sunday Moved. Open **Recurring events** → **Sunday Service**, change **Regular Sunday default**, then click **Update regular Sundays**. Visit Us (page 58) still has to match (section 4).
 
 ## Homepage photo slider — how to change the pictures
 
@@ -275,7 +275,7 @@ The public **Calendar** and **Service Schedule** read the monthly theme, holiday
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
-**Where:** WordPress admin (the left-hand menu) → **Sunday Schedule**. It is a spreadsheet icon, just under **Sunday Location**.
+**Where:** WordPress admin (the left-hand menu) → **Sunday Schedule**. It is a spreadsheet icon near **Recurring events**.
 
 ### They edited the same spreadsheet (same file, same tab)
 
@@ -448,7 +448,7 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
 
 The President liked some newer themes the intern showed. **Launch on this free theme first** (`emerson-uuchapel`, child of Twenty Twenty-Three). Do not change **Appearance → Themes** to get a modern look during launch.
 
-- **Emerson Chapel plugin** (`wp-content/plugins/emerson-chapel/`): Sunday Location, Documents, Modals, foil background, newsletter, members tools, serving dates, calendar helpers, and the feature CSS/JS. Keep this plugin **active**. It travels with a WPvivid backup that includes plugins, and it keeps working if the theme is swapped later.
+- **Emerson Chapel plugin** (`wp-content/plugins/emerson-chapel/`): Recurring events, Documents, Modals, foil background, newsletter, members tools, serving dates, calendar helpers, and the feature CSS/JS. Keep this plugin **active**. It travels with a WPvivid backup that includes plugins, and it keeps working if the theme is swapped later.
 - **What still lives in the child theme:** header/footer patterns, logo images, and block templates. A new theme needs those ported (or rebuilt) for the same chrome.
 - **What travels** on a theme switch without extra work: pages/posts in the database, media, Church Admin and other plugins, and the Emerson Chapel feature plugin (when active).
 - **Unused themes do nothing.** Leftover Magazine Pro CSS is still in the database; that theme is not active, so it has no effect.

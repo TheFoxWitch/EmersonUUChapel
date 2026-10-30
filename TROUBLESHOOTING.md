@@ -205,7 +205,8 @@ Members tick the dates they **can** serve (`inc/serving-dates.php`). Church Admi
 ### Emerson Monday Filter
 - **Symptom:** A member ticks many dates (or Mark all), saves, and only about half stay visible on the calendar / the list looks doubled with Mondays.
 - **Cause:** `wp_church_admin_services` can hold an orphan **Sunday Service** on **weekly Monday** with no `site_id`. **Premium Church Admin → Sites & Services** only lists services joined to a site, so that row is invisible in the UI but was still feeding Emerson’s date list.
-- **Fix in the plugin:** `emerson_monday_filter()` (hook `emerson_monday_filter`) limits serving form + sync dates to site-linked services, skips a “Sunday Service” with frequency `71`, and **removes** those Monday checkboxes from the Members page HTML (Church Admin still prints every service). wp-admin → **Emerson Monday Filter** shows frequencies, form dates, and orphan rows. See `CHANGELOG.md` 2026-10-29.
+- **Fix in the plugin:** `emerson_monday_filter()` (hook `emerson_monday_filter`) limits serving form + sync dates to site-linked services, skips a “Sunday Service” with frequency `71`, and **removes** those Monday checkboxes from the Members page HTML (Church Admin still prints every service). wp-admin → **Emerson Monday Filter** shows frequencies, form dates, and orphan rows, and an **On / Off** checkbox (default on, with a warning). See `CHANGELOG.md` 2026-10-29 / 2026-10-30.
+- **Turning it off:** only if the office accepts Mondays on the form again, or after fixing Church Admin. Prefer Sites & Services → real Monday service with a site.
 - **Optional DB cleanup:** after a backup, delete the orphan row if it still exists (`service_id` 1 locally had `site_id` NULL). Not required for the form once the filter is live.
 - **Check frequencies in use:** open **Emerson Monday Filter** in the admin sidebar, or `docker compose run --rm -T wpcli eval 'print_r(emerson_monday_filter());'`
 

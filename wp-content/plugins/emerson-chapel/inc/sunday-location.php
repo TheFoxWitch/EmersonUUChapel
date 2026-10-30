@@ -526,7 +526,7 @@ function emerson_sunday_can_manage(): bool {
 	return current_user_can( 'edit_pages' );
 }
 
-/* No sidebar item — Event Places is the editor. Old bookmarks still redirect. */
+/* No sidebar item — Recurring events is the editor. Old bookmarks still redirect. */
 add_action(
 	'admin_menu',
 	static function (): void {
@@ -774,7 +774,7 @@ function emerson_sunday_defaults_save(): ?string {
 	);
 }
 
-/** Old menu slug: send the office to Event Places with Sunday selected. */
+/** Old menu slug: send the office to Recurring events with Sunday selected. */
 function emerson_sunday_admin_page(): void {
 	if ( ! emerson_sunday_can_manage() ) {
 		wp_die( esc_html__( 'You do not have permission to edit Sunday Location.' ) );

@@ -6,10 +6,11 @@ Last updated: 2026-10-30
 Problems hit and their fixes: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 Going live with a WPvivid backup of this local site: [`DEPLOY-WPVIVID.md`](DEPLOY-WPVIVID.md).** Add to these whenever something changes.
 
-### Emerson Monday Filter (2026-10-29)
+### Emerson Monday Filter (2026-10-29 / toggle 2026-10-30)
 - **Why:** Serving-date checkboxes were listing Sundays *and* Mondays because of an orphan Church Admin service (Monday “Sunday Service” with no site). Sites & Services only shows site-linked services, so the orphan was invisible there. Calendar “You can serve” marks are Sunday-only, so about half of a member’s ticks (e.g. Alice Metz) looked missing.
-- **What changed:** `emerson_monday_filter()` in `wp-content/plugins/emerson-chapel/inc/serving-dates.php` — form + sync use site-linked frequencies only; Members form strips non-allowed (Monday) checkboxes CA still outputs; wp-admin sidebar **Emerson Monday Filter** shows status/orphans. Hook: `emerson_monday_filter`.
-- **Docs:** `CHANGELOG.md` (2026-10-29), `TROUBLESHOOTING.md` → Serving dates → Emerson Monday Filter, checklist note under serving schedule Monday dates.
+- **What changed:** `emerson_monday_filter()` in `wp-content/plugins/emerson-chapel/inc/serving-dates.php` — form + sync use site-linked frequencies only; Members form strips non-allowed (Monday) checkboxes CA still outputs; wp-admin sidebar **Emerson Monday Filter** shows status/orphans and an **On / Off** control (default on, warning if turned off). Hook: `emerson_monday_filter`. Option: `emerson_monday_filter_on`.
+- **Handoff line:** “You can turn it off under Emerson Monday Filter, but leave it on unless you fix the orphan Monday service — or add a real Monday service with a site.”
+- **Docs:** `CHANGELOG.md`, `TROUBLESHOOTING.md` → Serving dates → Emerson Monday Filter.
 
 ### Alice / Fox Choose person labels (2026-10-30, local DB)
 - WP + CA names were swapped: Choose person **Alice Metz** was person #84 (intern); **Fox Metz** was person #83 (Alice admin test login). Fixed to Alice=#83/#46, Fox=#84/#47.
@@ -92,7 +93,7 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
 
 | What | Where |
 |------|-------|
-| Chapel features (Sunday Location, Documents, Modals, foil, members tools, …) | Plugin `wp-content/plugins/emerson-chapel/` — PHP in `inc/`, CSS/JS in `assets/` |
+| Chapel features (Recurring events, Documents, Modals, foil, members tools, …) | Plugin `wp-content/plugins/emerson-chapel/` — PHP in `inc/`, CSS/JS in `assets/` |
 | Site-wide feature CSS | `wp-content/plugins/emerson-chapel/assets/css/custom.css` |
 | Site-wide feature JS | `wp-content/plugins/emerson-chapel/assets/js/custom.js` |
 | Theme layout / branding only | Child theme `wp-content/themes/emerson-uuchapel/` (patterns, parts, logo images). `functions.php` no longer loads feature code. |

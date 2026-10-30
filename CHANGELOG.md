@@ -12,6 +12,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-10-30
 
+### Recurring events (renamed Event Places menu)
+- The admin sidebar label and screen title are **Recurring events**. Slug `emerson-event-places`, PHP helpers, and CSS classes are unchanged so old Sunday Location / Board Location bookmarks still work.
+- **File:** `wp-content/plugins/emerson-chapel/inc/event-places.php`, `inc/sunday-schedule-sheet.php`, `TEST-AND-LAUNCH-CHECKLIST.md`.
+
+### Emerson Monday Filter: On / Off for handoff
+- wp-admin → **Emerson Monday Filter** has a checkbox (default **on**) with a warning: leave it on unless the orphan Monday service is fixed, or Mondays on Members will return and calendar ticks can look “missing” again. Saving re-runs the serving sync. Prefer a real Monday service with a site if they need Monday volunteers.
+- **File:** `wp-content/plugins/emerson-chapel/inc/serving-dates.php`. Option: `emerson_monday_filter_on`.
+
 ### Serving dates: Choose person summary matches the form
 - **Why:** After renaming Alice/Fox, Choose person → **Fox Metz** still looked like “only three dates” because the **You can serve…** line under My serving schedule is always the **logged-in** account. Admins logged in as Alice saw her three Sundays there while editing Fox’s checkboxes below.
 - **What:** The Serving dates form now prints a summary for the person on the form (Fox’s eight Sundays, etc.). If that person is not you, a short note says My serving schedule above is still yours. That block is labeled **Your serving dates**.

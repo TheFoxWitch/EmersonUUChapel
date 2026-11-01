@@ -165,6 +165,36 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	}
 	header .wp-block-navigation__responsive-container.is-menu-open {
 		animation: emerson-nav-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+		background: var(--emerson-blue) !important;
+		background-color: var(--emerson-blue) !important;
+		color: #fff;
+	}
+	/* White nav labels + submenu chevrons on the blue overlay. */
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item__content,
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation-item__label {
+		color: #fff !important;
+	}
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__submenu-icon,
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__submenu-icon svg,
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__submenu-icon path {
+		color: #fff;
+		stroke: #fff;
+		fill: none;
+	}
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__submenu-container {
+		background: transparent;
+		background-color: transparent;
+		border: 0;
+		color: #fff;
+	}
+	/* Close (X) uses currentColor — keep it white on the blue panel. */
+	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-close.emerson-nav-burger {
+		color: #fff;
+	}
+	/* Foil page glow must not wash white-on-blue nav text. */
+	header .wp-block-navigation__responsive-container.is-menu-open,
+	header .wp-block-navigation__responsive-container.is-menu-open * {
+		text-shadow: none !important;
 	}
 	header .wp-block-navigation__responsive-container-open svg,
 	header .wp-block-navigation__responsive-container-close svg,
@@ -286,8 +316,8 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	margin: 0;
 	overflow: hidden !important;
 	pointer-events: none !important;
-	background: #fff;
-	color: #000;
+	background: var(--emerson-blue);
+	color: #fff;
 	transform: translate3d(0, 0, 0);
 	/* Match open slide timing/easing exactly. */
 	transition: transform var(--emerson-nav-motion);
@@ -295,13 +325,38 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
 }
-/* Opaque fill on its own layer so the white cover can’t drop out mid-transform. */
+/* Opaque fill on its own layer so the cover can’t drop out mid-transform. */
 .emerson-nav-exit-ghost::before {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: #fff;
+	background: var(--emerson-blue);
 	z-index: 0;
+}
+.emerson-nav-exit-ghost .wp-block-navigation-item__content,
+.emerson-nav-exit-ghost .wp-block-navigation-item__label {
+	color: #fff !important;
+}
+.emerson-nav-exit-ghost .wp-block-navigation__submenu-icon,
+.emerson-nav-exit-ghost .wp-block-navigation__submenu-icon svg,
+.emerson-nav-exit-ghost .wp-block-navigation__submenu-icon path {
+	color: #fff;
+	stroke: #fff;
+	fill: none;
+}
+.emerson-nav-exit-ghost .wp-block-navigation__submenu-container {
+	background: transparent;
+	background-color: transparent;
+	border: 0;
+	color: #fff;
+}
+.emerson-nav-exit-ghost .emerson-nav-burger {
+	color: #fff;
+}
+/* Exit ghost is appended to body (outside .wp-site-blocks foil exclude). */
+.emerson-nav-exit-ghost,
+.emerson-nav-exit-ghost * {
+	text-shadow: none !important;
 }
 .emerson-nav-exit-ghost .wp-block-navigation__responsive-close {
 	position: absolute;
@@ -1831,6 +1886,7 @@ input.ca-search-submit:focus-visible {
  * Covers directory letters + household card, search result cards, register/edit
  * household, and other Church Admin shortcode white boxes (CA's stock shadow is
  * a hard 5px grey). CA's class is church_admin_search_result (underscores).
+ * Homepage + Calendar page month grids use the same chrome (scoped below).
  */
 .church-admin-letters,
 .church-admin-address-entry,
@@ -1842,6 +1898,17 @@ input.ca-search-submit:focus-visible {
 	border-radius: var(--emerson-float-radius);
 	box-shadow: var(--emerson-float-shadow) !important;
 	box-sizing: border-box;
+}
+
+/* Month calendar on Home and Calendar: one float card around the whole widget. */
+.home .church-admin-calendar,
+.page-id-70 .church-admin-calendar {
+	background: #fff;
+	border: 0;
+	border-radius: var(--emerson-float-radius);
+	box-shadow: var(--emerson-float-shadow) !important;
+	box-sizing: border-box;
+	padding: 0.75rem 1rem 1rem;
 }
 
 .church-admin-new-directory {
@@ -3269,6 +3336,36 @@ blockquote {
 	}
 }
 /** End newcomer Other box **/
+
+/*
+ * Newcomer Information form (WPForms 351) Submit: Emerson Blue pill,
+ * same language as the Newcomer / Newsletter CTA buttons.
+ */
+#wpforms-351 .wpforms-submit,
+#wpforms-submit-351 {
+	box-sizing: border-box;
+	min-height: 44px;
+	padding: 0.35rem 1.25rem;
+	border: 2px solid var(--emerson-blue);
+	border-radius: 999px;
+	background: var(--emerson-blue) !important;
+	color: #fff !important;
+	font: inherit;
+	font-size: 1rem;
+	font-weight: 400;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
+}
+
+#wpforms-351 .wpforms-submit:hover,
+#wpforms-351 .wpforms-submit:focus-visible,
+#wpforms-submit-351:hover,
+#wpforms-submit-351:focus-visible {
+	background: var(--emerson-blue) !important;
+	color: #fff !important;
+	transform: scale(1.05);
+}
 
 /* Sunday Morning Schedule sheet: monthly theme + Sunday details */
 .emerson-planning-calendar {

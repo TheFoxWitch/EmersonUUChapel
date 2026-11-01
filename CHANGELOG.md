@@ -12,6 +12,27 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-11-01
 
+### Mobile menu: Emerson Blue panel, white links
+- Open overlay (and the exit ghost so close stays seamless) uses Emerson Blue with white nav labels, submenu chevrons, and close icon. Closed burger on the header is unchanged.
+- Foil text-glow excluded for the open overlay and exit ghost (ghost sits on `body`, outside the usual `.wp-site-blocks` skip list).
+- **File:** `assets/css/custom.css`, `inc/foil-background.php`. **Local DB:** `emerson_foil_style.glow_exclude` (+ open nav / exit ghost).
+
+### Home and Calendar month grids use float cards
+- The Church Admin month calendar on the homepage and Calendar page (`page-id-70`) now sits in the same white float card as directory / day cards (`--emerson-float-shadow` / radius), with light padding. Planning Calendar link stays outside the card.
+- **File:** `assets/css/custom.css`.
+
+### Checklist: Newcomer → account / directory (ask Harlan)
+- Documented current behaviour (newsletter confirm → Mailing List only; Newcomer without newsletter Yes does not create a CA/login; directory `show_me` was not globally overridden) and the intern’s intent to invite newcomers to register and eventually appear in the directory. Blocked on Harlan’s policy answers before any build.
+- **File:** `TEST-AND-LAUNCH-CHECKLIST.md` §4, `HANDOFF.md` next session.
+
+### Newcomer form Submit button Emerson Blue
+- The WPForms 351 Submit control was still the default grey browser style. It now uses Emerson Blue with the same pill + hover scale as the Newcomer / Newsletter CTAs.
+- **File:** `assets/css/custom.css` (`#wpforms-351 .wpforms-submit`).
+
+### Deploy docs: private spreadsheets steps for Harlan
+- Numbered live-host steps for the finance folder (outside `public_html`, copy files, `EMERSON_PRIVATE_DIR` in `wp-config.php`, Finance role, post-restore checks). Was only prose in the launch checklist before; now in `DEPLOY-WPVIVID.md` with checklist pointers and restore step C9.
+- **File:** `DEPLOY-WPVIVID.md`, `TEST-AND-LAUNCH-CHECKLIST.md`.
+
 ### Directory shows profile portraits (photo_permission)
 - CA only paints a person photo on the members directory card when `photo_permission` is on. Uploading on Edit person stored the attachment but left permission off (e.g. alice fox vs Harlan), so the profile had the image and the directory did not. Emerson syncs existing portraits, sets permission on upload, and keeps it on Save when a photo is still attached.
 - **File:** `inc/church-admin-register.php`, `assets/js/church-admin-register-upload.js`. **Local DB:** `photo_permission=1` for people who already have an `attachment_id`.

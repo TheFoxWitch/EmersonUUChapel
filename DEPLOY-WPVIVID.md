@@ -26,6 +26,34 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
 | WordPress version | 7.1.2 | 7.1.2 | Same. (The Docker image name says 6.8, but the core files are 7.1.2 from the restore.) |
 | PHP / MySQL | 8.2 / MySQL 8.0 | 8.4.25 / MariaDB 11.4 | No action needed. |
 | WPvivid remote storage and schedules | None | None | Nothing to reconnect. |
+| Finance / private spreadsheets | Project folder `private-files/` (Docker mount, outside the web root) | Host folder **outside** `public_html`, plus `EMERSON_PRIVATE_DIR` in `wp-config.php` | **Not** in the WPvivid zip. Follow **Private spreadsheets (Harlan)** below. |
+
+---
+
+## Private spreadsheets (Harlan) — clear steps
+
+These files (finance `.xlsx` / PDF, and similar) must **never** sit in Media, `uploads/`, or anywhere under `public_html`. On this Mac they live in the project’s `private-files/` folder. That folder is **not** inside the WPvivid backup. The restore only carries the Emerson code and the Members “Spreadsheets” link.
+
+Do this on the live host **after** the WPvivid restore (or at the same time as section C). Keep personal test files (for example Magazines) off live unless the church wants them there.
+
+1. **Ask Harlan to create a private folder next to the site**, not inside it.  
+   Example: `/home/ACCOUNT/emerson-private` (the exact path can vary). It must be **outside** `public_html`, and PHP on the site must be able to read it.
+2. **Copy the spreadsheet / PDF files into that folder** (FTP or File Manager). Use `.xlsx` or PDF (export from Numbers if needed). Do **not** upload them through WordPress Media.
+3. **Add one line to the live `wp-config.php`** (above the “That’s all, stop editing!” line). WPvivid does **not** overwrite this file, so this line has to be added by hand:
+
+   ```php
+   define( 'EMERSON_PRIVATE_DIR', '/home/ACCOUNT/emerson-private' );
+   ```
+
+   Use the real path from step 1.
+4. **Who can see them:** WordPress **administrators**, and anyone with the **Finance** role (**Users →** that person → **Role: Finance**). Assign Finance after the church confirms who, either on the local site before the backup (it then travels in the database) or on live after restore. Finance may still have nobody assigned.
+5. **Check after restore:**
+   - Log in as an admin → **Members** → open a sheet from Spreadsheets.
+   - Log in as a normal member → Spreadsheets should be missing.
+   - **Tools → Site Health**: PHP’s **zip** extension should be on (needed for Excel preview).
+   - Dropping a new file in that server folder is enough; no extra WordPress page per file.
+
+**What to tell Harlan in one sentence:** keep the finance files in a private server folder beside `public_html`, not inside the website, then set `EMERSON_PRIVATE_DIR` in `wp-config.php` to that path.
 
 ---
 
@@ -125,6 +153,7 @@ Written 2026-09-28, checked against the live site's 2026-09-24 WPvivid backup.
    - **Settings → Reading**: "Discourage search engines" should be **unticked**.
    - **Tools → Site Health**: no critical issues.
    - The mail-catcher file (`wp-content/mu-plugins/local-mail-catcher.php`) can stay. It does nothing unless the site address is `localhost`.
+9. **Private spreadsheets.** Complete **Private spreadsheets (Harlan)** above if it is not already done. Confirm admin can open a sheet and a normal member cannot.
 
 ## Rolling back
 Restore the live-site backup from step B1 with WPvivid, then repeat C3 (empty all caches).
@@ -136,5 +165,6 @@ The project-folder files outside `wp-content/`:
 - docs
 - `backups/` (content snapshots)
 - `docker-compose.yml`
+- `private-files/` (finance spreadsheets — see **Private spreadsheets (Harlan)** above)
 
-These are on GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git`.
+These docs and Docker files are on GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git`. Never put the private spreadsheet folder in git.

@@ -1,6 +1,6 @@
 # Session handoff — UUA Church WordPress local dev
 
-Last updated: 2026-10-30
+Last updated: 2026-11-01
 
 **Full list of changes (and how to repeat each on the live site): [`CHANGELOG.md`](CHANGELOG.md).
 Problems hit and their fixes: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
@@ -135,5 +135,6 @@ docker compose run --rm wpcli rewrite flush
 
 ## Next session
 1. Make sure Docker Desktop is running, then `docker compose up -d`
-2. Open the child theme files in Cursor and continue edits
-3. To publish: WPvivid backup of the local site, then restore onto the live site, following `DEPLOY-WPVIVID.md`
+2. **Ask Harlan** about Newcomer → account invite → directory (checklist §4). Do not build that flow until he answers.
+3. Other open church questions in `TEST-AND-LAUNCH-CHECKLIST.md` §4; private spreadsheets steps in `DEPLOY-WPVIVID.md`.
+4. To publish: WPvivid backup of the local site, then restore onto the live site, following `DEPLOY-WPVIVID.md`

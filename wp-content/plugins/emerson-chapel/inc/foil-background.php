@@ -91,6 +91,9 @@ function emerson_foil_style_defaults(): array {
 			'.church_admin_search_result',
 			/* Upcoming events day cards: blue date header (white glow muddies it). */
 			'.emerson-ca-day-card__date',
+			/* Mobile overlay nav: white labels on Emerson Blue. */
+			'.wp-block-navigation__responsive-container.is-menu-open',
+			'.emerson-nav-exit-ghost',
 		),
 	);
 }

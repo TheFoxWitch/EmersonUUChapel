@@ -11,6 +11,9 @@
 	--emerson-blue: #3f4fa0;
 	--emerson-blue-dark: #2e3a78;
 	--emerson-h1-size: clamp(1.875rem, 1.35rem + 2.2vw, 2.75rem);
+	/* Floating cards (member directory, register, other CA info panels). */
+	--emerson-float-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+	--emerson-float-radius: 12px;
 	/* Below #wpadminbar (99999) so the overlay never covers the WP admin banner. */
 	--emerson-nav-overlay-z: 99990;
 	--emerson-nav-motion: 0.4s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1473,6 +1476,123 @@ body:has(#emerson-recommit[open]) {
 /* List / Planning Calendar chooser sits tight on the month grid */
 table.ca-calendar-list-chooser {
 	margin-bottom: 2em;
+	width: 100%;
+}
+
+/* Mobile: stack title, then centre Previous / Next as a pair (CA is a 3-col table). */
+@media (max-width: 782px) {
+	table.ca-calendar-list-chooser,
+	table.ca-calendar-list-chooser tbody {
+		display: block;
+		width: 100%;
+	}
+
+	table.ca-calendar-list-chooser tr {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: center;
+		gap: 0.65rem 0.85rem;
+		width: 100%;
+	}
+
+	table.ca-calendar-list-chooser td {
+		display: block;
+		width: auto;
+		border: 0;
+		padding: 0.15rem 0.25rem;
+		text-align: center;
+		vertical-align: middle;
+	}
+
+	table.ca-calendar-list-chooser td.ca-calendar-list-chooser {
+		flex: 1 0 100%;
+		order: -1;
+	}
+
+	table.ca-calendar-list-chooser td.ca-calendar-list-prev,
+	table.ca-calendar-list-chooser td.ca-calendar-list-next {
+		flex: 0 0 auto;
+	}
+}
+
+/*
+ * CA front-end register actions (Edit address / person, Add, Delete… and Save on
+ * Edit Address / Edit person): Emerson Blue; ~20% above the browser default submit
+ * (was ~33%, then −10%). Same look on every page that renders these CA controls.
+ */
+input.church-admin-register-button,
+.church-admin-shortcode-output .church-admin-form-group > input[type="submit"] {
+	min-height: 26px;
+	padding: 0.315em 0.765em;
+	border: 0;
+	border-radius: 3px;
+	background: var(--emerson-blue) !important;
+	color: #fff !important;
+	font: inherit;
+	font-size: 16.2px;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: transform 0.3s ease-in-out;
+}
+
+input.church-admin-register-button:hover,
+input.church-admin-register-button:focus-visible,
+.church-admin-shortcode-output .church-admin-form-group > input[type="submit"]:hover,
+.church-admin-shortcode-output .church-admin-form-group > input[type="submit"]:focus-visible {
+	background: var(--emerson-blue) !important;
+	color: #fff !important;
+	transform: scale(1.05);
+}
+
+/*
+ * Edit person / household photo box: fixed preview frame so swapping the
+ * local object-URL → server medium URL does not flash or jump the layout.
+ * Silhouette background only while there is no real photo yet.
+ */
+.church-admin-shortcode-output .ca-upload-area {
+	position: relative;
+	min-height: 220px;
+	background-color: #f3f4f6;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='42' r='22' fill='%23c5c9d4'/%3E%3Cpath d='M20 108c4-28 22-42 40-42s36 14 40 42' fill='%23c5c9d4'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: center 36%;
+	background-size: 120px 120px;
+}
+
+.church-admin-shortcode-output .ca-upload-area.emerson-ca-upload--has-photo {
+	background-image: none;
+}
+
+.church-admin-shortcode-output .ca-upload-area img {
+	display: block;
+	width: 100%;
+	max-width: 300px;
+	height: 200px;
+	margin: 0 auto;
+	object-fit: contain;
+	object-position: center;
+	background: #f3f4f6;
+}
+
+.church-admin-shortcode-output .ca-upload-area.emerson-ca-upload--busy img {
+	opacity: 0.92;
+}
+
+.church-admin-shortcode-output .ca-upload-area .drag-message {
+	font-weight: 600;
+	color: #333;
+}
+
+/* Household people table: keep the gender SVG / photo readable when stacked on mobile */
+.church-admin-shortcode-output table.ca-table img {
+	display: block;
+	width: 100%;
+	max-width: 180px;
+	height: auto;
+	min-height: 80px;
+	object-fit: contain;
+	margin: 0.35rem 0;
 }
 
 /* Church Admin calendar Previous / Next buttons (members' hub and Calendar page): about twice the browser default */
@@ -1614,7 +1734,14 @@ button.ca-calendar-nav.btn-info:focus-visible {
 	transform: scale(1.05);
 }
 /** End Save button on the Church Admin Calendar page **/
-/* Member directory search (Church Admin address list): button 50% larger than the browser default, box to match */
+/* Member directory search (Church Admin address list): button size, box, expand-on-focus */
+.church-admin-address-search form > p {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	width: 100%;
+}
+
 input.ca-search-field,
 input.ca-search-submit {
 	box-sizing: border-box;
@@ -1626,14 +1753,31 @@ input.ca-search-submit {
 	vertical-align: middle;
 }
 
+/*
+ * Church Admin sets .ca-search-field { width: 25% } and :focus { width: 50% }
+ * with no transition. Keep 25% → 50%, animate over 2s.
+ */
+.church-admin-address-search input.ca-search-field,
 input.ca-search-field {
 	padding: 0.2em 0.5em;
 	border: 1px solid #b4b4b4;
 	background: #fff;
+	width: 25% !important;
+	min-width: 5.5rem;
+	max-width: 100%;
+	transition: width 1s ease;
+}
+
+.church-admin-address-search input.ca-search-field:focus,
+.church-admin-address-search input.ca-search-field:focus-visible,
+input.ca-search-field:focus,
+input.ca-search-field:focus-visible {
+	width: 50% !important;
 }
 
 input.ca-search-submit {
-	margin-inline-start: 0.4rem;
+	flex-shrink: 0;
+	margin-inline-start: 0;
 	padding: 0.2em 0.8em;
 	border: 1px solid transparent;
 	background: #3f4fa0;
@@ -1649,25 +1793,225 @@ input.ca-search-submit:focus-visible {
 	transform: scale(1.05);
 }
 
-/* "Show the full directory" after a search: same look as the Search button */
+@media (prefers-reduced-motion: reduce) {
+	.church-admin-address-search input.ca-search-field,
+	input.ca-search-field {
+		transition: none;
+	}
+}
+
+/* "Show the full directory" after a search: Emerson Blue, same size as Search */
 .emerson-directory-reset a {
 	display: inline-flex;
 	align-items: center;
-	min-height: 34px;
+	box-sizing: border-box;
+	min-height: 33px;
 	padding: 0.2em 0.8em;
+	border: 1px solid transparent;
 	border-radius: 3px;
-	background: #efefef;
-	color: #1e1e1e;
+	background: var(--emerson-blue);
+	color: #fff;
+	font: inherit;
 	font-size: 20px;
+	line-height: 1.2;
 	text-decoration: none;
+	cursor: pointer;
 	transition: transform 0.3s ease-in-out;
 }
 
 .emerson-directory-reset a:hover,
 .emerson-directory-reset a:focus-visible {
-	background: #efefef;
-	color: #1e1e1e;
+	background: var(--emerson-blue);
+	color: #fff;
 	transform: scale(1.05);
+}
+
+/*
+ * Floating info panels — same shadow/radius as the member directory cards.
+ * Covers directory letters + household card, search result cards, register/edit
+ * household, and other Church Admin shortcode white boxes (CA's stock shadow is
+ * a hard 5px grey). CA's class is church_admin_search_result (underscores).
+ */
+.church-admin-letters,
+.church-admin-address-entry,
+.church_admin_search_result,
+.church-admin-shortcode-output.ca-background,
+.alignwide.church-admin-shortcode-output {
+	background: #fff;
+	border: 0;
+	border-radius: var(--emerson-float-radius);
+	box-shadow: var(--emerson-float-shadow) !important;
+	box-sizing: border-box;
+}
+
+.church-admin-new-directory {
+	display: flex;
+	align-items: flex-start;
+	gap: 1.25rem;
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
+	padding: 0.75rem 0.35rem 1.5rem;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-sizing: border-box;
+}
+
+.church-admin-letters {
+	flex: 0 0 20%;
+	max-width: 12rem;
+	overflow: hidden;
+}
+
+.church-admin-address-entry-content,
+.church-admin-address-list-name {
+	background: #fff;
+}
+
+.church-admin-address-entry {
+	flex: 1 1 auto;
+	flex-direction: column;
+	align-items: stretch;
+	align-self: flex-start;
+	min-width: 0;
+	vertical-align: top;
+	box-sizing: border-box;
+	overflow: hidden;
+	padding: 0;
+}
+
+.church-admin-address-entry .church-admin-household-title,
+.church_admin_search_result .church-admin-household-title {
+	width: 100%;
+	box-sizing: border-box;
+	margin: 0;
+	background: var(--emerson-blue);
+	color: #fff;
+	padding: 10px 20px;
+	border: 0;
+	border-radius: 0;
+}
+
+.church-admin-address-entry-content {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 12px 20px 16px;
+	background: #fff;
+	border: 0;
+	border-radius: 0;
+}
+
+.church-admin-address-list-name {
+	width: 100%;
+	box-sizing: border-box;
+	background: #fff;
+}
+
+/* Directory search hits: same float card as the household panel (blue title bar). */
+.church_admin_search_result {
+	overflow: hidden;
+	padding: 0;
+	margin: 0 0 17px;
+}
+
+.church_admin_search_result .church-admin-address-entry-content {
+	padding: 12px 20px 16px;
+}
+
+.church-admin-highlighted-name {
+	background: var(--emerson-blue);
+	border-bottom-color: var(--emerson-blue-dark);
+	color: #fff;
+}
+
+.church-admin-highlighted-name .church-admin-name-item,
+.church-admin-highlighted-name a {
+	color: #fff;
+}
+
+.church-admin-highlighted {
+	background: #eef0f8;
+}
+
+/* Mobile directory: one float card — household picker + details (replaces side-by-side rail). */
+.emerson-directory-picker {
+	display: none;
+}
+
+@media (max-width: 782px) {
+	.church-admin-new-directory {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0;
+		padding: 0;
+		background: #fff;
+		border-radius: var(--emerson-float-radius);
+		box-shadow: var(--emerson-float-shadow);
+		overflow: hidden;
+	}
+
+	.church-admin-new-directory .church-admin-letters,
+	.church-admin-new-directory .church-admin-address-entry {
+		flex: none;
+		width: 100%;
+		max-width: none;
+		align-self: stretch;
+		border-radius: 0;
+		box-shadow: none !important;
+	}
+
+	/* CA letter rail stays in the DOM for AJAX clicks; picker is the mobile UI. */
+	.church-admin-new-directory.emerson-directory--mobile-picker .church-admin-letters {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	.emerson-directory-picker {
+		display: block;
+		box-sizing: border-box;
+		width: 100%;
+		padding: 12px 16px;
+		background: #fff;
+		border-bottom: 1px solid #e8e8e8;
+	}
+
+	.emerson-directory-picker__label {
+		display: block;
+		margin: 0 0 0.4rem;
+		font-size: 0.92rem;
+		font-weight: 600;
+		color: #2e3a78;
+	}
+
+	.emerson-directory-picker__select {
+		display: block;
+		width: 100%;
+		min-height: 44px;
+		padding: 0.45em 0.7em;
+		border: 1px solid #c8c8c8;
+		border-radius: 6px;
+		background: #fff;
+		color: #1e1e1e;
+		font: inherit;
+		font-size: 1rem;
+		line-height: 1.3;
+	}
+
+	.church-admin-new-directory .church-admin-address-entry .church-admin-household-title {
+		padding: 12px 16px;
+	}
+
+	.church-admin-new-directory .church-admin-address-entry-content {
+		padding: 12px 16px 16px;
+	}
 }
 
 /* Service Schedule page: [emerson_service_schedule] month calendar */
@@ -3078,9 +3422,85 @@ blockquote {
 
 .church-admin-calendar .ca-sidebar-list > li > p {
 	font-size: 1.25em;
-	/* Church Admin sets border-left from the event colour inline; drop it on both backgrounds. */
-	border-left: none !important;
-	padding-left: 0 !important;
+	/* Church Admin sets border-left from the event colour inline; use Emerson Blue. */
+	border-left-color: var(--emerson-blue) !important;
+}
+
+/* Upcoming / Planning list: CA paints td.ca-list-event from category bgcolor (Sunday Service = pale yellow). */
+table.ca-calendar-list td.ca-list-event {
+	border-left-color: var(--emerson-blue) !important;
+}
+
+/*
+ * Upcoming calendar list → directory-style day cards
+ * (Emerson replaces table.ca-calendar-list in sunday-schedule-sheet.php).
+ */
+.emerson-ca-day-cards {
+	display: flex;
+	flex-direction: column;
+	gap: 17px;
+	width: 100%;
+	max-width: 100%;
+	margin: 0 0 1.25rem;
+	padding: 0.35rem 0.15rem 0.5rem;
+	box-sizing: border-box;
+}
+
+.emerson-ca-day-card {
+	display: block;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	background: #fff;
+	border: 0;
+	border-radius: var(--emerson-float-radius);
+	box-shadow: var(--emerson-float-shadow);
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.emerson-ca-day-card__date {
+	margin: 0;
+	padding: 10px 20px;
+	background: var(--emerson-blue);
+	color: #fff;
+	font-size: 1.05rem;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.emerson-ca-day-card__body {
+	padding: 12px 20px 16px;
+	background: #fff;
+}
+
+.emerson-ca-day-card__event + .emerson-ca-day-card__event {
+	margin-top: 0.85rem;
+	padding-top: 0.85rem;
+	border-top: 1px solid #e8e8e8;
+}
+
+.emerson-ca-day-card__time {
+	margin: 0 0 0.35rem;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: #2e3a78;
+	line-height: 1.3;
+}
+
+.emerson-ca-day-card__details {
+	font-size: 1rem;
+	line-height: 1.4;
+	color: #1e1e1e;
+}
+
+.emerson-ca-day-card__details strong {
+	font-weight: 700;
+}
+
+.emerson-ca-day-card__details .vcf-link {
+	display: inline-block;
+	margin-top: 0.35rem;
 }
 
 .church-admin-calendar .ca-sidebar-list .emerson-ca-service {

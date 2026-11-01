@@ -42,10 +42,54 @@ function emerson_home_gallery_enqueue(): void {
 	if (slides.length < 2) {
 		return;
 	}
-	function watch(host) {
+
+	// Blossom's next/prev pick the first snap past scrollLeft. During a smooth
+	// scroll that is often the current slide (a few pixels away), so the button
+	// looks dead. Drive the controls by slide index instead.
+	var intended = 0;
+	var scrolling = false;
+
+	function motion() {
+		return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+	}
+
+	function slideLeft(slide) {
+		return carousel.scrollLeft + slide.getBoundingClientRect().left - carousel.getBoundingClientRect().left;
+	}
+
+	function closestIndex() {
+		var left = carousel.scrollLeft;
+		var best = 0;
+		var bestDist = Infinity;
+		for (var i = 0; i < slides.length; i++) {
+			var dist = Math.abs(slideLeft(slides[i]) - left);
+			if (dist < bestDist) {
+				bestDist = dist;
+				best = i;
+			}
+		}
+		return best;
+	}
+
+	function goTo(index) {
+		intended = (index % slides.length + slides.length) % slides.length;
+		scrolling = true;
+		carousel.scrollTo({ left: slideLeft(slides[intended]), behavior: motion() });
+	}
+
+	function step(delta) {
+		goTo((scrolling ? intended : closestIndex()) + delta);
+	}
+
+	carousel.addEventListener('scrollend', function () {
+		scrolling = false;
+		intended = closestIndex();
+	});
+
+	function wire(host, delta) {
 		var button = host && host.querySelector('button');
 		if (!button) {
-			return null;
+			return;
 		}
 		var enable = function () {
 			if (button.disabled) {
@@ -54,33 +98,20 @@ function emerson_home_gallery_enqueue(): void {
 		};
 		new MutationObserver(enable).observe(button, { attributes: true, attributeFilter: ['disabled'] });
 		enable();
-		return button;
+		button.addEventListener(
+			'click',
+			function (event) {
+				event.preventDefault();
+				event.stopPropagation();
+				event.stopImmediatePropagation();
+				step(delta);
+			},
+			true
+		);
 	}
-	var prev = watch(document.querySelector('blossom-prev[for="emerson-home-gallery"]'));
-	var next = watch(document.querySelector('blossom-next[for="emerson-home-gallery"]'));
-	function motion() {
-		return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
-	}
-	function atStart() {
-		return carousel.scrollLeft <= 2;
-	}
-	function atEnd() {
-		return carousel.scrollLeft >= carousel.scrollWidth - carousel.clientWidth - 2;
-	}
-	if (prev) {
-		prev.addEventListener('click', function () {
-			if (atStart()) {
-				carousel.scrollTo({ left: slides[slides.length - 1].offsetLeft, behavior: motion() });
-			}
-		});
-	}
-	if (next) {
-		next.addEventListener('click', function () {
-			if (atEnd()) {
-				carousel.scrollTo({ left: 0, behavior: motion() });
-			}
-		});
-	}
+
+	wire(document.querySelector('blossom-prev[for="emerson-home-gallery"]'), -1);
+	wire(document.querySelector('blossom-next[for="emerson-home-gallery"]'), 1);
 })();
 JS
 	);

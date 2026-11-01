@@ -145,7 +145,48 @@ add_filter(
 	2
 );
 
-// Member directory search box: "Member Name" placeholder and a real accessible name (placeholders aren't labels).
+/**
+ * Stamp directory root with CA AJAX params so Emerson can re-bind letter/name
+ * clicks with VCF included (CA’s name-click omits vcf, so the download link
+ * only shows on the first household of a letter).
+ */
+add_filter(
+	'do_shortcode_tag',
+	static function ( $output, $tag ) {
+		if ( 'church_admin' !== $tag || ! is_string( $output ) || false === strpos( $output, 'church-admin-new-directory' ) ) {
+			return $output;
+		}
+		if ( ! preg_match( '/security:\s*"([^"]+)"/', $output, $sec ) ) {
+			return $output;
+		}
+		$vcf           = preg_match( '/"vcf":"([^"]*)"/', $output, $m ) ? $m[1] : '0';
+		$map           = preg_match( '/"map":"([^"]*)"/', $output, $m ) ? $m[1] : '0';
+		$photo         = preg_match( '/"photo":"([^"]*)"/', $output, $m ) ? $m[1] : '0';
+		$updateable    = preg_match( '/"updateable":"([^"]*)"/', $output, $m ) ? $m[1] : '1';
+		$address_style = preg_match( '/"address_style":"([^"]*)"/', $output, $m ) ? $m[1] : 'one';
+
+		$attrs = sprintf(
+			'class="church-admin-new-directory" data-emerson-dir="1" data-emerson-vcf="%s" data-emerson-map="%s" data-emerson-photo="%s" data-emerson-updateable="%s" data-emerson-address-style="%s" data-emerson-security="%s"',
+			esc_attr( $vcf ),
+			esc_attr( $map ),
+			esc_attr( $photo ),
+			esc_attr( $updateable ),
+			esc_attr( $address_style ),
+			esc_attr( $sec[1] )
+		);
+
+		return preg_replace(
+			'/class="church-admin-new-directory"/',
+			$attrs,
+			$output,
+			1
+		);
+	},
+	10,
+	2
+);
+
+// Member directory search box: short "Name" placeholder and a real accessible name (placeholders aren't labels).
 add_filter(
 	'do_shortcode_tag',
 	static function ( $output, $tag ) {
@@ -154,9 +195,11 @@ add_filter(
 		}
 		$output = str_replace(
 			'class="ca-search-field" type="text" placeholder="Search"',
-			'class="ca-search-field" type="text" placeholder="Member Name" aria-label="Search the member directory by name"',
+			'class="ca-search-field" type="text" placeholder="Name" aria-label="Search the member directory by name"',
 			$output
 		);
+		/* In case a prior Emerson replace or CA string left "Member Name" in the markup. */
+		$output = str_replace( 'placeholder="Member Name"', 'placeholder="Name"', $output );
 
 		// Searching reloads the page; bring the visitor back down to the directory instead of the top.
 		$directory = get_permalink() . '#member-directory';
@@ -323,3 +366,8 @@ add_action(
 		}
 	}
 );
+
+/*
+ * Directory "Edit Entry" uses /register/?household_id=. Stay on the front end;
+ * see inc/church-admin-register.php (Emerson overlays — do not patch Church Admin).
+ */

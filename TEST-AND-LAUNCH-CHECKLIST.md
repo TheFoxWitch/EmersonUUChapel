@@ -8,7 +8,7 @@ In redirect mode every email really goes out, but only to your test mailbox. The
 
 Use a private window (Cmd+Shift+P) for anything that should be tested logged out. That does not refresh Safari’s tab icon; see **Tab icon** below.
 
-- [ ] **Tab icon** is the round green badge from `images/emersonLogoUpscale.png`. Chrome and Firefox update on refresh. Safari keeps the old icon, including in a Private Window: quit with Cmd+Q, trash `~/Library/Safari/Favicon Cache` and `~/Library/Safari/Touch Icons Cache`, and turn on **Settings → Tabs → Show website icons in tabs**. Then open `http://localhost:8080/favicon.ico` (the round badge) before the homepage. Details are in Troubleshooting.
+- [ ] **Tab icon** is the round green badge from `images/emersonLogoUpscale.png`, served only from root URLs with no long cache. Chrome/Firefox: hard refresh. Safari: quit Cmd+Q, trash Favicon/Touch Icons caches, enable **Settings → Tabs → Show website icons in tabs**, open `http://localhost:8080/favicon.ico` then the homepage. Details are in Troubleshooting.
 
 - [x] **Newcomer Information form** (`/contact-newcomer-information/`)
   - "Thanks for contacting us!" appears within about a second

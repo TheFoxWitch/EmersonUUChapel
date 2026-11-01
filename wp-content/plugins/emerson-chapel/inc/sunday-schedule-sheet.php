@@ -412,7 +412,9 @@ add_filter(
 );
 
 function emerson_schedule_decorate_list( string $html ): string {
-	return (string) preg_replace_callback(
+	$html = emerson_calendar_list_clean_chooser( $html );
+
+	$decorated = (string) preg_replace_callback(
 		'/<tr>\s*<td class="ca-list-date">([^<]+)<\/td>(.*?)<\/tr>/s',
 		static function ( array $match ): string {
 			$ymd = emerson_schedule_parse_display_date( $match[1] );
@@ -440,6 +442,78 @@ function emerson_schedule_decorate_list( string $html ): string {
 		},
 		$html
 	);
+
+	return emerson_calendar_list_day_cards( $decorated );
+}
+
+/**
+ * CA dumps the shortcode's category/facility filter under "Calendar for the next N days"
+ * (e.g. "Categories: Unused, Sunday Service… Facilities: "). Members don't need that.
+ */
+function emerson_calendar_list_clean_chooser( string $html ): string {
+	return (string) preg_replace_callback(
+		'/<td class="ca-calendar-list-chooser">(.*?)<\/td>/s',
+		static function ( array $match ): string {
+			$title = $match[1];
+			if ( preg_match( '/^(.*?)(?:\s*<br\s*\/?>)/is', $title, $parts ) ) {
+				$title = trim( $parts[1] );
+			}
+			return '<td class="ca-calendar-list-chooser">' . $title . '</td>';
+		},
+		$html,
+		1
+	);
+}
+
+/**
+ * Turn CA's flat Date/Time/Event table into directory-style day cards:
+ * Emerson Blue date header, white body, float shadow, 17px between days.
+ * Same-day events share one card.
+ */
+function emerson_calendar_list_day_cards( string $html ): string {
+	// Require a space after ca-calendar-list so we don't match ca-calendar-list-chooser.
+	if ( ! preg_match( '/<table class="ca-calendar-list\s[^"]*"[^>]*>.*?<\/table>/s', $html, $table_match ) ) {
+		return $html;
+	}
+
+	$table = $table_match[0];
+	if ( ! preg_match_all(
+		'/<tr>\s*<td class="ca-list-date">([^<]*)<\/td>\s*<td class="ca-list-time">([^<]*)<\/td>\s*<td class="ca-list-event"[^>]*>(.*?)<\/td>\s*<\/tr>/s',
+		$table,
+		$row_matches,
+		PREG_SET_ORDER
+	) ) {
+		return $html;
+	}
+
+	$groups = array();
+	foreach ( $row_matches as $row ) {
+		$date = $row[1];
+		if ( ! isset( $groups[ $date ] ) ) {
+			$groups[ $date ] = array();
+		}
+		$groups[ $date ][] = array(
+			'time'  => $row[2],
+			'event' => $row[3],
+		);
+	}
+
+	$cards = '<div class="emerson-ca-day-cards">';
+	foreach ( $groups as $date => $events ) {
+		$cards .= '<article class="emerson-ca-day-card">';
+		$cards .= '<header class="emerson-ca-day-card__date">' . $date . '</header>';
+		$cards .= '<div class="emerson-ca-day-card__body">';
+		foreach ( $events as $event ) {
+			$cards .= '<div class="emerson-ca-day-card__event">';
+			$cards .= '<p class="emerson-ca-day-card__time">' . $event['time'] . '</p>';
+			$cards .= '<div class="emerson-ca-day-card__details">' . $event['event'] . '</div>';
+			$cards .= '</div>';
+		}
+		$cards .= '</div></article>';
+	}
+	$cards .= '</div>';
+
+	return str_replace( $table, $cards, $html );
 }
 
 function emerson_schedule_parse_display_date( string $text ): string {

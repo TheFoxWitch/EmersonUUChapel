@@ -83,6 +83,14 @@ function emerson_foil_style_defaults(): array {
 			'.wp-block-cover',
 			'.wp-block-columns',
 			'.emerson-welcome__rainbow',
+			/* Member directory: Emerson-blue name bar + opaque white panels. */
+			'.church-admin-new-directory',
+			'.church-admin-address-search',
+			'.church-admin-household-title',
+			'.church-admin-highlighted-name',
+			'.church_admin_search_result',
+			/* Upcoming events day cards: blue date header (white glow muddies it). */
+			'.emerson-ca-day-card__date',
 		),
 	);
 }

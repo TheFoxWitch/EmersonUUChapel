@@ -1,0 +1,16 @@
+---
+description: Never edit Church Admin plugins; put site fixes in Emerson Chapel
+alwaysApply: true
+---
+
+# Do not edit Church Admin
+
+Never modify files under:
+
+- `wp-content/plugins/church-admin-premium/`
+- `wp-content/plugins/church-admin/`
+- `wp-content/plugins/our-church-app-setup/`
+
+Those plugins are updated from upstream. Edits there get wiped on update.
+
+If Church Admin behavior needs a fix or extension, implement it in **`wp-content/plugins/emerson-chapel/`** (hooks, shortcode filters, request-scoped overlays, CSS/JS). Prefer patterns already used there (`do_shortcode_tag`, `pre_do_shortcode_tag`, `init`/`template_redirect`, admin UI under Emerson menus).

@@ -18,4 +18,5 @@ alwaysApply: false
   - Logo images: `assets/images/`
 - **Page body HTML** is stored in the database as block markup; export/edit via WP admin Code editor, or WP-CLI `wp post get <id> --field=post_content`
 - **Do not edit** third-party plugin `vendor/` trees; site-specific PHP belongs in `emerson-chapel`
+- **Do not edit** `church-admin-premium`, `church-admin`, or `our-church-app-setup` — CA updates wipe those files. Overlay fixes in `emerson-chapel` (see `inc/church-admin-register.php` and `.cursor/rules/no-church-admin-edits.mdc`)
 - **Refresh:** save file → reload browser (hard refresh if CSS/JS cached; W3 Total Cache may need purge locally)

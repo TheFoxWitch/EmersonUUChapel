@@ -10,7 +10,96 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-01
+
+### Directory shows profile portraits (photo_permission)
+- CA only paints a person photo on the members directory card when `photo_permission` is on. Uploading on Edit person stored the attachment but left permission off (e.g. alice fox vs Harlan), so the profile had the image and the directory did not. Emerson syncs existing portraits, sets permission on upload, and keeps it on Save when a photo is still attached.
+- **File:** `inc/church-admin-register.php`, `assets/js/church-admin-register-upload.js`. **Local DB:** `photo_permission=1` for people who already have an `attachment_id`.
+
+### Register photo upload: no flash / resize on attach
+- Choosing a photo showed it, then flashed and jumped while the AJAX medium URL replaced a differently sized source in a height:auto box. Emerson shows a local preview immediately in a fixed 200px frame, swaps to the server URL only after it has loaded, and drops the silhouette background once a real photo is in place.
+- **File:** `assets/js/church-admin-register-upload.js`, `assets/css/custom.css`.
+
+### Edit person Save no longer wipes the portrait
+- CA’s person save writes `attachment_id` from the hidden `people_attachment_id` field, or NULL when that field is empty — so saving other edits (or saving after an AJAX upload whose hidden value did not stick) replaced a real photo with the man/woman SVG placeholder. Emerson restores the person’s existing attachment id into POST before CA saves when the form omitted it.
+- **File:** `inc/church-admin-register.php`.
+
+### Edit Address, profile and directory share one address/phone
+- Edit Address and the directory card already read/write the same household row (`church_admin_household.address` / `.phone`). The split was the Edit person (profile) form, which only had the person's Cell number (`church_admin_people.mobile`), so it never showed what Edit Address saved (Home phone vs Cell looked like a mismatch on the card). Emerson adds **Address** and **Home phone** to Edit person, pre-filled from and saved back to that household row (Cell stays a separate personal number). Changing the address clears the old map pin. Also, Edit address now resolves CA's `id` as a people_id (it is one) instead of a household_id when a Directory editor opens another household.
+- **File:** `inc/church-admin-register.php`. **No DB change** (household 41 untouched).
+
+### Directory VCF on every household card
+- VCF is a vCard download (import the household into phone/contacts). CA only sent `vcf` on letter clicks, not name clicks, so the link appeared on the first name of a letter and vanished for the rest. Emerson rebinds directory AJAX with VCF included, caches responses, and prefetches the other names under a letter so cards swap without a late pop-in.
+- **File:** `inc/members.php`, `assets/js/custom.js`, `emerson-chapel.php` (jQuery dep for directory AJAX).
+
+### Directory search results match household cards
+- Search hits used CA’s grey-border boxes; Emerson had styled the wrong class (`.ca_search_result`). Results now use the same float shadow, radius, Emerson Blue name bar, and 17px gap as the directory household card.
+- “Show the full directory” after a search is Emerson Blue at the same size as the Search button (was light grey).
+- **File:** `assets/css/custom.css`, `inc/foil-background.php`. **Local DB:** `emerson_foil_style.glow_exclude` (`.church_admin_search_result`).
+
+### Register photo placeholder + button size
+- Edit person photo box looked empty when a 1×1 test upload was stored; Emerson clears that local test attachment, styles the upload area with a visible silhouette stand-in, swaps tiny images to CA’s `default-avatar.jpg`, and rejects sub-8px uploads so the placeholder stays usable.
+- Register household action buttons (Edit / Delete / Add…) shrink about 10% from the prior Emerson size and stay Emerson Blue on every page that renders CA’s `church-admin-register-button`. Save on Edit Address / Edit person (plain CA submits) use the same size and colour.
+- **File:** `assets/css/custom.css`, `inc/church-admin-register.php`, `assets/js/church-admin-register-upload.js`. **Local DB:** people_id 79 `attachment_id` cleared; media 1227 (`emerson-test-1.png`) removed.
+
+### Register photo upload on the front end
+- Edit person avatar: CA’s draganddrop.js often never loads for the register block, and there is no file input, so choosing/dropping an image opened it in a new tab. Emerson wires click and drag/drop to CA’s `people-upload` / `household-upload` AJAX and updates the preview + hidden attachment id.
+- **File:** `inc/church-admin-register.php`, `assets/js/church-admin-register-upload.js`.
+
+### Register household buttons: Emerson Blue, larger
+- Front-end CA register actions (Edit address / person, Add a person, Delete…) use Emerson Blue and are about a third larger than the browser default submit.
+- **File:** `assets/css/custom.css`.
+
+### Member directory mobile: one card
+- On small screens the letter/name rail and household details no longer sit side by side. Emerson combines them into one float card with a “Choose a household” select (A–Z optgroups) above the address/contact panel; selecting still uses CA’s show-person AJAX.
+- **File:** `assets/css/custom.css`, `assets/js/custom.js`.
+
+## 2026-10-31
+
+### Upcoming events: directory-style day cards
+- Members’ Upcoming events (`calendar-list`) no longer uses the Date/Time/Event table. Emerson groups same-day rows into float cards: Emerson Blue date header, white body, directory shadow/radius, 17px gap between days.
+- Drop CA’s “Categories: … Facilities:” dump under the Previous/Next bar — shortcode filter noise, not useful on the members page.
+- Mobile: centre Previous/Next under the title; skip foil text-glow on `.emerson-ca-day-card__date` (blue header).
+- **File:** `inc/sunday-schedule-sheet.php`, `assets/css/custom.css`, `inc/foil-background.php`. **Local DB:** `emerson_foil_style.glow_exclude` (+ day-card date).
+
+### Floating cards + wedding anniversary on Edit person
+- Register / other CA shortcode white boxes use the same float shadow and radius as the member directory.
+- Wedding anniversary date field: CA option was off and person-save never wrote the household date. Emerson forces the field on the front end, shows it when marital status is Married (including on load), and persists the date. Typed dates like `02/14/21` or `02/14/2021` are parsed and push into the picker/hidden field so the calendar reflects them (CA only synced when a calendar day was clicked).
+- Fix: anniversary JS moved to `assets/js/church-admin-register.js` — inline script in `the_content` had `&&` HTML-encoded to `&#038;&#038;`, so show-on-load never ran and Married looked empty even when the date was saved.
+- **File:** `assets/css/custom.css`, `inc/church-admin-register.php`, `assets/js/church-admin-register.js`.
+
+### Directory Edit Entry no longer unlists the household
+- `/register/` uses the `church-admin/register` block, which never sets `full_privacy_show`, so “show me on the address list” never appears. Church Admin still saves `show_me=0` and zeros fine privacy. Emerson forces that UI on, marks the form, and restores visibility when those fields were not posted. Restored alice fox (79) and Alice Metz (83) to listed with the usual email/phone/address privacy.
+- **File:** `inc/church-admin-register.php`. **Local DB:** `church_admin_people` show_me/privacy for 79 and 83.
+
+### Member directory: floating panels
+- Letters index and household info card use the CodePen contact-box drop shadow (`0 4px 30px rgba(0,0,0,0.5)`), rounded corners, and a flex gap so they read as floating panels (matching the Photoshop mock).
+- **File:** `assets/css/custom.css`.
+
+### Calendar event left border → Emerson Blue
+- Church Admin paints list/sidebar event rows with the category colour (`#fdfcb8` for Sunday Service). Emerson overrides those `border-left` colours to Emerson Blue.
+- **File:** `assets/css/custom.css`.
+
+### Church Admin: front-end delete household no longer fatals
+- After “Delete Household” on `/register/`, CA called `church_admin_premium_address_list()` which is only loaded in wp-admin → critical error (household was already deleted). Emerson stubs that function on the front end and corrects the false “deletion failed” message.
+- **File:** `inc/church-admin-register.php`.
+
+### Favicon: emersonLogoUpscale2
+- Rebuilt 16/32/180/512 PNG, ICO, and SVG from `images/emersonLogoUpscale2.png` (black padding cleared, badge fills the square). Root copies and Site Icon 999 refreshed.
+- **File:** `assets/images/favicon*`, `emerson-site-icon.png`, `apple-touch-icon.png`.
+
+### Favicon: use cropped logo, fill the tab
+- Rebuilt 16/32/180/512 PNG, ICO, and SVG from the cropped `images/emersonLogoUpscale.png` so the green badge fills the icon (black padding removed / made transparent).
+- Root copies and Site Icon attachment 999 refreshed.
+- **File:** `assets/images/favicon*`, `emerson-site-icon.png`, `apple-touch-icon.png`.
+
 ## 2026-10-30
+
+### Favicon: one badge, no year-long cache flip
+- Rebuilt every tab icon from `images/emersonLogoUpscale.png` (16/32/180/512 PNG, ICO, SVG).
+- Head links only use **root** URLs (`/favicon.ico`, `/favicon-16.png`, …) with `max-age=0`. Plugin `wp-content` PNG links were dropped — W3 Total Cache was caching those for a year, so the tab kept flipping back to an old hands/drop mark.
+- WordPress Site Icon media (attachment 999) is kept in sync with the same 512 PNG.
+- **File:** `inc/site-icon.php`, `assets/images/favicon*`, `emerson-site-icon.png`, `apple-touch-icon.png`.
 
 ### YouTube sermon sync (homepage swap + dual-channel archive)
 - **Homepage:** still one player. With Homepage video URL empty, it uses the newest dated sermon from the chapel YouTube feeds (Sunday parsed from the title). No extra homepage blocks — the iframe target is replaced in place.

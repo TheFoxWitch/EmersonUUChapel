@@ -1,10 +1,10 @@
 <?php
 /**
- * Emerson tab icon, built from images/emersonLogoUpscale.png
- * (the round green badge). Safari asks for /apple-touch-icon.png
- * and /favicon.ico at the site root (it does not use <link rel="icon"> the way
- * Chrome does). Those paths used to 404 as WordPress HTML, so Safari kept the
- * blue “W”. A Private Window uses that same stored icon.
+ * Emerson tab icon, built from images/emersonLogoUpscale2.png
+ * (the round green badge). Every advertised URL is a same-origin root file
+ * with max-age=0 so browsers cannot flip between a fresh ICO and a year-cached
+ * plugin PNG. Safari asks for /apple-touch-icon.png and /favicon.ico at the
+ * site root (it does not use <link rel="icon"> the way Chrome does).
  */
 
 declare( strict_types=1 );
@@ -17,6 +17,10 @@ function emerson_favicon_ico_path(): string {
 	return emerson_chapel_path( 'assets/images/favicon.ico' );
 }
 
+function emerson_favicon_16_path(): string {
+	return emerson_chapel_path( 'assets/images/emerson-favicon-16.png' );
+}
+
 function emerson_favicon_32_path(): string {
 	return emerson_chapel_path( 'assets/images/emerson-favicon-32.png' );
 }
@@ -26,26 +30,34 @@ function emerson_apple_touch_path(): string {
 }
 
 function emerson_favicon_version(): string {
-	$path = emerson_apple_touch_path();
+	$path = emerson_site_icon_png_path();
 	return is_readable( $path ) ? (string) filemtime( $path ) : (string) time();
 }
 
 /**
+ * Root paths browsers may request. Masters live in the plugin; copies are
+ * placed at ABSPATH so Apache can serve them with Emerson cache rules.
+ *
  * @return array<string, array{path: string, type: string}>
  */
 function emerson_root_icon_map(): array {
-	$ico = emerson_favicon_ico_path();
-	$png = emerson_apple_touch_path();
-
-	$mask = emerson_chapel_path( 'assets/images/safari-pinned-tab.svg' );
-	$svg  = emerson_chapel_path( 'assets/images/favicon.svg' );
+	$ico   = emerson_favicon_ico_path();
+	$png16 = emerson_favicon_16_path();
+	$png32 = emerson_favicon_32_path();
+	$png512 = emerson_site_icon_png_path();
+	$touch = emerson_apple_touch_path();
+	$mask  = emerson_chapel_path( 'assets/images/safari-pinned-tab.svg' );
+	$svg   = emerson_chapel_path( 'assets/images/favicon.svg' );
 
 	return array(
 		'/favicon.ico'                      => array( 'path' => $ico, 'type' => 'image/x-icon' ),
 		'/favicon.svg'                      => array( 'path' => $svg, 'type' => 'image/svg+xml' ),
-		'/apple-touch-icon.png'             => array( 'path' => $png, 'type' => 'image/png' ),
-		'/apple-touch-icon-precomposed.png' => array( 'path' => $png, 'type' => 'image/png' ),
-		'/apple-touch-icon-180x180.png'     => array( 'path' => $png, 'type' => 'image/png' ),
+		'/favicon-16.png'                   => array( 'path' => $png16, 'type' => 'image/png' ),
+		'/favicon-32.png'                   => array( 'path' => $png32, 'type' => 'image/png' ),
+		'/emerson-site-icon.png'            => array( 'path' => $png512, 'type' => 'image/png' ),
+		'/apple-touch-icon.png'             => array( 'path' => $touch, 'type' => 'image/png' ),
+		'/apple-touch-icon-precomposed.png' => array( 'path' => $touch, 'type' => 'image/png' ),
+		'/apple-touch-icon-180x180.png'     => array( 'path' => $touch, 'type' => 'image/png' ),
 		'/safari-pinned-tab.svg'            => array( 'path' => $mask, 'type' => 'image/svg+xml' ),
 	);
 }
@@ -69,11 +81,11 @@ function emerson_icon_cache_rules(): void {
 		return;
 	}
 
-	// W3 Total Cache sets image/x-icon, image/png, and image/svg+xml to one year.
-	// These filenames sit on disk, so Apache (not PHP) serves them. Override just these.
+	// W3 Total Cache sets image/* under wp-content to one year. Root icon
+	// filenames must never get that — they flip the tab icon otherwise.
 	$rules = array(
 		'<IfModule mod_expires.c>',
-		"\t" . '<FilesMatch "^(favicon\.(ico|svg)|apple-touch-icon.*\.png|safari-pinned-tab\.svg)$">',
+		"\t" . '<FilesMatch "^(favicon(-16|-32)?\.(ico|svg|png)|emerson-site-icon\.png|apple-touch-icon.*\.png|safari-pinned-tab\.svg)$">',
 		"\t\t" . 'ExpiresActive On',
 		"\t\t" . 'ExpiresByType image/x-icon "access plus 0 seconds"',
 		"\t\t" . 'ExpiresByType image/vnd.microsoft.icon "access plus 0 seconds"',
@@ -83,7 +95,7 @@ function emerson_icon_cache_rules(): void {
 		"\t" . '</FilesMatch>',
 		'</IfModule>',
 		'<IfModule mod_headers.c>',
-		"\t" . '<FilesMatch "^(favicon\.(ico|svg)|apple-touch-icon.*\.png|safari-pinned-tab\.svg)$">',
+		"\t" . '<FilesMatch "^(favicon(-16|-32)?\.(ico|svg|png)|emerson-site-icon\.png|apple-touch-icon.*\.png|safari-pinned-tab\.svg)$">',
 		"\t\t" . 'Header unset Expires',
 		"\t\t" . 'Header always set Cache-Control "public, max-age=0, must-revalidate"',
 		"\t" . '</FilesMatch>',
@@ -114,6 +126,39 @@ function emerson_serve_root_icon(): void {
 	exit;
 }
 
+/**
+ * Keep Appearance → Site Icon in sync with the plugin badge (attachment 999 locally).
+ */
+function emerson_sync_wp_site_icon_file(): void {
+	$sid = (int) get_option( 'site_icon', 0 );
+	if ( $sid <= 0 || ! is_readable( emerson_site_icon_png_path() ) ) {
+		return;
+	}
+	$file = get_attached_file( $sid );
+	if ( ! is_string( $file ) || $file === '' ) {
+		return;
+	}
+	$src = emerson_site_icon_png_path();
+	if ( is_file( $file ) && md5_file( $src ) === md5_file( $file ) ) {
+		return;
+	}
+	$dir = dirname( $file );
+	if ( ! is_dir( $dir ) ) {
+		return;
+	}
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy
+	if ( ! @copy( $src, $file ) ) {
+		return;
+	}
+	if ( function_exists( 'wp_generate_attachment_metadata' ) && function_exists( 'wp_update_attachment_metadata' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		$meta = wp_generate_attachment_metadata( $sid, $file );
+		if ( is_array( $meta ) ) {
+			wp_update_attachment_metadata( $sid, $meta );
+		}
+	}
+}
+
 add_action(
 	'init',
 	static function (): void {
@@ -122,6 +167,7 @@ add_action(
 		remove_action( 'do_faviconico', 'do_favicon' );
 		emerson_copy_root_icons();
 		emerson_icon_cache_rules();
+		emerson_sync_wp_site_icon_file();
 		emerson_serve_root_icon();
 	},
 	0
@@ -133,13 +179,13 @@ add_filter(
 	'get_site_icon_url',
 	static function ( $url, $size ) {
 		$ver = emerson_favicon_version();
-		if ( (int) $size <= 32 && is_readable( emerson_favicon_32_path() ) ) {
-			return add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-favicon-32.png' ) );
+		if ( (int) $size <= 32 ) {
+			return add_query_arg( 'v', $ver, home_url( '/favicon-32.png' ) );
 		}
-		if ( is_readable( emerson_site_icon_png_path() ) ) {
-			return add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-site-icon.png' ) );
+		if ( (int) $size <= 180 ) {
+			return add_query_arg( 'v', $ver, home_url( '/apple-touch-icon.png' ) );
 		}
-		return $url;
+		return add_query_arg( 'v', $ver, home_url( '/emerson-site-icon.png' ) );
 	},
 	10,
 	2
@@ -152,15 +198,14 @@ function emerson_site_icon_head_links(): void {
 	$ver   = emerson_favicon_version();
 	$ico   = add_query_arg( 'v', $ver, home_url( '/favicon.ico' ) );
 	$svg   = add_query_arg( 'v', $ver, home_url( '/favicon.svg' ) );
-	$png16 = add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-favicon-16.png' ) );
-	$png32 = add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-favicon-32.png' ) );
-	$png512 = add_query_arg( 'v', $ver, emerson_chapel_url( 'assets/images/emerson-site-icon.png' ) );
+	$png16 = add_query_arg( 'v', $ver, home_url( '/favicon-16.png' ) );
+	$png32 = add_query_arg( 'v', $ver, home_url( '/favicon-32.png' ) );
+	$png512 = add_query_arg( 'v', $ver, home_url( '/emerson-site-icon.png' ) );
 	$touch = add_query_arg( 'v', $ver, home_url( '/apple-touch-icon.png' ) );
 	$mask  = add_query_arg( 'v', $ver, home_url( '/safari-pinned-tab.svg' ) );
 
-	// Regular tabs: ICO + SVG + 16/32/512 PNG. Pinned tabs: mask-icon.
-	// Apple requires mask-icon viewBox="0 0 16 16" and a single layer.
-	// Previous circular set is in assets/images/circle-logo/.
+	// Only root URLs (max-age=0). Do not point at wp-content plugin PNGs —
+	// W3 Total Cache gives those a one-year cache and the tab flips back.
 	printf( '<link rel="icon" href="%s" sizes="any" />' . "\n", esc_url( $ico ) );
 	printf( '<link rel="icon" href="%s" type="image/svg+xml" />' . "\n", esc_url( $svg ) );
 	printf( '<link rel="icon" type="image/png" sizes="16x16" href="%s" />' . "\n", esc_url( $png16 ) );

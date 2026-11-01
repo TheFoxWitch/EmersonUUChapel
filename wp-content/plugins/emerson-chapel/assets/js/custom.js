@@ -2878,3 +2878,238 @@
 		fitTimer = window.setTimeout(fitDocumentLists, 80);
 	});
 })();
+
+/**
+ * Member directory AJAX: CA’s letter click sends vcf, but name clicks omit it, so
+ * the VCF (vCard download) link only appears on the first household of a letter.
+ * Emerson rebinds both clicks with the stamped params, caches responses, and
+ * prefetches other names under the selected letter so cards don’t pop in late.
+ */
+(function ($) {
+	'use strict';
+
+	if (!$ || typeof ajaxurl === 'undefined') {
+		return;
+	}
+
+	$(function () {
+		var $root = $('.church-admin-new-directory[data-emerson-dir="1"]');
+		if (!$root.length) {
+			return;
+		}
+
+		var root = $root.get(0);
+		var security = root.getAttribute('data-emerson-security') || '';
+		if (!security) {
+			return;
+		}
+
+		var base = {
+			action: 'church_admin',
+			method: 'show-person',
+			vcf: root.getAttribute('data-emerson-vcf') || '0',
+			map: root.getAttribute('data-emerson-map') || '0',
+			photo: root.getAttribute('data-emerson-photo') || '0',
+			updateable: root.getAttribute('data-emerson-updateable') || '1',
+			address_style: root.getAttribute('data-emerson-address-style') || 'one',
+			security: security,
+		};
+
+		var cache = Object.create(null);
+		var inflight = Object.create(null);
+		var $entry = $root.find('.church-admin-address-entry');
+
+		function fetchPerson(id) {
+			id = String(id || '');
+			if (!id) {
+				return $.Deferred().reject().promise();
+			}
+			if (cache[id]) {
+				return $.Deferred().resolve(cache[id]).promise();
+			}
+			if (inflight[id]) {
+				return inflight[id];
+			}
+			inflight[id] = $.ajax({
+				url: ajaxurl,
+				type: 'post',
+				data: $.extend({}, base, { id: id }),
+			}).then(function (response) {
+				cache[id] = response;
+				delete inflight[id];
+				return response;
+			}, function () {
+				delete inflight[id];
+			});
+			return inflight[id];
+		}
+
+		function showPerson(id) {
+			fetchPerson(id).done(function (html) {
+				$entry.html(html);
+			});
+		}
+
+		function prefetchLetter(letter) {
+			if (!letter) {
+				return;
+			}
+			$root
+				.find('.church-admin-directory-name.letter-' + letter + '[data-id]')
+				.each(function () {
+					fetchPerson(this.getAttribute('data-id'));
+				});
+		}
+
+		// Seed cache from the household already painted on first load.
+		var $initialName = $root.find(
+			'.church-admin-directory-name.church-admin-highlighted-name[data-id]'
+		);
+		if ($initialName.length && $entry.length && $.trim($entry.html())) {
+			cache[String($initialName.data('id'))] = $entry.html();
+		}
+
+		$root.find('.church-admin-letter').off('click').on('click', function () {
+			var letter = this.id;
+			$root.find('.letterNames').hide();
+			$root.find('.letter-' + letter).show();
+			var firstId = $(this).data('firstid');
+			if (firstId) {
+				showPerson(firstId);
+			}
+			prefetchLetter(letter);
+		});
+
+		$root.find('.church-admin-directory-name').off('click').on('click', function () {
+			$root
+				.find('.church-admin-directory-name')
+				.removeClass('church-admin-highlighted-name');
+			$(this).addClass('church-admin-highlighted-name');
+			var householdId = $(this).data('id');
+			if (householdId) {
+				showPerson(householdId);
+			}
+		});
+	});
+})(window.jQuery);
+
+/**
+ * Member directory on small screens: one card with a household picker + details.
+ * Keeps Church Admin’s letter rail in the DOM and clicks its names for AJAX loads.
+ */
+(function () {
+	'use strict';
+
+	var roots = document.querySelectorAll('.church-admin-new-directory');
+	if (!roots.length) {
+		return;
+	}
+
+	function letterFromName(el) {
+		var match = (el.className || '').match(/(?:^|\s)letter-([A-Za-z0-9])(?:\s|$)/);
+		return match ? match[1].toUpperCase() : '';
+	}
+
+	function buildPicker(root) {
+		if (root.querySelector('.emerson-directory-picker')) {
+			return root.querySelector('.emerson-directory-picker select');
+		}
+
+		var names = root.querySelectorAll('.church-admin-directory-name[data-id]');
+		if (!names.length) {
+			return null;
+		}
+
+		var wrap = document.createElement('div');
+		wrap.className = 'emerson-directory-picker';
+
+		var label = document.createElement('label');
+		label.className = 'emerson-directory-picker__label';
+		label.setAttribute('for', 'emerson-directory-household');
+		label.textContent = 'Choose a household';
+
+		var select = document.createElement('select');
+		select.id = 'emerson-directory-household';
+		select.className = 'emerson-directory-picker__select';
+		select.setAttribute('aria-label', 'Choose a household from the member directory');
+
+		var groups = {};
+		var order = [];
+		names.forEach(function (nameEl) {
+			var letter = letterFromName(nameEl) || '#';
+			if (!groups[letter]) {
+				groups[letter] = [];
+				order.push(letter);
+			}
+			var labelText = (
+				(nameEl.querySelector('.church-admin-name-item') || nameEl).textContent || ''
+			).trim();
+			groups[letter].push({
+				id: String(nameEl.getAttribute('data-id') || ''),
+				label: labelText || 'Household',
+				el: nameEl,
+			});
+		});
+
+		order.forEach(function (letter) {
+			var optgroup = document.createElement('optgroup');
+			optgroup.label = letter;
+			groups[letter].forEach(function (item) {
+				if (!item.id) {
+					return;
+				}
+				var option = document.createElement('option');
+				option.value = item.id;
+				option.textContent = item.label;
+				optgroup.appendChild(option);
+			});
+			if (optgroup.childNodes.length) {
+				select.appendChild(optgroup);
+			}
+		});
+
+		var selected = root.querySelector(
+			'.church-admin-directory-name.church-admin-highlighted-name[data-id]'
+		);
+		if (selected) {
+			select.value = String(selected.getAttribute('data-id') || '');
+		}
+
+		select.addEventListener('change', function () {
+			var id = select.value;
+			var nameEl = root.querySelector(
+				'.church-admin-directory-name[data-id="' + id + '"]'
+			);
+			if (!nameEl) {
+				return;
+			}
+			var letter = letterFromName(nameEl);
+			if (letter) {
+				root.querySelectorAll('.letterNames').forEach(function (group) {
+					group.style.display = 'none';
+					group.querySelectorAll('.church-admin-directory-name').forEach(function (n) {
+						n.style.display = 'none';
+					});
+				});
+				root.querySelectorAll('.letter-' + letter).forEach(function (node) {
+					node.style.display = 'block';
+				});
+				root.querySelectorAll('.church-admin-letter').forEach(function (letterEl) {
+					letterEl.classList.toggle(
+						'church-admin-highlighted',
+						letterEl.id === letter
+					);
+				});
+			}
+			nameEl.click();
+		});
+
+		wrap.appendChild(label);
+		wrap.appendChild(select);
+		root.insertBefore(wrap, root.firstChild);
+		root.classList.add('emerson-directory--mobile-picker');
+		return select;
+	}
+
+	roots.forEach(buildPicker);
+})();

@@ -66,7 +66,7 @@ add_action(
 		wp_enqueue_script(
 			'emerson-chapel',
 			emerson_chapel_url( 'assets/js/custom.js' ),
-			array(),
+			array( 'jquery' ),
 			(string) filemtime( $js_path ),
 			true
 		);
@@ -96,6 +96,7 @@ $emerson_chapel_modules = array(
 	'welcome.php',
 	'newsletter.php',
 	'members.php',
+	'church-admin-register.php',
 	'serving-dates.php',
 	'calendar-listed-events.php',
 	'calendar-timezone.php',

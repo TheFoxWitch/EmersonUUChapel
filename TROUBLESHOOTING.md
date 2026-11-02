@@ -20,7 +20,7 @@ export PATH="$HOME/.docker/bin:$PATH"
 If the phone cannot connect: confirm both devices are on the same Wi‑Fi (not guest/client-isolation), and that the Mac firewall is not blocking Docker / incoming connections on port 8080.
 
 ### Safari still shows an old tab icon (or the WordPress “W”)
-The files are the round green badge, built from `images/emersonLogoUpscale.png`. Every `<link rel="icon">` points at a **root** file (`/favicon.ico`, `/favicon-16.png`, `/favicon-32.png`, `/emerson-site-icon.png`, `/apple-touch-icon.png`, …) with `Cache-Control: max-age=0`. Do not use the copies under `wp-content/plugins/…` in the head — W3 Total Cache was giving those PNGs a one-year cache, so the tab flipped between the new badge and an old hands/drop mark.
+The files are the round green badge, built from `images/EmersonUUChapelLogoOriginal.png`. Every `<link rel="icon">` points at a **root** file (`/favicon.ico`, `/favicon-16.png`, `/favicon-32.png`, `/emerson-site-icon.png`, `/apple-touch-icon.png`, …) with `Cache-Control: max-age=0`. Do not use the copies under `wp-content/plugins/…` in the head — W3 Total Cache was giving those PNGs a one-year cache, so the tab flipped between the new badge and an old hands/drop mark.
 
 Safari often ignores those tags and keeps the icon it already stored for `localhost`. A Private Window uses that same store, so it will not show the new logo either. Closing the window is not enough. Safari has to fully quit.
 

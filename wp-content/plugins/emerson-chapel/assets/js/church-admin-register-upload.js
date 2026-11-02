@@ -200,6 +200,9 @@
 						URL.revokeObjectURL(localUrl);
 					}
 				});
+				showRemoveButton($area, true);
+				var $form = $area.closest('form');
+				$form.find('input[name="emerson_ca_clear_people_photo"]').remove();
 
 				resetDragMessage($area, 'Uploaded');
 				window.setTimeout(function () {
@@ -215,6 +218,82 @@
 		});
 	}
 
+	function clearPhotoCfg() {
+		return (
+			(typeof emersonCaRegisterUpload !== 'undefined' &&
+				emersonCaRegisterUpload.clearPhoto) ||
+			null
+		);
+	}
+
+	function showRemoveButton($area, show) {
+		var $btn = $area.find('.emerson-ca-remove-photo');
+		if (!$btn.length) {
+			return;
+		}
+		$btn.prop('hidden', !show);
+	}
+
+	function resetToPlaceholder($area) {
+		var fallback = defaultAvatarUrl();
+		var $img = $area.find('img').first();
+		if ($img.length && fallback) {
+			$img.attr('src', fallback).removeAttr('srcset').removeAttr('sizes');
+		}
+		$area
+			.find(
+				'input.attachment_id, input[name="people_attachment_id"], input[name="household_attachment_id"]'
+			)
+			.val('');
+		$area.removeClass('emerson-ca-upload--has-photo');
+		showRemoveButton($area, false);
+		resetDragMessage(
+			$area,
+			$area.hasClass('emerson-ca-person-photo')
+				? 'Drag a photo here, or click to choose'
+				: 'Drag and drop image into this box to replace'
+		);
+	}
+
+	function clearPhoto($area) {
+		var cfg = clearPhotoCfg();
+		var which = String($area.data('which') || '');
+		var id = $area.data('id');
+		if (!cfg || !cfg.action || !cfg.nonce || !which || !id) {
+			resetToPlaceholder($area);
+			return;
+		}
+
+		resetDragMessage($area, 'Removing…');
+		$.post(ajax, {
+			action: cfg.action,
+			nonce: cfg.nonce,
+			which: which,
+			id: id,
+		})
+			.done(function (response) {
+				if (!response || !response.success) {
+					resetDragMessage($area, 'Could not remove photo');
+					return;
+				}
+				resetToPlaceholder($area);
+				var $form = $area.closest('form');
+				if ($form.length && which === 'people') {
+					var $flag = $form.find('input[name="emerson_ca_clear_people_photo"]');
+					if (!$flag.length) {
+						$form.append(
+							'<input type="hidden" name="emerson_ca_clear_people_photo" value="1" />'
+						);
+					} else {
+						$flag.val('1');
+					}
+				}
+			})
+			.fail(function () {
+				resetDragMessage($area, 'Could not remove photo');
+			});
+	}
+
 	function bindArea(area) {
 		var $area = $(area);
 		if ($area.data('emersonUploadBound')) {
@@ -224,13 +303,56 @@
 
 		ensureVisiblePlaceholder($area);
 
+		if (!$area.find('.emerson-ca-remove-photo').length) {
+			var $remove = $(
+				'<button type="button" class="emerson-ca-remove-photo">Remove photo</button>'
+			);
+			$area.append($remove);
+			showRemoveButton(
+				$area,
+				$area.hasClass('emerson-ca-upload--has-photo') ||
+					($area.find('img').first().attr('src') || '').indexOf('default-avatar') ===
+						-1 &&
+						($area.find('img').first().attr('src') || '').indexOf('.svg') === -1
+			);
+			// Refine after images load.
+			$area.find('img').each(function () {
+				var img = this;
+				function sync() {
+					var real =
+						img.naturalWidth >= 8 &&
+						(img.src || '').indexOf('default-avatar') === -1 &&
+						(img.src || '').indexOf('man.svg') === -1 &&
+						(img.src || '').indexOf('woman.svg') === -1;
+					if (real) {
+						$area.addClass('emerson-ca-upload--has-photo');
+					}
+					showRemoveButton($area, !!real);
+				}
+				if (img.complete) {
+					sync();
+				} else {
+					$(img).one('load error', sync);
+				}
+			});
+			$remove.on('click', function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				clearPhoto($area);
+			});
+		}
+
 		var $file = $(
 			'<input type="file" accept="image/*" class="emerson-ca-upload-file" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;" tabindex="-1" aria-hidden="true" />'
 		);
 		$area.css('position', 'relative').append($file);
 
 		$area.on('click', function (e) {
-			if ($(e.target).closest('a, button, input:not(.emerson-ca-upload-file)').length) {
+			if (
+				$(e.target).closest(
+					'a, button, input:not(.emerson-ca-upload-file), .emerson-ca-remove-photo'
+				).length
+			) {
 				return;
 			}
 			e.preventDefault();
@@ -274,7 +396,7 @@
 	}
 
 	$(function () {
-		$('.ca-upload-area').each(function () {
+		$('.ca-upload-area, .emerson-ca-person-photo').each(function () {
 			bindArea(this);
 		});
 	});

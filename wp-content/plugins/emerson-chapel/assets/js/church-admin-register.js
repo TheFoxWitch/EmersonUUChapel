@@ -2,12 +2,84 @@
  * Front-end Church Admin register helpers (Emerson overlays).
  * - Show wedding anniversary when marital status is Married (on load + change).
  * - Sync typed dates into the hidden Y-m-d field and datepicker.
+ * - Existing-email register response: open dialog, no second login form.
  */
 (function ($) {
 	'use strict';
 
 	var cfg = window.emersonCaRegister || {};
 	var marriedId = String(cfg.marriedStatusId || '3');
+
+	function focusMembersLogin(email) {
+		var login =
+			document.querySelector('#user_login') ||
+			document.querySelector('input[name="log"]') ||
+			document.querySelector('.wppb-form-field input[type="text"]') ||
+			document.querySelector('.wppb-user-forms input[type="text"]');
+		var heading = document.querySelector('#member-login, .wppb-login-form, .wppb-user-forms');
+		if (heading && typeof heading.scrollIntoView === 'function') {
+			heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+		if (login) {
+			if (email && !login.value) {
+				login.value = email;
+			}
+			try {
+				login.focus({ preventScroll: true });
+			} catch (e) {
+				login.focus();
+			}
+		}
+	}
+
+	function bindAlreadyRegisteredDialog() {
+		var dialog = document.getElementById('emerson-ca-already-registered');
+		if (!dialog || typeof dialog.showModal !== 'function') {
+			return;
+		}
+		var email = dialog.getAttribute('data-emerson-login-email') || '';
+		var scrollLogin = dialog.getAttribute('data-emerson-scroll-login') === '1';
+
+		function closeDialog() {
+			if (dialog.open) {
+				dialog.close();
+			}
+		}
+
+		dialog.querySelectorAll('.emerson-nl-dialog__close').forEach(function (btn) {
+			btn.addEventListener('click', closeDialog);
+		});
+		dialog.querySelectorAll('.emerson-ca-already-dialog__ok').forEach(function (btn) {
+			if (btn.tagName === 'A') {
+				return;
+			}
+			btn.addEventListener('click', function () {
+				closeDialog();
+				if (scrollLogin) {
+					focusMembersLogin(email);
+				}
+			});
+		});
+		dialog.addEventListener('click', function (event) {
+			if (event.target === dialog) {
+				closeDialog();
+			}
+		});
+
+		dialog.showModal();
+		if (scrollLogin) {
+			// Prefill quietly so “Go to login” / close still lands on a ready field.
+			window.setTimeout(function () {
+				var login =
+					document.querySelector('#user_login') ||
+					document.querySelector('input[name="log"]') ||
+					document.querySelector('.wppb-form-field input[type="text"]');
+				if (login && email && !login.value) {
+					login.value = email;
+				}
+			}, 0);
+		}
+	}
 
 	function toggleWeddingAnniversary() {
 		var $wrap = $('#wedding-anniversary');
@@ -129,6 +201,7 @@
 		$(document).on('blur change', '#wedding_anniversaryx', syncWaFromTyped);
 		$('form').on('submit', syncWaFromTyped);
 		toggleWeddingAnniversary();
+		bindAlreadyRegisteredDialog();
 	}
 
 	$(boot);

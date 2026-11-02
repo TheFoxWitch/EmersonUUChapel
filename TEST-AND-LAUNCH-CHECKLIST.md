@@ -8,7 +8,7 @@ In redirect mode every email really goes out, but only to your test mailbox. The
 
 Use a private window (Cmd+Shift+P) for anything that should be tested logged out. That does not refresh Safari’s tab icon; see **Tab icon** below.
 
-- [ ] **Tab icon** is the round green badge from `images/emersonLogoUpscale.png`, served only from root URLs with no long cache. Chrome/Firefox: hard refresh. Safari: quit Cmd+Q, trash Favicon/Touch Icons caches, enable **Settings → Tabs → Show website icons in tabs**, open `http://localhost:8080/favicon.ico` then the homepage. Details are in Troubleshooting.
+- [ ] **Tab icon** is the round green badge from `images/EmersonUUChapelLogoOriginal.png`, served only from root URLs with no long cache. Chrome/Firefox: hard refresh. Safari: quit Cmd+Q, trash Favicon/Touch Icons caches, enable **Settings → Tabs → Show website icons in tabs**, open `http://localhost:8080/favicon.ico` then the homepage. Details are in Troubleshooting.
 
 - [x] **Newcomer Information form** (`/contact-newcomer-information/`)
   - "Thanks for contacting us!" appears within about a second
@@ -442,7 +442,7 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
 - [ ] **Church Leadership: personal emails and extra contact details.** The page lists names and roles only. Two board members' personal emails were sent for a possible contact list; they are **not** on the page, and must not go into GitHub. Ask leadership whether they want personal emails (or other private contact details) on this public page. If yes: add them on the page only, not in the repo. If no: leave the names as they are.
 - [ ] **2026 commitment form.** The homepage button says **2026-27 Commitment Form** and is edited under **Modals → 2026-27 Commitment Form**. Until a different address is saved, it opens the 2026–2027 commitment form. The old Welcome! page (412) still has an even older "Join The 2022-2023 Pledge Drive" link (`forms.gle/GfZt7bZsiYhPiFWX9`); update or remove that too if the page stays.
 - [ ] **Mint green (`#00d084`).** It has low contrast as text on white. Keep it, or choose a darker green for text? The homepage **You Are Welcome!** heading is no longer mint (rainbow gradient, 2026-10-08). Mint is still the pledge / contribute button background.
-- [ ] **Privacy Policy.** Leadership approves the wording, including the newsletter, local-storage and login-protection sections. Also approve the new **Cookies** (`/cookies/`) and **Terms of Use** (`/terms-of-use/`) pages, and the cookie notice (Okay remembers the choice in this browser). Church Admin needs PHP's `calendar` extension. Locally it's added by the project `Dockerfile`; most hosts have it. If the live site gives a server error there, ask the host to enable it.
+- [ ] **Privacy Policy.** Leadership approves the wording. Local draft updated **2026-11-01** for Microsoft Forms (commitment), on-site Calculated Fields surveys, newsletter confirm → Church Admin / Mailchimp, Google Maps on Visit Us, login lockout logging, and Cookies page third-party list. **Terms of Use** (1076) same date + third-party pointer to Privacy. Still needs church sign-off on Privacy, **Cookies** (`/cookies/`), **Terms of Use** (`/terms-of-use/`), and the cookie notice. Church Admin needs PHP's `calendar` extension (local `Dockerfile`; ask host if live errors).
 
 ## 5. Later: a more modern look (not a launch item)
 

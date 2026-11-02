@@ -1,6 +1,6 @@
 <?php
 /**
- * Emerson tab icon, built from images/emersonLogoUpscale2.png
+ * Emerson tab icon, built from images/EmersonUUChapelLogoOriginal.png
  * (the round green badge). Every advertised URL is a same-origin root file
  * with max-age=0 so browsers cannot flip between a fresh ICO and a year-cached
  * plugin PNG. Safari asks for /apple-touch-icon.png and /favicon.ico at the

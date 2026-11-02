@@ -14,9 +14,18 @@
  *   the household (CA's person save never writes wedding_anniversary).
  * - Person photo: CA's draganddrop.js often never loads for the register block, and the
  *   markup has no file input — drops open the image in a new tab. Emerson wires click
- *   and drag/drop to CA's people/household upload AJAX.
+ *   and drag/drop on Edit person/address boxes and on the household overview person
+ *   image cell (the silhouette placeholder). CA also has a separate household photo
+ *   on Edit address (no remove control upstream).
  * - Delete household: CA calls church_admin_premium_address_list() afterward; that function
  *   lives in directory.php (admin only). Stub it on the front end so delete does not fatal.
+ * - Email already on file: CA replaces the register form with “Please login” + a second
+ *   wp_login_form. On Members that sits under Profile Builder’s login. Emerson strips that
+ *   form and opens a dialog: “already registered — please log in above.”
+ * - Household overview card: CA has no way back to Members; Emerson inserts a Back link
+ *   immediately before “Edit address”.
+ * - Logged-in visits to /register/ keep the WP page title “Register”; Emerson renames the
+ *   on-page and browser titles to “Edit Profile” (new sign-up still says Register).
  *
  * Do not patch church-admin-premium for these; CA updates wipe vendor edits.
  * The register page uses the church-admin/register block (and sometimes the shortcode).
@@ -156,6 +165,72 @@ function emerson_ca_ajax_allow_directory_photo(): void {
 add_action( 'wp_ajax_emerson_ca_allow_directory_photo', 'emerson_ca_ajax_allow_directory_photo' );
 
 /**
+ * Whether the current user may clear a household or person photo on the front end.
+ */
+function emerson_ca_can_edit_household_photos( int $household_id ): bool {
+	if ( $household_id < 1 || ! is_user_logged_in() ) {
+		return false;
+	}
+	if ( emerson_ca_is_directory_editor() ) {
+		return true;
+	}
+	global $wpdb;
+	$editor_household = (int) $wpdb->get_var(
+		$wpdb->prepare(
+			'SELECT household_id FROM ' . $wpdb->prefix . 'church_admin_people WHERE user_id = %d',
+			get_current_user_id()
+		)
+	);
+	return $editor_household > 0 && $editor_household === $household_id;
+}
+
+/**
+ * Clear household or person attachment_id (CA has upload but no remove UI).
+ */
+function emerson_ca_ajax_clear_photo(): void {
+	if ( ! check_ajax_referer( 'emerson_ca_clear_photo', 'nonce', false ) ) {
+		wp_send_json_error( array( 'message' => 'bad_nonce' ), 403 );
+	}
+	$which = isset( $_POST['which'] ) ? sanitize_key( (string) wp_unslash( $_POST['which'] ) ) : '';
+	$id    = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+	if ( $id < 1 || ! in_array( $which, array( 'people', 'household' ), true ) ) {
+		wp_send_json_error( array( 'message' => 'bad_request' ), 400 );
+	}
+
+	global $wpdb;
+	if ( 'household' === $which ) {
+		if ( ! emerson_ca_can_edit_household_photos( $id ) ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+		$wpdb->query(
+			$wpdb->prepare(
+				'UPDATE ' . $wpdb->prefix . 'church_admin_household SET attachment_id = NULL WHERE household_id = %d',
+				$id
+			)
+		);
+		wp_send_json_success( array( 'which' => 'household', 'id' => $id ) );
+	}
+
+	$person = $wpdb->get_row(
+		$wpdb->prepare(
+			'SELECT people_id, household_id FROM ' . $wpdb->prefix . 'church_admin_people WHERE people_id = %d',
+			$id
+		)
+	);
+	if ( ! $person || ! emerson_ca_can_edit_household_photos( (int) $person->household_id ) ) {
+		wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+	}
+	$wpdb->query(
+		$wpdb->prepare(
+			'UPDATE ' . $wpdb->prefix . 'church_admin_people SET attachment_id = NULL WHERE people_id = %d',
+			$id
+		)
+	);
+	wp_send_json_success( array( 'which' => 'people', 'id' => $id ) );
+}
+add_action( 'wp_ajax_emerson_ca_clear_photo', 'emerson_ca_ajax_clear_photo' );
+
+/**
  * One-time sync: anyone who already has a portrait but photo_permission=0 (e.g. alice fox).
  */
 function emerson_ca_sync_directory_photo_permissions(): void {
@@ -185,6 +260,10 @@ function emerson_ca_preserve_person_photo_on_save(): void {
 		return;
 	}
 	if ( empty( $_POST['save-person'] ) ) {
+		return;
+	}
+	// Emerson "Remove photo" intentionally cleared the field — do not reinstate.
+	if ( ! empty( $_POST['emerson_ca_clear_people_photo'] ) ) {
 		return;
 	}
 	if ( ! empty( $_POST['people_attachment_id'] ) ) {
@@ -301,10 +380,226 @@ function emerson_ca_finish_register_output( string $output ): string {
 	$output = emerson_ca_add_household_contact_fields( $output );
 	$output = emerson_ca_ensure_wedding_anniversary_ui( $output );
 	$output = emerson_ca_mark_privacy_ui_in_form( $output );
-	if ( str_contains( $output, 'ca-upload-area' ) ) {
+	$output = emerson_ca_rewrite_existing_email_login( $output );
+	$output = emerson_ca_label_photo_boxes( $output );
+	$output = emerson_ca_enhance_overview_person_photos( $output );
+	$output = emerson_ca_add_members_back_button( $output );
+	if ( str_contains( $output, 'ca-upload-area' ) || str_contains( $output, 'emerson-ca-person-photo' ) ) {
 		emerson_ca_enqueue_register_upload_script();
 	}
 	return emerson_ca_fix_delete_household_message( $output );
+}
+
+/**
+ * Household overview: Back to Members before “Edit address” (CA has no return link).
+ */
+function emerson_ca_add_members_back_button( string $html ): string {
+	if ( ! str_contains( $html, 'name="ca-cmd" value="edit-address"' ) ) {
+		return $html;
+	}
+	if ( str_contains( $html, 'emerson-ca-register-back' ) ) {
+		return $html;
+	}
+
+	$members = defined( 'EMERSON_MEMBERS_PAGE' )
+		? home_url( EMERSON_MEMBERS_PAGE )
+		: home_url( '/members/' );
+	$back    = sprintf(
+		'<a class="emerson-ca-register-back church-admin-register-button" href="%1$s#member-directory">%2$s</a>',
+		esc_url( $members ),
+		esc_html__( 'Back', 'emerson-chapel' )
+	);
+
+	$replaced = preg_replace(
+		'#<p>(\s*<form\b[^>]*>\s*<input\b[^>]*name="ca-cmd"[^>]*value="edit-address"[^>]*>)#i',
+		'<p class="emerson-ca-register-actions">' . $back . '$1',
+		$html,
+		1
+	);
+
+	return is_string( $replaced ) ? $replaced : $html;
+}
+
+/**
+ * Clarify CA’s identical “Photo” headings on Edit person vs Edit address.
+ */
+function emerson_ca_label_photo_boxes( string $html ): string {
+	$html = (string) preg_replace_callback(
+		'#(<div\b[^>]*\bca-upload-area\b[^>]*\bdata-which="people"[^>]*>\s*<h3>)Photo(</h3>)#i',
+		static function ( array $m ): string {
+			return $m[1] . 'Person photo' . $m[2];
+		},
+		$html
+	);
+	$html = (string) preg_replace_callback(
+		'#(<div\b[^>]*\bca-upload-area\b[^>]*\bdata-which="household"[^>]*>\s*<h3>)Photo(</h3>)#i',
+		static function ( array $m ): string {
+			return $m[1] . 'Household photo (optional)' . $m[2];
+		},
+		$html
+	);
+	// data-which may appear after <h3> in attribute order variants.
+	$html = (string) preg_replace_callback(
+		'#(<div\b[^>]*\bdata-which="people"[^>]*\bca-upload-area\b[^>]*>\s*<h3>)Photo(</h3>)#i',
+		static function ( array $m ): string {
+			return $m[1] . 'Person photo' . $m[2];
+		},
+		$html
+	);
+	$html = (string) preg_replace_callback(
+		'#(<div\b[^>]*\bdata-which="household"[^>]*\bca-upload-area\b[^>]*>\s*<h3>)Photo(</h3>)#i',
+		static function ( array $m ): string {
+			return $m[1] . 'Household photo (optional)' . $m[2];
+		},
+		$html
+	);
+	return $html;
+}
+
+/**
+ * Household overview: make the person Image cell a drop/click upload target.
+ * CA only prints a plain &lt;img&gt; there (silhouette or portrait), so a drop
+ * otherwise just opens the file in the browser.
+ */
+function emerson_ca_enhance_overview_person_photos( string $html ): string {
+	if ( ! str_contains( $html, 'data-colname="Image"' ) || ! str_contains( $html, 'edit-person' ) ) {
+		return $html;
+	}
+
+	return (string) preg_replace_callback(
+		'#<tr>(.*?)</tr>#is',
+		static function ( array $m ): string {
+			$row = $m[0];
+			if ( ! str_contains( $row, 'value="edit-person"' ) ) {
+				return $row;
+			}
+			if ( ! preg_match( '#name="id"\s+value="(\d+)"#', $row, $id_m ) ) {
+				return $row;
+			}
+			$people_id = (int) $id_m[1];
+			if ( $people_id < 1 ) {
+				return $row;
+			}
+			$nonce = wp_create_nonce( 'people-image-upload' );
+
+			return (string) preg_replace_callback(
+				'#<td([^>]*data-colname="Image"[^>]*)>(.*?)</td>#is',
+				static function ( array $td ) use ( $people_id, $nonce ): string {
+					$inner = $td[2];
+					// CA sometimes emits a stray quote after Image (…Image"  ">). Rebuild attrs.
+					$attrs = ' data-colname="Image" class="emerson-ca-person-photo ca-upload-area" data-which="people" data-id="'
+						. $people_id . '" data-nonce="' . esc_attr( $nonce ) . '"';
+					if ( ! str_contains( $inner, 'drag-message' ) ) {
+						$inner .= '<p class="drag-message">Drag a photo here, or click to choose</p>';
+					}
+					return '<td' . $attrs . '>' . $inner . '</td>';
+				},
+				$row,
+				1
+			);
+		},
+		$html
+	);
+}
+
+/**
+ * CA’s “email already on file” response embeds a second WordPress login form.
+ */
+function emerson_ca_is_existing_email_login_html( string $html ): bool {
+	if ( ! str_contains( $html, 'loginform' ) ) {
+		return false;
+	}
+	return (bool) preg_match(
+		'/Please login|Looks like you are on our system|Looks like you have a user account for this site/i',
+		$html
+	);
+}
+
+/**
+ * Remove CA’s embedded login form and its “Please login” / “Looks like…” copy.
+ */
+function emerson_ca_strip_embedded_login_form( string $html ): string {
+	$html = (string) preg_replace(
+		'#<p>\s*(?:Please login|Looks like you are on our system,? please login|Looks like you have a user account for this site, but no directory entry)\s*</p>#i',
+		'',
+		$html
+	);
+	$html = (string) preg_replace(
+		'#<form\b[^>]*\b(?:id|name)=["\']loginform["\'][^>]*>.*?</form>#is',
+		'',
+		$html
+	);
+	$html = (string) preg_replace(
+		'#<p>\s*<a\b[^>]*>\s*Lost Password\s*</a>\s*</p>#i',
+		'',
+		$html
+	);
+	return $html;
+}
+
+/**
+ * Prefill hint from the email the visitor just checked (POST), if present.
+ */
+function emerson_ca_register_checked_email(): string {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only hint for the Members login field.
+	$raw = isset( $_POST['ca-email'] ) ? (string) wp_unslash( $_POST['ca-email'] ) : '';
+	$email = sanitize_email( $raw );
+	return is_email( $email ) ? $email : '';
+}
+
+/**
+ * Dialog + quiet note when register finds an email already on file.
+ */
+function emerson_ca_rewrite_existing_email_login( string $html ): string {
+	if ( ! emerson_ca_is_existing_email_login_html( $html ) ) {
+		return $html;
+	}
+
+	$html  = emerson_ca_strip_embedded_login_form( $html );
+	$email = emerson_ca_register_checked_email();
+	$on_members = defined( 'EMERSON_MEMBERS_PAGE' ) && is_page( 'members' );
+
+	if ( $on_members ) {
+		$title   = __( 'Already registered', 'emerson-chapel' );
+		$message = __( 'Your email is already registered. Please log in above.', 'emerson-chapel' );
+		$action  = __( 'Go to login', 'emerson-chapel' );
+		$note    = __( 'You already have an account. Use Member login above.', 'emerson-chapel' );
+	} else {
+		$members = defined( 'EMERSON_MEMBERS_PAGE' ) ? home_url( EMERSON_MEMBERS_PAGE ) : home_url( '/members/' );
+		$title   = __( 'Already registered', 'emerson-chapel' );
+		$message = sprintf(
+			/* translators: %s: Members page URL */
+			__( 'Your email is already registered. Please <a href="%s">log in on the Members page</a>.', 'emerson-chapel' ),
+			esc_url( $members )
+		);
+		$action = __( 'Go to Members login', 'emerson-chapel' );
+		$note   = sprintf(
+			/* translators: %s: Members page URL */
+			__( 'You already have an account. <a href="%s">Log in on the Members page</a>.', 'emerson-chapel' ),
+			esc_url( $members )
+		);
+	}
+
+	$dialog  = '<dialog class="emerson-nl-dialog emerson-ca-already-dialog" id="emerson-ca-already-registered"';
+	$dialog .= $email !== '' ? ' data-emerson-login-email="' . esc_attr( $email ) . '"' : '';
+	$dialog .= $on_members ? ' data-emerson-scroll-login="1"' : '';
+	$dialog .= '>';
+	$dialog .= '<div class="emerson-nl-dialog__inner">';
+	$dialog .= '<button type="button" class="emerson-nl-dialog__close" aria-label="' . esc_attr__( 'Close', 'emerson-chapel' ) . '">&times;</button>';
+	$dialog .= '<h2 class="emerson-nl-dialog__title">' . esc_html( $title ) . '</h2>';
+	$dialog .= '<p class="emerson-nl-dialog__intro">' . wp_kses( $message, array( 'a' => array( 'href' => true ) ) ) . '</p>';
+	$dialog .= '<p class="emerson-ca-already-dialog__actions">';
+	if ( $on_members ) {
+		$dialog .= '<button type="button" class="emerson-ca-already-dialog__ok">' . esc_html( $action ) . '</button>';
+	} else {
+		$dialog .= '<a class="emerson-ca-already-dialog__ok" href="' . esc_url( $members ) . '">' . esc_html( $action ) . '</a>';
+	}
+	$dialog .= '</p></div></dialog>';
+	$dialog .= '<p class="emerson-ca-already-note">' . wp_kses( $note, array( 'a' => array( 'href' => true ) ) ) . '</p>';
+
+	emerson_ca_enqueue_register_script();
+
+	return $html . $dialog;
 }
 
 /**
@@ -334,6 +629,10 @@ function emerson_ca_enqueue_register_upload_script(): void {
 			'allowDirectoryPhoto' => array(
 				'action' => 'emerson_ca_allow_directory_photo',
 				'nonce'  => wp_create_nonce( 'emerson_ca_directory_photo' ),
+			),
+			'clearPhoto' => array(
+				'action' => 'emerson_ca_clear_photo',
+				'nonce'  => wp_create_nonce( 'emerson_ca_clear_photo' ),
 			),
 		)
 	);
@@ -970,6 +1269,43 @@ add_filter(
 	'render_block_church-admin/register',
 	static function ( string $content ): string {
 		return emerson_ca_finish_register_output( $content );
+	}
+);
+
+/**
+ * Whether /register/ is in household-edit mode (logged-in overview / Edit Entry).
+ */
+function emerson_ca_register_is_edit_profile_view(): bool {
+	return is_user_logged_in() && is_page( 'register' );
+}
+
+// Page H1: WP page title is still “Register”; show Edit Profile while editing.
+add_filter(
+	'the_title',
+	static function ( $title, $post_id = 0 ) {
+		if ( ! emerson_ca_register_is_edit_profile_view() ) {
+			return $title;
+		}
+		if ( ! is_singular() || ! in_the_loop() || ! is_main_query() ) {
+			return $title;
+		}
+		if ( (int) $post_id !== (int) get_queried_object_id() ) {
+			return $title;
+		}
+		return __( 'Edit Profile', 'emerson-chapel' );
+	},
+	10,
+	2
+);
+
+// Browser tab title for the same view.
+add_filter(
+	'document_title_parts',
+	static function ( array $parts ): array {
+		if ( emerson_ca_register_is_edit_profile_view() ) {
+			$parts['title'] = __( 'Edit Profile', 'emerson-chapel' );
+		}
+		return $parts;
 	}
 );
 

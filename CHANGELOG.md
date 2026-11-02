@@ -10,7 +10,45 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-02
+
+### Directory edit: page title Edit Profile
+- `/register/` keeps the WP page title “Register” for new sign-up. When a member is logged in and editing (household overview / Edit Entry), Emerson shows **Edit Profile** for the page H1 and browser tab — not a Church Admin string.
+- **File:** `inc/church-admin-register.php`.
+
+### Directory edit: Back to Members
+- Household overview on `/register/` (Directory Edit Entry) now has a Back link immediately before Edit address, Emerson Blue like the other CA action buttons, returning to the Members directory. Actions row uses `position: relative; top: -17px`.
+- **File:** `inc/church-admin-register.php`, `assets/css/custom.css`.
+
+### Favicon: EmersonUUChapelLogoOriginal
+- Rebuilt 16/32/180/512 PNG, multi-size ICO, favicon.svg, and safari-pinned-tab from `images/EmersonUUChapelLogoOriginal.png` (trimmed transparent padding, badge fills the square). Root copies and Site Icon attachment refreshed via Emerson’s icon sync.
+- **File:** `inc/site-icon.php` (source comment), `assets/images/favicon*`, `emerson-site-icon.png`, `apple-touch-icon.png`, `safari-pinned-tab.svg`.
+
+### Register overview: drag photo onto the person placeholder
+- The household people table’s Image cell was a plain `<img>` (silhouette), so a drop opened the file in the browser instead of uploading. Emerson marks that cell as a people-upload drop/click target (same AJAX as Edit person). Edit form headings now say **Person photo** vs **Household photo (optional)** — the household photo box is Church Admin’s, with no remove control upstream.
+- **File:** `inc/church-admin-register.php`, `assets/js/church-admin-register-upload.js`, `assets/css/custom.css`.
+
+### Remove photo on Edit address / Edit person
+- Church Admin only uploads household/person photos; there is no delete control. Emerson adds **Remove photo** on those upload boxes (and the overview person cell). It clears the attachment in the database immediately via AJAX and resets the preview. Person Save still won’t reinstate a cleared portrait.
+- **File:** `inc/church-admin-register.php`, `assets/js/church-admin-register-upload.js`, `assets/css/custom.css`.
+
+### Household / person photo box: no double silhouette, centred
+- Edit address/person upload area dropped the CSS background person icon (it sat behind the placeholder) and centres the preview image plus “Drag and drop…” text.
+- **File:** `assets/css/custom.css`.
+
+### Members register: already-registered email opens a dialog
+- Entering an email Church Admin already has used to replace the register block with a second WordPress login form under Profile Builder’s login. Emerson strips that form and opens a dialog: “Your email is already registered. Please log in above,” with Go to login scrolling to Member login (and prefilling the email when possible). On `/register/` the dialog links to Members instead.
+- **File:** `inc/church-admin-register.php`, `assets/js/church-admin-register.js`, `assets/css/custom.css`.
+
 ## 2026-11-01
+
+### Privacy Policy + Cookies: Microsoft Forms and current practice
+- Privacy Policy (page 3) no longer says the pledge form is only Google Forms. It names **Microsoft Forms** for the homepage commitment form (with Microsoft’s privacy statement), keeps Google for Maps / YouTube / any leftover Google Form links, and notes on-site Calculated Fields surveys email the office. Newsletter and login-lockout wording refreshed. Cookies (1075) third-party line matches. Last updated **November 1, 2026**. Still needs church leadership approval before launch.
+- **Local DB:** pages 3 and 1075. **Backup:** `backups/pages/privacy-policy-3-before-microsoft-forms.html`, `cookies-1075-before-microsoft-forms.html`; draft copy `backups/privacy-policy-draft.html`.
+
+### Terms of Use: date + third-party pointer
+- Terms of Use (1076) last-updated set to **November 1, 2026**, with a short paragraph that embeds/links (Microsoft Forms, YouTube, Zoom, PayPal, Google Maps) follow their own terms and are described in the Privacy Policy.
+- **Local DB:** page 1076. **Backup:** `backups/pages/terms-of-use-1076-before-nov2026.html`.
 
 ### Mobile menu: Emerson Blue panel, white links
 - Open overlay (and the exit ghost so close stays seamless) uses Emerson Blue with white nav labels, submenu chevrons, and close icon. Closed burger on the header is unchanged.

@@ -149,11 +149,21 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 	text-decoration: none;
 }
 
+/*
+ * Home is first in the nav for the mobile overlay. On desktop the logo already
+ * goes home, so hide this item in the horizontal bar.
+ */
+@media (min-width: 600px) {
+	header .wp-block-navigation-item.emerson-nav-home {
+		display: none;
+	}
+}
+
 /* Mobile overlay menu: three-line icon + slide in from the right.
    WordPress owns open/close. On close we paint a non-interactive “ghost” that slides
    out (core still has no close-animation hook — Gutenberg #47078).
    Burger↔X uses transform/opacity on spans (not SVG) for Chrome/Firefox/Safari parity.
-   Both icons share a top-right slot above the About row. */
+   Both icons share a top-right slot above the Home / About rows. */
 @media (max-width: 599px) {
 	:root {
 		--emerson-nav-icon-top: max(0.75rem, env(safe-area-inset-top, 0px));
@@ -245,7 +255,7 @@ header .wp-block-navigation-item > span.wp-block-navigation-item__content {
 		margin: 0;
 		z-index: 2;
 	}
-	/* Keep About (and the rest) below the icon. */
+	/* Keep Home / About (and the rest) below the icon. */
 	header .wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content,
 	.emerson-nav-exit-ghost .wp-block-navigation__responsive-container-content {
 		padding-top: calc(var(--emerson-nav-icon-top) + var(--emerson-nav-icon-size) + 0.75rem);
@@ -888,9 +898,39 @@ main > section.wp-block-template-part :is(a, button, input, textarea, select, la
 	transition: transform 0.45s ease, opacity 0.45s ease;
 }
 .emerson-paypal-fees .emerson-recommit__bar,
-.emerson-paypal-fees form.cff-form {
+.emerson-paypal-fees form.cff-form,
+.emerson-paypal-fees .emerson-paypal-lite {
 	padding-inline: 1rem;
 	box-sizing: border-box;
+}
+
+/* CFF stores a bogus ~7837px mobile min-height; never let a closed dialog own that. */
+dialog.emerson-paypal-fees:not([open]) [id^="cp_calculatedfieldsf_pform"],
+dialog.emerson-paypal-fees:not([open]) form.cff-form {
+	min-height: 0 !important;
+	height: auto !important;
+}
+
+.emerson-paypal-lite {
+	padding-bottom: 0.75rem;
+	font-size: 1rem;
+	line-height: 1.45;
+}
+.emerson-paypal-lite__note {
+	margin: 0 0 1rem;
+	color: #3a3f55;
+}
+.emerson-paypal-lite label {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-weight: 600;
+}
+.emerson-paypal-lite__amount {
+	width: min(12rem, 100%);
+	padding: 0.45rem 0.6rem;
+	font-size: 1.05rem;
+	border: 1px solid #c5c9d6;
+	border-radius: 8px;
 }
 
 .emerson-paypal-fees.is-opening {
@@ -1601,19 +1641,88 @@ a.emerson-ca-register-back.church-admin-register-button {
 	vertical-align: middle;
 }
 
+/*
+ * Back sits in its own <p> (the browser hoists the Edit address <form> out of
+ * the paragraph). Drop the old top:-17px pull-up so Phone → Back matches
+ * Back → Edit address (same 1em as a normal CA <p> margin).
+ */
 .church-admin-shortcode-output p.emerson-ca-register-actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
+	justify-content: center;
 	gap: 0.5rem;
-	position: relative;
-	top: -17px;
-	margin-bottom: 0;
+	margin-top: 0;
+	margin-bottom: 1em;
 }
 
 .church-admin-shortcode-output p.emerson-ca-register-actions > form {
 	display: inline;
 	margin: 0;
+}
+
+.church-admin-register:has(table.ca-table) > p.emerson-ca-register-actions + form {
+	margin-top: 0;
+	margin-bottom: 1em;
+}
+
+/*
+ * Household overview (people table present): centre the stacked card at every
+ * viewport. Edit person / Edit address forms keep normal left-aligned fields.
+ */
+.church-admin-register:has(table.ca-table) {
+	text-align: center;
+}
+
+.church-admin-register:has(table.ca-table) .church-admin-register-title,
+.church-admin-register:has(table.ca-table) .church-admin-register-title h2 {
+	text-align: center;
+}
+
+.church-admin-register:has(table.ca-table) > p,
+.church-admin-register:has(table.ca-table) > form {
+	text-align: center;
+}
+
+.church-admin-register:has(table.ca-table) > form {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5rem;
+}
+
+/* Always stack people cells (CA only did this under 1000px). */
+.church-admin-register table.ca-table,
+.church-admin-register table.ca-table tbody,
+.church-admin-register table.ca-table tr {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	margin: 0 auto;
+	border: 0 !important;
+	box-sizing: border-box;
+}
+
+.church-admin-register table.ca-table th,
+.church-admin-register table.ca-table td {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	clear: both;
+	box-sizing: border-box;
+	text-align: center;
+	border: 0 !important;
+}
+
+.church-admin-register table.ca-table td form {
+	display: flex;
+	justify-content: center;
+	margin: 0.35rem 0;
+}
+
+.church-admin-register table.ca-table img {
+	margin-left: auto;
+	margin-right: auto;
 }
 
 input.church-admin-register-button:hover,
@@ -1724,19 +1833,25 @@ a.emerson-ca-register-back.church-admin-register-button:focus-visible,
 	height: auto;
 	min-height: 80px;
 	object-fit: contain;
-	margin: 0.35rem 0;
+	margin: 0.35rem auto;
 }
 
 /* Overview person Image cell: Emerson drop target (do not use the tall Edit-form upload chrome). */
 .church-admin-shortcode-output table.ca-table td.emerson-ca-person-photo.ca-upload-area {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 	min-height: 0;
+	max-width: 20rem;
+	margin: 0.75rem auto;
 	padding: 0.5rem;
 	vertical-align: middle;
 	cursor: pointer;
 	background-color: #f8f8fa;
 	background-image: none;
+	border: 1px solid #1e1e1e !important;
 	border-radius: var(--emerson-float-radius, 12px);
-	box-shadow: inset 0 0 0 1px rgba(63, 79, 160, 0.25);
+	box-shadow: none;
 }
 
 .church-admin-shortcode-output table.ca-table td.emerson-ca-person-photo .drag-message {
@@ -1748,9 +1863,15 @@ a.emerson-ca-register-back.church-admin-register-button:focus-visible,
 }
 
 .church-admin-shortcode-output table.ca-table td.emerson-ca-person-photo.ca-upload-area img {
-	max-width: 160px;
+	display: block;
+	width: auto;
+	max-width: min(160px, 100%);
 	height: auto;
 	min-height: 0;
+	margin-left: auto;
+	margin-right: auto;
+	object-fit: contain;
+	object-position: center;
 }
 
 /* Church Admin calendar Previous / Next buttons (members' hub and Calendar page): about twice the browser default */
@@ -3660,6 +3781,12 @@ blockquote {
 	border-left-color: var(--emerson-blue) !important;
 }
 
+.church-admin-calendar .ca-sidebar-list a.vcf-link {
+	display: block;
+	margin-top: 17px;
+	text-align: center;
+}
+
 /* Upcoming / Planning list: CA paints td.ca-list-event from category bgcolor (Sunday Service = pale yellow). */
 table.ca-calendar-list td.ca-list-event {
 	border-left-color: var(--emerson-blue) !important;
@@ -3733,8 +3860,9 @@ table.ca-calendar-list td.ca-list-event {
 }
 
 .emerson-ca-day-card__details .vcf-link {
-	display: inline-block;
-	margin-top: 0.35rem;
+	display: block;
+	margin-top: 17px;
+	text-align: center;
 }
 
 .church-admin-calendar .ca-sidebar-list .emerson-ca-service {
@@ -3844,15 +3972,14 @@ table.ca-calendar-list td.ca-list-event {
 	}
 
 	/*
-	 * Equal side columns + JS-matched button widths (Previous week is longer
-	 * than Next week). That keeps the date range centred and the gaps even
-	 * when the label text changes length.
+	 * Week range with ← / → like the month Prev/Next (btn-info). Equal side
+	 * columns keep the date label centred; chevrons are the same width.
 	 */
 	.emerson-ca-week-nav {
 		display: grid;
-		grid-template-columns: 1fr auto 1fr;
+		grid-template-columns: auto 1fr auto;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.35rem;
 		width: 100%;
 		box-sizing: border-box;
 		margin: 0 0 0.75rem;
@@ -3877,18 +4004,42 @@ table.ca-calendar-list td.ca-list-event {
 
 	.emerson-ca-week-nav button {
 		box-sizing: border-box;
-		min-height: 44px;
-		padding: 0.35em 0.65em;
+		min-height: 0;
+		min-width: 2.5rem;
+		padding: 0 0.15em;
 		border: 0;
-		border-radius: 3px;
-		background: #3f4fa0;
-		color: #fff;
+		border-radius: 0;
+		background: none;
+		color: var(--emerson-blue);
 		font: inherit;
-		font-size: 0.8em;
-		line-height: 1.2;
-		white-space: nowrap;
-		text-align: center;
+		font-size: 0;
+		line-height: 1;
 		cursor: pointer;
+		transition: transform 0.3s ease-in-out;
+	}
+
+	.emerson-ca-week-nav button::before {
+		position: relative;
+		top: -3px;
+		font-size: 28px;
+		line-height: 1;
+	}
+
+	.emerson-ca-week-nav__prev::before {
+		content: "\2190";
+		content: "\2190" / "";
+	}
+
+	.emerson-ca-week-nav__next::before {
+		content: "\2192";
+		content: "\2192" / "";
+	}
+
+	.emerson-ca-week-nav button:hover,
+	.emerson-ca-week-nav button:focus-visible {
+		background: none;
+		color: var(--emerson-blue);
+		transform: scale(1.05);
 	}
 }
 

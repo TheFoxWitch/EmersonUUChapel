@@ -75,7 +75,8 @@ function emerson_youtube_embed_src( string $id, bool $autoplay = true ): string 
 	if ( $autoplay ) {
 		$args['autoplay'] = '1';
 	}
-	return add_query_arg( $args, 'https://www.youtube.com/embed/' . rawurlencode( $id ) );
+	/* Privacy-enhanced host when Emerson controls the embed URL. */
+	return add_query_arg( $args, 'https://www.youtube-nocookie.com/embed/' . rawurlencode( $id ) );
 }
 
 /**
@@ -154,11 +155,18 @@ function emerson_latest_sermon_html(): string {
 		$title
 	);
 
+	/*
+	 * Poster loads after window load (data-src). An eager i.ytimg.com request
+	 * (and its old <link rel=preload>) could leave Safari’s spinner running
+	 * forever when YouTube is slow or blocked on the phone’s network.
+	 */
+	$pixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
 	return '<figure class="emerson-latest-sermon"'
 		. ' data-embed-src="' . esc_url( $src ) . '"'
 		. ' data-embed-title="' . esc_attr( $title ) . '">'
 		. '<button type="button" class="emerson-latest-sermon__play" aria-label="' . esc_attr( $label ) . '">'
-		. '<img class="emerson-latest-sermon__poster" src="' . esc_url( $poster ) . '" alt="" width="480" height="360" decoding="async" fetchpriority="high">'
+		. '<img class="emerson-latest-sermon__poster" src="' . $pixel . '" data-src="' . esc_url( $poster ) . '" alt="" width="480" height="360" decoding="async">'
 		. '<span class="emerson-latest-sermon__play-icon" aria-hidden="true"></span>'
 		. '</button>'
 		. '</figure>';

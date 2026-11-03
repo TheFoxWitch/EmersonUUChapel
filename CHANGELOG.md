@@ -12,6 +12,57 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-11-02
 
+### iCal download: real event title on iPhone
+- Church Admin’s single-event `.ics` used `DTSTART;VALUE=DATE` with a clock time, so iOS Calendar often opened an untitled **New Event**. Emerson now serves that same download URL with a valid timed DTSTART/DTEND, `SUMMARY` set to the calendar event title, and a matching filename (e.g. `mens-night.ics`).
+- **File:** `inc/calendar-ical.php` (loaded from `emerson-chapel.php`).
+
+### Privacy Policy, Cookies, and Terms of Use (critique pass)
+- Privacy: corrected on-site form storage (plugin can keep DB copies; ~24 months aim), named **Church Admin** as membership vendor/service provider, sensitive-data care + directory not shared outside the congregation, email-form caution, Mailchimp open/click tracking, retention section (newsletter / forms / email / members / pledges / ~30-day login IP logs), 60-day rights response + identity check, softened “we do not place advertising cookies ourselves.”
+- Cookies: same advertising-cookie wording; notes privacy-enhanced YouTube where we control embeds.
+- Terms: Missouri governing law, “as is” / liability limit, external links not endorsed, account suspension, copyright/takedown contact, clearer agreement language.
+- Emerson homepage sermon embed URL uses `youtube-nocookie.com`.
+- **Local DB:** pages 3, 1075, 1076. **Backup:** `backups/privacy-2026-11-02/`. **File:** `inc/latest-sermon.php`.
+
+### Mobile menu: Home at the top
+- The slide-out nav starts with **Home** (`/`); About and the rest sit under it. Hidden in the desktop bar (logo already goes home).
+- **File:** theme `parts/header.html`, plugin `assets/css/custom.css`.
+
+### Edit member overview: centred at every width
+- Household overview kept CA’s side-by-side people table on wide screens. It now always stacks and centres (name, address, buttons, photo frame) like the phone card; Edit person / Edit address forms stay left-aligned. Back / Edit address no longer sit tight under Phone — equal 1em gaps above and below Back. Person portraits and placeholders are centred inside the photo frame (they were left-aligned after the stack styles overrode the upload flex).
+- **File:** `assets/css/custom.css`.
+
+### Edit member: no boxes around every action
+- Household overview stacked each name / Edit person / Delete / Add a person in a black table border. Those borders are off; the photo add/remove frame keeps its border.
+- **File:** `assets/css/custom.css`.
+
+### Foil stamp field covers the mobile viewport
+- Narrow viewports used a fixed 12×8 stamp grid (~582px tall), so on taller Cursor mobile previews / phones the icons only filled about three-quarters of the screen. The compact grid is now sized from the viewport (plus drift headroom) whenever the frame is ≤900px wide; resize re-paints in place when the field would undershoot.
+- **File:** `assets/js/custom.js`.
+
+### Directory avatars on LAN phone preview
+- Member photos used `http://localhost:8080/wp-content/uploads/…` on a phone at `http://172.x:8080/` (404 on the phone itself). `WP_CONTENT_URL` is fixed before mu-plugins load, so filtering `siteurl` alone was not enough. LAN preview now rewrites upload/attachment/srcset URLs and admin-ajax HTML too.
+- **File:** `mu-plugins/emerson-lan-preview.php`.
+
+### Who Are We collage on mobile again
+- An earlier hang workaround skipped the 3×3 flip script on phones, so all 15 photos showed with no cycling. The collage runs on mobile again (nine tiles; extras stay in the deck).
+- **File:** `assets/js/custom.js`.
+
+### Compact calendar week nav: ← / → like the month
+- On the phone week strip, **Previous week** / **Next week** are now the same arrow controls as the month Prev/Next so the date range has room. Screen readers still hear the full labels.
+- **File:** `assets/js/custom.js`, `assets/css/custom.css`.
+
+### Homepage hang on iPhone
+- PayPal/heart could work while Safari’s spinner never stopped: external resources were still holding `load`. Removed the YouTube sermon poster `<link rel=preload>` and deferred the poster image until after `load`; skipped s.w.org Twemoji/emoji scripts on Apple; PayPal Fees on iPhone uses a native calculator (no CFF `all.js` / 7837px min-height). Also: no calendar MutationObserver / auto day-click, no foil auto-restore until the heart is tapped, Commitment Form opens as a share link.
+- **File:** `inc/preload.php`, `inc/latest-sermon.php`, `inc/welcome.php`, `inc/modals.php`, `assets/js/custom.js`, `assets/css/custom.css`, `assets/js/recommitment.js`, `inc/foil-background.php`, `mu-plugins/emerson-lan-preview.php`.
+
+### Commitment Form on iPhone: open in Safari, not a blank embed
+- Microsoft Forms iframes stay blank on iPhone/iPad. On Apple touch devices Emerson removes that iframe and opens the form share link in a new tab. Desktop keeps the modal embed. Aggressive iframe remount/transform experiments were reverted.
+- **File:** `assets/js/recommitment.js`.
+
+### Calendar sidebar: one address, iCal at the bottom
+- Day detail showed the place twice and left **iCal download** above theme/speaker. Emerson keeps CA’s address when present, inserts holiday/speaker before iCal, and moves iCal to the bottom only when needed (avoiding a MutationObserver loop that could hang the homepage). iCal also gets 17px space above it and centered text.
+- **File:** `assets/js/custom.js`, `assets/css/custom.css`.
+
 ### Directory edit: page title Edit Profile
 - `/register/` keeps the WP page title “Register” for new sign-up. When a member is logged in and editing (household overview / Edit Entry), Emerson shows **Edit Profile** for the page H1 and browser tab — not a Church Admin string.
 - **File:** `inc/church-admin-register.php`.

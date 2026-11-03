@@ -26,6 +26,56 @@ function emerson_modal_overflow_arrow_enabled(): bool {
 	return get_option( EMERSON_MODAL_OVERFLOW_ARROW_OPTION, '1' ) === '1';
 }
 
+/**
+ * iPhone / iPod / iPad (classic UA). iPadOS “desktop” Safari is handled in JS.
+ * Used so we never print a Microsoft Forms iframe into the HTML for those phones.
+ */
+function emerson_is_apple_touch_ua(): bool {
+	$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? (string) $_SERVER['HTTP_USER_AGENT'] : '';
+	return (bool) preg_match( '/iPhone|iPod|iPad/i', $ua );
+}
+
+/**
+ * On Apple touch, skip WordPress emoji scripts/styles that hit s.w.org on every page.
+ */
+add_action(
+	'init',
+	static function (): void {
+		if ( is_admin() || ! emerson_is_apple_touch_ua() ) {
+			return;
+		}
+		remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
+		remove_action( 'wp_print_styles', 'print_emoji_styles' );
+		remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
+		remove_action( 'admin_print_styles', 'print_emoji_styles' );
+		remove_filter( 'the_content_feed', 'wp_staticize_emoji' );
+		remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
+		remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
+	},
+	1
+);
+
+/**
+ * Markup for an external form inside a dialog: iframe on desktop, URL-only on Apple.
+ *
+ * @return string Escaped HTML.
+ */
+function emerson_modal_external_form_markup( string $src, string $title ): string {
+	$src   = esc_url( $src );
+	$title = esc_attr( $title );
+	if ( $src === '' ) {
+		return '<p>This form is not available right now.</p>';
+	}
+	if ( emerson_is_apple_touch_ua() ) {
+		/* No iframe in the document — JS opens data-emerson-form-url in a new tab. */
+		return '';
+	}
+	return '<div class="emerson-recommit__fit" data-emerson-frame-fit>'
+		. '<p class="emerson-recommit__loading" hidden>Loading form…</p>'
+		. '<iframe class="emerson-recommit__frame" title="' . $title . '" data-src="' . $src . '"></iframe>'
+		. '</div>';
+}
+
 function emerson_modal_display_admin_save(): ?string {
 	if ( ! current_user_can( 'edit_pages' ) || empty( $_POST['emerson_modal_display_save'] ) ) {
 		return null;
@@ -388,7 +438,9 @@ function emerson_custom_modals_dialogs(): void {
 			continue;
 		}
 		$dialog_id = 'emerson-modal-' . $modal['id'];
-		echo '<dialog id="' . esc_attr( $dialog_id ) . '" class="emerson-recommit emerson-modal" data-emerson-modal-id="' . esc_attr( $modal['id'] ) . '">';
+		$src       = ( 'cff' === $modal['source'] ) ? '' : emerson_custom_modal_embed_url( $modal );
+		$apple_url = ( $src !== '' && emerson_is_apple_touch_ua() ) ? ' data-emerson-form-url="' . esc_url( $src ) . '"' : '';
+		echo '<dialog id="' . esc_attr( $dialog_id ) . '" class="emerson-recommit emerson-modal" data-emerson-modal-id="' . esc_attr( $modal['id'] ) . '"' . $apple_url . '>';
 		echo '<div class="emerson-recommit__bar">';
 		if ( $modal['heading'] !== '' ) {
 			echo '<h2>' . esc_html( $modal['heading'] ) . '</h2>';
@@ -400,15 +452,7 @@ function emerson_custom_modals_dialogs(): void {
 			echo do_shortcode( '[CP_CALCULATED_FIELDS id="' . (int) $modal['cff_id'] . '"]' );
 			echo '</div>';
 		} else {
-			$src = emerson_custom_modal_embed_url( $modal );
-			if ( $src !== '' ) {
-				echo '<div class="emerson-recommit__fit" data-emerson-frame-fit>';
-				echo '<p class="emerson-recommit__loading" hidden>Loading form…</p>';
-				echo '<iframe class="emerson-recommit__frame" title="' . esc_attr( $modal['label'] ) . '" data-src="' . esc_url( $src ) . '"></iframe>';
-				echo '</div>';
-			} else {
-				echo '<p>This form is not available right now.</p>';
-			}
+			echo emerson_modal_external_form_markup( $src, $modal['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 		}
 		echo '</dialog>';
 	}
@@ -515,22 +559,22 @@ function emerson_pledge_dialog(): void {
 	if ( ! emerson_pledge_page_has_button() ) {
 		return;
 	}
-	$src   = emerson_pledge_embed_url();
-	$label = emerson_pledge_label();
+	$src       = emerson_pledge_embed_url();
+	$label     = emerson_pledge_label();
+	$apple_url = ( $src !== '' && emerson_is_apple_touch_ua() ) ? ' data-emerson-form-url="' . esc_url( $src ) . '"' : '';
 	?>
-	<dialog id="emerson-pledge" class="emerson-recommit">
+	<dialog id="emerson-pledge" class="emerson-recommit"<?php echo $apple_url; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above. ?>>
 		<div class="emerson-recommit__bar">
 			<h2><?php echo esc_html( $label ); ?></h2>
 			<?php echo emerson_modal_close_button( 'emerson-recommit__close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML. ?>
 		</div>
-		<?php if ( $src !== '' ) : ?>
-		<div class="emerson-recommit__fit" data-emerson-frame-fit>
-			<p class="emerson-recommit__loading" hidden>Loading form…</p>
-			<iframe class="emerson-recommit__frame" title="<?php echo esc_attr( $label ); ?>" data-src="<?php echo esc_url( $src ); ?>"></iframe>
-		</div>
-		<?php else : ?>
-		<p>The pledge form is not available right now.</p>
-		<?php endif; ?>
+		<?php
+		if ( $src !== '' ) {
+			echo emerson_modal_external_form_markup( $src, $label ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+		} else {
+			echo '<p>The pledge form is not available right now.</p>';
+		}
+		?>
 	</dialog>
 	<?php
 }
@@ -614,18 +658,46 @@ function emerson_paypal_page_has_button(): bool {
 	return $post instanceof WP_Post && str_contains( $post->post_content, 'data-emerson-paypal-fees' );
 }
 
+/**
+ * Lightweight PayPal fee math (same as CFF form 8): 1.99% + $0.49.
+ * Used on iPhone/iPad so the homepage does not load Calculated Fields’ all.js
+ * (and its 7837px mobile min-height), which hung Safari’s load spinner.
+ */
+function emerson_paypal_lite_markup(): string {
+	ob_start();
+	?>
+	<div class="emerson-paypal-lite">
+		<p class="emerson-paypal-lite__note">Charitable PayPal rate is about 1.99% plus $0.49 per transaction. This is only a guideline.</p>
+		<p>
+			<label for="emerson-paypal-lite-amount">Donation to go to Emerson</label>
+			<input id="emerson-paypal-lite-amount" class="emerson-paypal-lite__amount" type="number" inputmode="decimal" min="0" step="0.01" value="50">
+		</p>
+		<p>PayPal fees: <strong class="emerson-paypal-lite__fees">$1.49</strong></p>
+		<p>Total donation: <strong class="emerson-paypal-lite__total">$51.49</strong></p>
+	</div>
+	<?php
+	return (string) ob_get_clean();
+}
+
 function emerson_paypal_dialog(): void {
 	if ( ! emerson_paypal_page_has_button() ) {
 		return;
 	}
 	$heading = emerson_paypal_dialog_heading();
+	$lite    = emerson_is_apple_touch_ua();
 	?>
-	<dialog id="emerson-paypal-fees" class="emerson-paypal-fees">
+	<dialog id="emerson-paypal-fees" class="emerson-paypal-fees<?php echo $lite ? ' emerson-paypal-fees--lite' : ''; ?>">
 		<div class="emerson-recommit__bar">
 			<h2><?php echo esc_html( $heading ); ?></h2>
 			<?php echo emerson_modal_close_button( 'emerson-paypal-fees__close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML. ?>
 		</div>
-		<?php echo do_shortcode( '[CP_CALCULATED_FIELDS id="' . EMERSON_PAYPAL_FORM_ID . '"]' ); ?>
+		<?php
+		if ( $lite ) {
+			echo emerson_paypal_lite_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+		} else {
+			echo do_shortcode( '[CP_CALCULATED_FIELDS id="' . EMERSON_PAYPAL_FORM_ID . '"]' );
+		}
+		?>
 	</dialog>
 	<?php
 }

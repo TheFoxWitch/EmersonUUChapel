@@ -307,7 +307,12 @@ add_action(
 			. '.emerson-foil-toggle{position:fixed!important;z-index:40;right:1.5rem;bottom:1.5rem}'
 			. "</style>\n";
 		/* Let the browser own back/forward scroll again — manual restore was leaving people at the top. */
-		echo "<script>try{if(localStorage.getItem('emerson-foil')==='1')document.documentElement.classList.add('emerson-foil');}catch(e){}</script>\n";
+		/*
+		 * Desktop only restores foil from localStorage before paint. On iPhone/iPad
+		 * auto-starting the canvas paint raced Safari’s load spinner and hung the tab.
+		 * Phone users tap the heart once; the preference still saves for desktop.
+		 */
+		echo "<script>try{var ua=navigator.userAgent||'';var apple=/iPhone|iPod|iPad/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);if(!apple&&localStorage.getItem('emerson-foil')==='1')document.documentElement.classList.add('emerson-foil');}catch(e){}</script>\n";
 	},
 	0
 );

@@ -452,6 +452,33 @@
 		}
 	}
 
+	function isAppleTouchDevice() {
+		var ua = navigator.userAgent || '';
+		if (/iPad|iPhone|iPod/.test(ua)) {
+			return true;
+		}
+		return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+	}
+
+	/*
+	 * Run before any dialog bind: strip Forms iframes on Apple touch so Safari
+	 * cannot start an embed (blank modal / never-ending load).
+	 */
+	function stripAppleFormFrames() {
+		if (!isAppleTouchDevice()) {
+			return;
+		}
+		document.querySelectorAll('iframe.emerson-recommit__frame').forEach(function (frame) {
+			var dialog = frame.closest('dialog');
+			var url = frame.getAttribute('data-src') || frame.getAttribute('src') || '';
+			if (dialog && url && !dialog.getAttribute('data-emerson-form-url')) {
+				dialog.setAttribute('data-emerson-form-url', url);
+			}
+			frame.remove();
+		});
+	}
+	stripAppleFormFrames();
+
 	function bindIframeDialog(dialog, openerSelector) {
 		if (!dialog || typeof dialog.showModal !== 'function') {
 			return;
@@ -461,6 +488,18 @@
 		}
 		dialog.dataset.emersonBound = '1';
 		var frame = dialog.querySelector('.emerson-recommit__frame');
+		/*
+		 * iPhone/iPad: remove the Microsoft Forms iframe so Safari never starts the
+		 * embed (blank modal + tab hang). The button opens the share link instead.
+		 */
+		if (frame && isAppleTouchDevice()) {
+			var appleUrl = frame.getAttribute('data-src') || frame.getAttribute('src') || '';
+			if (appleUrl) {
+				dialog.setAttribute('data-emerson-form-url', appleUrl);
+			}
+			frame.remove();
+			frame = null;
+		}
 
 		function revealDialog() {
 			if (reduceMotion()) {
@@ -477,6 +516,14 @@
 
 		function openDialog() {
 			if (dialog.open || dialog.classList.contains('is-closing')) {
+				return;
+			}
+			var external = dialog.getAttribute('data-emerson-form-url');
+			if (external) {
+				var openUrl = external
+					.replace(/([?&])embed(?:ded)?=true&?/gi, '$1')
+					.replace(/[?&]$/, '');
+				window.open(openUrl, '_blank', 'noopener,noreferrer');
 				return;
 			}
 			dialog.classList.remove('emerson-recommit--sent');

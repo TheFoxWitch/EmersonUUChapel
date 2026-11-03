@@ -59,6 +59,34 @@ function emerson_lan_preview_origin(): string {
 	return ( $https ? 'https://' : 'http://' ) . $host;
 }
 
+/**
+ * Swap localhost origins for this request’s LAN origin.
+ */
+function emerson_lan_preview_rewrite_url( string $url, string $origin ): string {
+	if ( $url === '' || $origin === '' ) {
+		return $url;
+	}
+	$host = (string) ( wp_parse_url( $origin, PHP_URL_HOST ) ?? '' );
+	$port = wp_parse_url( $origin, PHP_URL_PORT );
+	$hostport = $host;
+	if ( ! empty( $port ) ) {
+		$hostport .= ':' . $port;
+	}
+	return str_replace(
+		array(
+			'http://localhost:8080',
+			'https://localhost:8080',
+			'//localhost:8080',
+		),
+		array(
+			$origin,
+			$origin,
+			'//' . $hostport,
+		),
+		$url
+	);
+}
+
 $emerson_lan_origin = emerson_lan_preview_origin();
 if ( $emerson_lan_origin === '' ) {
 	return;
@@ -77,35 +105,108 @@ add_filter(
 	}
 );
 
-/**
- * Post content still says http://localhost:8080 — swap for this LAN request only.
+/*
+ * WP_CONTENT_URL is defined from siteurl *before* mu-plugins load, so it stays
+ * http://localhost:8080/wp-content even after option_siteurl is filtered. Upload
+ * and attachment URLs (directory avatars) then 404 on a phone. Rewrite them.
  */
+add_filter(
+	'upload_dir',
+	static function ( array $dirs ) use ( $emerson_lan_origin ): array {
+		foreach ( array( 'url', 'baseurl' ) as $key ) {
+			if ( ! empty( $dirs[ $key ] ) && is_string( $dirs[ $key ] ) ) {
+				$dirs[ $key ] = emerson_lan_preview_rewrite_url( $dirs[ $key ], $emerson_lan_origin );
+			}
+		}
+		return $dirs;
+	}
+);
+
+add_filter(
+	'wp_get_attachment_url',
+	static function ( $url ) use ( $emerson_lan_origin ) {
+		return is_string( $url ) ? emerson_lan_preview_rewrite_url( $url, $emerson_lan_origin ) : $url;
+	}
+);
+
+add_filter(
+	'wp_get_attachment_image_src',
+	static function ( $image ) use ( $emerson_lan_origin ) {
+		if ( is_array( $image ) && ! empty( $image[0] ) && is_string( $image[0] ) ) {
+			$image[0] = emerson_lan_preview_rewrite_url( $image[0], $emerson_lan_origin );
+		}
+		return $image;
+	}
+);
+
+add_filter(
+	'wp_calculate_image_srcset',
+	static function ( $sources ) use ( $emerson_lan_origin ) {
+		if ( ! is_array( $sources ) ) {
+			return $sources;
+		}
+		foreach ( $sources as $width => $source ) {
+			if ( ! empty( $source['url'] ) && is_string( $source['url'] ) ) {
+				$sources[ $width ]['url'] = emerson_lan_preview_rewrite_url( $source['url'], $emerson_lan_origin );
+			}
+		}
+		return $sources;
+	}
+);
+
+add_filter(
+	'content_url',
+	static function ( $url ) use ( $emerson_lan_origin ) {
+		return is_string( $url ) ? emerson_lan_preview_rewrite_url( $url, $emerson_lan_origin ) : $url;
+	}
+);
+
+/**
+ * Rewrite localhost in full HTML (front pages) and in admin-ajax HTML (directory cards).
+ *
+ * @param string $html Document or fragment.
+ */
+$emerson_lan_rewrite_html = static function ( string $html ) use ( $emerson_lan_origin ): string {
+	$lan_host = (string) ( wp_parse_url( $emerson_lan_origin, PHP_URL_HOST ) ?? '' );
+	$lan_port = wp_parse_url( $emerson_lan_origin, PHP_URL_PORT );
+	$lan_hostport = $lan_host;
+	if ( ! empty( $lan_port ) ) {
+		$lan_hostport .= ':' . $lan_port;
+	}
+	return str_replace(
+		array(
+			'http://localhost:8080',
+			'https://localhost:8080',
+			'//localhost:8080',
+			"href='//localhost'",
+			'href="//localhost"',
+		),
+		array(
+			$emerson_lan_origin,
+			$emerson_lan_origin,
+			'//' . $lan_hostport,
+			"href='//" . $lan_hostport . "'",
+			'href="//' . $lan_hostport . '"',
+		),
+		$html
+	);
+};
+
 add_action(
 	'template_redirect',
-	static function () use ( $emerson_lan_origin ): void {
-		$lan_host = (string) ( wp_parse_url( $emerson_lan_origin, PHP_URL_HOST ) ?? '' );
-		$lan_port = wp_parse_url( $emerson_lan_origin, PHP_URL_PORT );
-		$lan_hostport = $lan_host;
-		if ( ! empty( $lan_port ) ) {
-			$lan_hostport .= ':' . $lan_port;
+	static function () use ( $emerson_lan_rewrite_html ): void {
+		ob_start( $emerson_lan_rewrite_html );
+	},
+	0
+);
+
+add_action(
+	'admin_init',
+	static function () use ( $emerson_lan_rewrite_html ): void {
+		if ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) {
+			return;
 		}
-		ob_start(
-			static function ( string $html ) use ( $emerson_lan_origin, $lan_hostport ): string {
-				return str_replace(
-					array(
-						'http://localhost:8080',
-						'https://localhost:8080',
-						'//localhost:8080',
-					),
-					array(
-						$emerson_lan_origin,
-						$emerson_lan_origin,
-						'//' . $lan_hostport,
-					),
-					$html
-				);
-			}
-		);
+		ob_start( $emerson_lan_rewrite_html );
 	},
 	0
 );

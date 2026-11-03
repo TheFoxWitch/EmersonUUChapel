@@ -101,6 +101,7 @@ $emerson_chapel_modules = array(
 	'calendar-listed-events.php',
 	'calendar-timezone.php',
 	'calendar-pdfs.php',
+	'calendar-ical.php',
 	'sunday-location.php',
 	'board-location.php',
 	'event-places.php',

@@ -18,6 +18,13 @@ function emerson_welcome_om_twemoji( string $content ): string {
 	if ( str_contains( $content, '1f549.svg' ) ) {
 		return $content;
 	}
+	/*
+	 * Skip the s.w.org Twemoji fetch on iPhone/iPad — an eager remote emoji
+	 * image can keep Safari’s load spinner up when that CDN is slow.
+	 */
+	if ( function_exists( 'emerson_is_apple_touch_ua' ) && emerson_is_apple_touch_ua() ) {
+		return $content;
+	}
 
 	$svg = apply_filters( 'emoji_svg_url', 'https://s.w.org/images/core/emoji/17.0.2/svg/' );
 	$img = sprintf(

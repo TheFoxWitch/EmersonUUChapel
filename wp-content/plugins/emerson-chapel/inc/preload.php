@@ -122,15 +122,9 @@ add_action(
 			/*
 			 * Critical rainbow heading so “You Are Welcome!” does not wait on
 			 * the full stylesheet (transparent text until clip CSS arrives).
-			 * Sermon is click-to-load: preload the YouTube poster the page shows.
+			 * Do not preload the YouTube sermon poster: a stalled i.ytimg.com
+			 * request keeps Safari’s load spinner spinning on the phone.
 			 */
-			if ( function_exists( 'emerson_latest_sermon_resolved' ) ) {
-				$sermon = emerson_latest_sermon_resolved();
-				if ( $sermon['id'] !== '' && function_exists( 'emerson_youtube_poster_url' ) ) {
-					$poster = emerson_youtube_poster_url( $sermon['id'] );
-					echo '<link rel="preload" href="' . esc_url( $poster ) . '" as="image">'."\n";
-				}
-			}
 			echo "<style id=\"emerson-welcome-rainbow-critical\">"
 				. ".emerson-welcome__rainbow{"
 				. "color:#6d28d9;"

@@ -5,6 +5,21 @@
 	'use strict';
 
 	/**
+	 * iPhone / iPad / coarse phones. Used to skip work that has been hanging Safari’s
+	 * load spinner (MutationObserver calendar loops, foil canvas paint, collage flips).
+	 */
+	function emersonPhoneLike() {
+		var ua = navigator.userAgent || '';
+		if (/iPad|iPhone|iPod/.test(ua)) {
+			return true;
+		}
+		if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) {
+			return true;
+		}
+		return window.matchMedia('(max-width: 900px) and (pointer: coarse)').matches;
+	}
+
+	/**
 	 * Brief bounce-down arrow when a form-maker dialog’s content overflows and
 	 * more is still below. Shared by survey, PayPal fees, and custom CFF modals
 	 * (not WPForms). Toggle: Emerson Chapel → Modals → Display.
@@ -176,6 +191,29 @@
 	}
 	var paypalFees = document.getElementById('emerson-paypal-fees');
 	if (paypalFees) {
+		(function bindPaypalLite() {
+			var amount = paypalFees.querySelector('.emerson-paypal-lite__amount');
+			var feesEl = paypalFees.querySelector('.emerson-paypal-lite__fees');
+			var totalEl = paypalFees.querySelector('.emerson-paypal-lite__total');
+			if (!amount || !feesEl || !totalEl) {
+				return;
+			}
+			function money(n) {
+				return '$' + (Math.round(n * 100) / 100).toFixed(2);
+			}
+			function sync() {
+				var value = parseFloat(amount.value);
+				if (!isFinite(value) || value < 0) {
+					value = 0;
+				}
+				var fees = value * 0.0199 + 0.49;
+				feesEl.textContent = money(fees);
+				totalEl.textContent = money(value + fees);
+			}
+			amount.addEventListener('input', sync);
+			sync();
+		})();
+
 		function closePaypalFees() {
 			if (!paypalFees.open || paypalFees.classList.contains('is-closing')) {
 				return;
@@ -753,19 +791,34 @@
 				list.appendChild(host);
 			}
 			if (host && row) {
-				host.appendChild(
-					detailHtml(
-						{
-							title: '',
-							holiday: row.holiday,
-							speaker: row.speaker,
-							location: row.location || ''
-						}
-					)
-				);
+				/*
+				 * CA already prints title, time, location, then iCal. Emerson adds
+				 * holiday/speaker (and location only if CA omitted it), before iCal.
+				 */
+				var hostNorm = (host.textContent || '').replace(/\s+/g, ' ');
+				var loc = row.location || '';
+				var caHasPlace = !!(loc && hostNorm.indexOf(String(loc).replace(/\s+/g, ' ')) !== -1);
+				var detail = detailHtml({
+					title: '',
+					holiday: row.holiday,
+					speaker: row.speaker,
+					location: caHasPlace ? '' : loc
+				});
+				var ical = host.querySelector('a.vcf-link');
+				if (detail.childNodes.length) {
+					if (ical) {
+						host.insertBefore(detail, ical);
+					} else {
+						host.appendChild(detail);
+					}
+				}
 				var roster = rosterHtml(row);
 				if (roster) {
-					host.appendChild(roster);
+					if (ical) {
+						host.insertBefore(roster, ical);
+					} else {
+						host.appendChild(roster);
+					}
 				}
 			}
 			var extraHost = host || list;
@@ -778,6 +831,13 @@
 			if (mark) {
 				extraHost.appendChild(mark);
 			}
+			// iCal under the full write-up — only move when it is not already last.
+			list.querySelectorAll(':scope > li a.vcf-link').forEach(function (link) {
+				var block = link.closest('p') || link.parentElement;
+				if (block && block.lastElementChild !== link) {
+					block.appendChild(link);
+				}
+			});
 			var places = [];
 			if (row && row.location) {
 				places.push(row.location);
@@ -1278,39 +1338,16 @@
 			}
 		}
 
-		/**
-		 * “Previous week” is wider than “Next week”. Match both to the larger
-		 * width so a centred date label also has even gaps (CSS alone cannot).
-		 */
-		function balanceWeekNavButtons(nav) {
-			if (!nav || nav.hidden) {
-				return;
-			}
-			var prev = nav.querySelector('.emerson-ca-week-nav__prev');
-			var next = nav.querySelector('.emerson-ca-week-nav__next');
-			if (!prev || !next) {
-				return;
-			}
-			prev.style.width = '';
-			next.style.width = '';
-			var width = Math.ceil(
-				Math.max(prev.getBoundingClientRect().width, next.getBoundingClientRect().width)
-			);
-			if (width > 0) {
-				prev.style.width = width + 'px';
-				next.style.width = width + 'px';
-			}
-		}
-
 		function ensureWeekNav(render) {
 			var nav = render.querySelector('.emerson-ca-week-nav');
 			if (!nav) {
 				nav = document.createElement('div');
 				nav.className = 'emerson-ca-week-nav';
+				/* Text stays for screen readers; CSS shows ← / → like the month nav. */
 				nav.innerHTML =
-					'<button type="button" class="emerson-ca-week-nav__prev">Previous week</button>' +
+					'<button type="button" class="emerson-ca-week-nav__prev" aria-label="Previous week">Previous week</button>' +
 					'<p class="emerson-ca-week-nav__label"></p>' +
-					'<button type="button" class="emerson-ca-week-nav__next">Next week</button>';
+					'<button type="button" class="emerson-ca-week-nav__next" aria-label="Next week">Next week</button>';
 				render.insertBefore(nav, render.firstChild);
 				nav.querySelector('.emerson-ca-week-nav__prev').addEventListener('click', function () {
 					shiftCompactWeek(-1);
@@ -1321,7 +1358,6 @@
 			}
 			nav.hidden = false;
 			nav.querySelector('.emerson-ca-week-nav__label').textContent = weekStartYmd ? weekRangeLabel(weekStartYmd) : '';
-			balanceWeekNavButtons(nav);
 		}
 
 		function shiftCompactWeek(delta) {
@@ -1416,9 +1452,18 @@
 		 * Church Admin only selects a day on click (sets .ca-current + day-render).
 		 * Month load can leave today’s sidebar thin until that click — do it once
 		 * when today is on the grid and nothing is selected yet.
+		 * Never click again: a second click → AJAX → MutationObserver → decorate loop
+		 * can keep Safari’s spinner going on a phone.
 		 */
+		var todayPicked = false;
+		var phoneLite = emersonPhoneLike();
 		function ensureTodaySelected() {
+			/* day.click() → CA AJAX → DOM rewrite. On phones that fed a hang loop. */
+			if (phoneLite || todayPicked) {
+				return;
+			}
 			if (document.querySelector('.ca-day.ca-current[data-date]')) {
+				todayPicked = true;
 				return;
 			}
 			var today = todayYmd();
@@ -1428,6 +1473,7 @@
 			if (!day) {
 				return;
 			}
+			todayPicked = true;
 			day.click();
 		}
 
@@ -1514,8 +1560,6 @@
 			}, 80);
 		});
 
-		decorate();
-
 		(function bindScheduleRoster() {
 			if (!data.canViewRoster) {
 				return;
@@ -1591,21 +1635,104 @@
 		})();
 
 		var root = document.querySelector('.church-admin-calendar, .ca-calendar');
-		if (!root || typeof MutationObserver === 'undefined') {
+		/*
+		 * Phones: never use MutationObserver on the calendar. It re-entered on our
+		 * own sidebar writes and kept Safari’s load spinner spinning. Decorate once
+		 * after CA’s Ajax, and again only on explicit calendar Ajax — not on every DOM tweak.
+		 */
+		if (phoneLite || !root || typeof MutationObserver === 'undefined') {
+			var phoneDecorateTimer = null;
+			function phoneDecorateSoon() {
+				if (phoneDecorateTimer) {
+					clearTimeout(phoneDecorateTimer);
+				}
+				phoneDecorateTimer = setTimeout(function () {
+					phoneDecorateTimer = null;
+					decorate();
+				}, 120);
+			}
+			phoneDecorateSoon();
+			window.setTimeout(phoneDecorateSoon, 600);
+			if (window.jQuery) {
+				window.jQuery(document).ajaxComplete(function (_event, _xhr, settings) {
+					var payload = '';
+					if (!settings) {
+						return;
+					}
+					if (typeof settings.data === 'string') {
+						payload = settings.data;
+					} else if (settings.data && typeof settings.data === 'object') {
+						try {
+							payload = window.jQuery.param(settings.data);
+						} catch (err) {
+							payload = '';
+						}
+					}
+					if (
+						payload.indexOf('calendar-render') !== -1 ||
+						payload.indexOf('calendar-day-render') !== -1
+					) {
+						phoneDecorateSoon();
+					}
+				});
+			}
 			return;
 		}
+		/*
+		 * Desktop: decorate() rewrites the sidebar (and schedules rAF scroll chrome).
+		 * Stay disconnected until a quiet window after our own work.
+		 */
 		var timer = null;
+		var settleTimer = null;
+		var observerArmed = false;
+		var decorateBurst = 0;
+		var decorateBurstStart = 0;
 		var observer = new MutationObserver(function () {
+			if (!observerArmed) {
+				return;
+			}
 			if (timer) {
 				clearTimeout(timer);
 			}
-			timer = setTimeout(function () {
-				observer.disconnect();
-				decorate();
-				observer.observe(root, { childList: true, subtree: true });
-			}, 50);
+			timer = setTimeout(runDecorateFromObserver, 50);
 		});
-		observer.observe(root, { childList: true, subtree: true });
+
+		function armObserver() {
+			if (!root.isConnected) {
+				return;
+			}
+			observerArmed = true;
+			observer.observe(root, { childList: true, subtree: true });
+		}
+
+		function runDecorateFromObserver() {
+			var now = Date.now();
+			if (now - decorateBurstStart > 2000) {
+				decorateBurstStart = now;
+				decorateBurst = 0;
+			}
+			decorateBurst += 1;
+			if (decorateBurst > 20) {
+				observerArmed = false;
+				observer.disconnect();
+				return;
+			}
+			observerArmed = false;
+			observer.disconnect();
+			if (settleTimer) {
+				clearTimeout(settleTimer);
+				settleTimer = null;
+			}
+			decorate();
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(function () {
+					/* Extra beat for limitSidebarScroll’s own rAF fade chrome. */
+					settleTimer = setTimeout(armObserver, 250);
+				});
+			});
+		}
+
+		runDecorateFromObserver();
 	})();
 
 	// Who Are We collage: nine tiles, each on its own timer. A tile will not flip while the one beside it is flipping.
@@ -2259,6 +2386,27 @@
 		shine.style.removeProperty('-webkit-mask-repeat');
 	}
 	/**
+	 * Viewport used to size the foil stamp field (inner + visualViewport).
+	 */
+	function foilViewportSize() {
+		var vv = window.visualViewport;
+		var w = window.innerWidth || 0;
+		var h = window.innerHeight || 0;
+		if (vv) {
+			if (vv.width) {
+				w = Math.max(w, Math.round(vv.width));
+			}
+			if (vv.height) {
+				h = Math.max(h, Math.round(vv.height));
+			}
+		}
+		return {
+			w: w > 0 ? w : 390,
+			h: h > 0 ? h : 700
+		};
+	}
+
+	/**
 	 * Draw icons only (no toDataURL). Must run while the wipe mask is shut.
 	 * reshuffle=true picks a new order when Randomize is on; otherwise reuse foilOrder.
 	 * Returns {width,height} for a later shine-mask build, or null.
@@ -2277,12 +2425,29 @@
 		 * (peace, dharma, star of David, …) paint larger than font-size on iPhone while
 		 * fitting fine on desktop — so we shrink per unique symbol until ink stays
 		 * inside a padded box.
+		 * Narrow viewports (phones + Cursor mobile preview) use compact cells; the
+		 * grid is sized from the viewport + drift headroom. A fixed 12×8 field only
+		 * covered ~75% of taller mobile frames.
 		 */
-		var cols = 30;
-		var rows = 20;
-		var cell = 120;
-		var gap = 16;
-		var glyph = 52;
+		var phone = emersonPhoneLike();
+		var compact =
+			phone ||
+			(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+		var cell = compact ? 64 : 120;
+		var gap = compact ? 10 : 16;
+		var glyph = compact ? 28 : 52;
+		var step = cell + gap;
+		var vp = foilViewportSize();
+		/*
+		 * Drift is translate(-8%, -6%) of the sheet itself. Cover the viewport after
+		 * that shift: need ≈ vw/0.92 × vh/0.94, plus a little slack.
+		 */
+		var needW = Math.ceil(vp.w / 0.88);
+		var needH = Math.ceil(vp.h / 0.88);
+		var minCols = compact ? 12 : 30;
+		var minRows = compact ? 8 : 20;
+		var cols = Math.max(minCols, Math.ceil((needW + gap) / step));
+		var rows = Math.max(minRows, Math.ceil((needH + gap) / step));
 		var width = cols * cell + (cols - 1) * gap;
 		var height = rows * cell + (rows - 1) * gap;
 		var layer = foilCanvas.closest('.emerson-foil-layer');
@@ -2354,18 +2519,25 @@
 			stamp.height = cell;
 			var sctx = stamp.getContext('2d');
 			/* Plates start smaller — iOS still grows them past font-size. */
-			var size = foilIsPlateSymbol(sym) ? Math.floor(glyph * 0.72) : glyph;
+			var size = foilIsPlateSymbol(sym) ? Math.floor(glyph * (phone ? 0.55 : 0.72)) : glyph;
 			sctx.textAlign = 'center';
 			sctx.textBaseline = 'middle';
-			do {
+			if (phone) {
+				/* No getImageData loop on iPhone — that alone could freeze the tab. */
 				sctx.clearRect(0, 0, cell, cell);
 				sctx.font = size + 'px ' + fontStack;
 				sctx.fillText(sym, cell / 2, cell / 2);
-				if (!foilInkHitsPad(sctx)) {
-					break;
-				}
-				size = Math.floor(size * 0.82);
-			} while (size >= 22);
+			} else {
+				do {
+					sctx.clearRect(0, 0, cell, cell);
+					sctx.font = size + 'px ' + fontStack;
+					sctx.fillText(sym, cell / 2, cell / 2);
+					if (!foilInkHitsPad(sctx)) {
+						break;
+					}
+					size = Math.floor(size * 0.82);
+				} while (size >= 22);
+			}
 			stampCache[sym] = stamp;
 			return stamp;
 		}
@@ -2733,10 +2905,21 @@
 			} catch (error) {}
 			/*
 			 * Lazy paint: skip the big canvas draw on cold loads when foil is off.
-			 * First lion click (or a saved-on session) paints then reveals.
+			 * Heart/lion click (or a saved-on desktop session) paints then reveals.
+			 * Phones: never auto-paint on load — that competed with Safari finishing
+			 * the document. Saved-on is remembered; first tap turns it on.
 			 */
-			if (foilRoot().classList.contains('emerson-foil')) {
-				window.requestAnimationFrame(function () {
+			if (emersonPhoneLike()) {
+				foilRoot().classList.remove(
+					'emerson-foil',
+					'emerson-foil-ready',
+					'emerson-foil-drifting',
+					'emerson-foil-shining',
+					'emerson-foil-wiping-in',
+					'emerson-foil-wiping-out'
+				);
+			} else if (foilRoot().classList.contains('emerson-foil')) {
+				function startSavedFoil() {
 					if (!foilRoot().classList.contains('emerson-foil')) {
 						return;
 					}
@@ -2746,7 +2929,12 @@
 						reshuffle: true,
 						onComplete: foilFlightDone
 					});
-				});
+				}
+				if (document.readyState === 'complete') {
+					window.requestAnimationFrame(startSavedFoil);
+				} else {
+					window.addEventListener('load', startSavedFoil, { once: true });
+				}
 			}
 		}
 	}
@@ -2770,6 +2958,43 @@
 			foilStartToward(wantOn);
 		});
 	}
+
+	/*
+	 * Cursor mobile preview / rotate: if the stamp field is shorter than the
+	 * viewport after a resize, re-paint in place (no wipe) while foil is on.
+	 */
+	var foilResizeTimer = 0;
+	function foilRefitToViewport() {
+		if (!foilCanvas || foilBusy || !foilEffectiveOn()) {
+			return;
+		}
+		if (!foilRoot().classList.contains('emerson-foil-ready')) {
+			return;
+		}
+		var vp = foilViewportSize();
+		var needW = Math.ceil(vp.w / 0.88);
+		var needH = Math.ceil(vp.h / 0.88);
+		if (foilCanvas.width >= needW - 4 && foilCanvas.height >= needH - 4) {
+			return;
+		}
+		var symbols = [];
+		try {
+			symbols = JSON.parse(foilCanvas.getAttribute('data-symbols') || '[]');
+		} catch (error) {}
+		if (!symbols.length) {
+			return;
+		}
+		foilPaint(symbols, false);
+		foilApplyShineMask(document.querySelector('.emerson-foil__shine'));
+	}
+	function foilScheduleRefit() {
+		window.clearTimeout(foilResizeTimer);
+		foilResizeTimer = window.setTimeout(foilRefitToViewport, 120);
+	}
+	window.addEventListener('resize', foilScheduleRefit);
+	if (window.visualViewport) {
+		window.visualViewport.addEventListener('resize', foilScheduleRefit);
+	}
 })();
 
 /**
@@ -2778,6 +3003,25 @@
  * /player-embed/, so Safari foil can keep animating while the sermon plays.
  */
 (function () {
+	function hydrateSermonPoster(img) {
+		var src = img.getAttribute('data-src');
+		if (!src) {
+			return;
+		}
+		img.removeAttribute('data-src');
+		img.src = src;
+	}
+
+	function hydrateSermonPosters() {
+		document.querySelectorAll('.emerson-latest-sermon__poster[data-src]').forEach(hydrateSermonPoster);
+	}
+
+	if (document.readyState === 'complete') {
+		window.setTimeout(hydrateSermonPosters, 0);
+	} else {
+		window.addEventListener('load', hydrateSermonPosters);
+	}
+
 	function loadSermon(figure) {
 		if (!figure || figure.classList.contains('is-playing')) {
 			return;

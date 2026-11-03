@@ -12,9 +12,19 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-11-03
 
+### Touch targets: foil emoji + hamburger
+- Taps on the background toggle and mobile menu were easy to miss: the cookie banner sat above the emoji (z-index), the emoji sat in Safari’s bottom chrome, the burger was only 44px beside the logo, and neither used `touch-action: manipulation`. Invisible hit-slop, a slightly larger burger (48px), safe-area / raised bottom offset, and z-index above the cookie notice — visuals unchanged.
+- **File:** `assets/css/custom.css`, `inc/foil-background.php`.
+
+### Calendar page: centre intro on phone
+- The newsletter invite under the Calendar heading is centred on phone/tablet (≤782px), matching the centred page title.
+- **File:** `assets/css/custom.css`.
+
 ### Calendar: open next day with events when today is empty
 - Church Admin’s sidebar is one day only. On load, if today has no events Emerson selects the next day in the current month that does (grid count or sheet/series). Waits for `calendar-render` to finish first — jumping earlier was wiped when CA rewrote the sidebar back to today’s empty list. One auto-click per month paint.
-- **File:** `assets/js/custom.js`.
+- **Today button (phone week view):** stay on today even when empty (no auto-jump). CA’s month reload leaves stale `is-compact-day` on wiped cells (bare numbers, hidden `.ca-events`); Emerson strips that and re-paints weekday labels + event titles. Compact sidebar date / “No events today” centred.
+- **Today speed:** if this month is already loaded, Today skips CA’s full `calendar-render` and only day-selects + re-paints the week (was the long pause). Cross-month Today still reloads once.
+- **File:** `assets/js/custom.js`, `assets/css/custom.css`.
 
 ### PayPal fees modal: no math captcha
 - Approximate PayPal Fees is live calculator math only (no submit/email). CFF’s captcha is a Form Settings toggle (`cv_enable_captcha`), not a builder field — Emerson forces it off for form 8. Local DB updated to match.

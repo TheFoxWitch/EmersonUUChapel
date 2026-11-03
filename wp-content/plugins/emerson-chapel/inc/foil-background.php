@@ -304,7 +304,8 @@ add_action(
 			. '-webkit-mask-image:linear-gradient(90deg,#000 0%,#000 38%,transparent 52%,transparent 100%);mask-image:linear-gradient(90deg,#000 0%,#000 38%,transparent 52%,transparent 100%);'
 			. '-webkit-mask-size:280% 280%;mask-size:280% 280%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;'
 			. '-webkit-mask-position:100% 50%;mask-position:100% 50%}'
-			. '.emerson-foil-toggle{position:fixed!important;z-index:40;right:1.5rem;bottom:1.5rem}'
+			/* Placement (bottom/right) lives in custom.css so phone safe-area rules can win. */
+			. '.emerson-foil-toggle{position:fixed!important;z-index:100010;right:1.5rem;bottom:1.5rem}'
 			. "</style>\n";
 		/* Let the browser own back/forward scroll again — manual restore was leaving people at the top. */
 		/*
@@ -376,7 +377,7 @@ add_action(
 		$shine_class = 'emerson-foil__shine' . ( ! empty( $style['shine_rainbow'] ) ? ' emerson-foil__shine--rainbow' : '' );
 		echo '<div class="' . esc_attr( $shine_class ) . '"><span></span></div>';
 		echo '</div>';
-		echo '<button type="button" class="emerson-foil-toggle wp-exclude-emoji" aria-pressed="false" aria-label="Switch the page background" style="position:fixed;z-index:40;right:1.5rem;bottom:1.5rem">'
+		echo '<button type="button" class="emerson-foil-toggle wp-exclude-emoji" aria-pressed="false" aria-label="Switch the page background" style="position:fixed;z-index:100010;right:1.5rem;bottom:1.5rem">'
 			. esc_html( $style['toggle_emoji'] )
 			. '</button>';
 	}

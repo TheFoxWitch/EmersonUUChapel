@@ -1439,8 +1439,13 @@
 				markCompactDay(day, ymd);
 			});
 			var filled = fillMissingCompactDays(week);
-			if (filled) {
-				// Spill cells get data-date after the first decorateDays pass.
+			/*
+			 * Always re-paint Emerson titles after compact marking. Spill cells
+			 * clear innerHTML; Today’s calendar-render also rebuilds the grid
+			 * and CSS hides stock .ca-events, so without this pass the week
+			 * cards look empty.
+			 */
+			if (filled || compact) {
 				decorateDays();
 			}
 			if (render) {
@@ -1461,6 +1466,8 @@
 		 */
 		var autoDayMonth = '';
 		var calendarRenderDone = false;
+		/* Today button: show today even when empty — do not jump to the next event day. */
+		var holdTodaySidebar = false;
 		var phoneLite = emersonPhoneLike();
 
 		function dayHasEvents(day) {
@@ -1599,6 +1606,24 @@
 				return;
 			}
 			autoDayWaitTries = 0;
+			if (holdTodaySidebar) {
+				holdTodaySidebar = false;
+				autoDayMonth = monthKey;
+				var todayEl = document.querySelector(
+					'.ca-day[data-date="' + todayYmd() + '"]:not(.ca-inactive)'
+				);
+				var currentHold = document.querySelector(
+					'.ca-day.ca-current[data-date]:not(.ca-inactive)'
+				);
+				if (
+					todayEl &&
+					(!currentHold ||
+						currentHold.getAttribute('data-date') !== todayYmd())
+				) {
+					todayEl.click();
+				}
+				return;
+			}
 			var target = pickSidebarDay();
 			if (!target) {
 				autoDayMonth = monthKey;
@@ -1665,7 +1690,16 @@
 				/* Month paint resets the sidebar to “today” — allow one fresh jump. */
 				autoDayMonth = '';
 				autoDayWaitTries = 0;
-				decorateSoon();
+				/*
+				 * CA’s populateCalendarMonth replaces each day’s innerHTML but
+				 * leaves is-compact-day on the node. Strip the stale flag and
+				 * decorate once the DOM is updated (success runs before this).
+				 */
+				document.querySelectorAll('.ca-day.is-compact-day').forEach(function (day) {
+					day.classList.remove('is-compact-day');
+				});
+				decorate();
+				window.setTimeout(decorate, 100);
 			}
 		}
 
@@ -1701,8 +1735,31 @@
 					return;
 				}
 				if (button.classList.contains('btn-warning') || /today/i.test(button.textContent || '')) {
-					weekStartYmd = sundayOf(todayYmd());
+					var today = todayYmd();
+					weekStartYmd = sundayOf(today);
 					pendingWeekStart = weekStartYmd;
+					/*
+					 * Same month already on screen: skip CA’s full calendar-render
+					 * (that was the long pause). Select today + re-paint the week
+					 * from Emerson data immediately; day-render only refreshes the sidebar.
+					 */
+					var todayEl = document.querySelector(
+						'.ca-day[data-date="' + today + '"]:not(.ca-inactive)'
+					);
+					if (todayEl) {
+						event.preventDefault();
+						event.stopImmediatePropagation();
+						holdTodaySidebar = false;
+						autoDayMonth = today.slice(0, 7);
+						autoDayWaitTries = 0;
+						todayEl.click();
+						decorate();
+						return;
+					}
+					/* Other month — let CA reload, then hold today (no auto-jump). */
+					holdTodaySidebar = true;
+					autoDayMonth = '';
+					autoDayWaitTries = 0;
 					return;
 				}
 				if (!pendingWeekStart) {

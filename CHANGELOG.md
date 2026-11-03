@@ -12,6 +12,11 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-11-02
 
+### Homepage sermon: real in-page player on iPhone (one tap)
+- Research (Stack Overflow, EmbedPlus support, r/Wordpress): a click-to-load **facade** is what forces a second tap on iOS; with the real YouTube iframe already on the page, one tap on YouTube’s own play control plays **in-place**. Plugins don’t beat that — turning facade off is the fix.
+- iPhone/iPad: after `window` load, mount youtube-nocookie (no autoplay, no custom play overlay). Desktop: keep poster → nested `?emerson_sermon_embed=` so foil can keep moving. Dropped the open-in-new-tab workaround.
+- **File:** `inc/latest-sermon.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+
 ### iCal download: real event title on iPhone
 - Church Admin’s single-event `.ics` used `DTSTART;VALUE=DATE` with a clock time, so iOS Calendar often opened an untitled **New Event**. Emerson now serves that same download URL with a valid timed DTSTART/DTEND, `SUMMARY` set to the calendar event title, and a matching filename (e.g. `mens-night.ics`).
 - **File:** `inc/calendar-ical.php` (loaded from `emerson-chapel.php`).

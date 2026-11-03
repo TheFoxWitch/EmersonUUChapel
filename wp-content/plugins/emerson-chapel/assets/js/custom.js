@@ -2153,11 +2153,11 @@
 		);
 	}
 	/**
-	 * Safari used to black out a *direct* YouTube iframe when foil kept
-	 * continuous translate3d loops in the same compositor. Gallery pages nest
-	 * YouTube inside same-origin /player-embed/, so foil can keep animating.
-	 * Homepage sermon now uses ?emerson_sermon_embed=… the same way, so we no
-	 * longer freeze ambient motion for video. Tab-hidden still pauses GPU work.
+	 * Safari blacks out a *direct* YouTube iframe when foil keeps continuous
+	 * translate3d loops. Desktop nests YouTube in ?emerson_sermon_embed=… so foil
+	 * can keep moving. iPhone mounts a direct player after load (no facade) and
+	 * leaves foil alone — foil stays off by default on phones. Tab-hidden still
+	 * pauses GPU work.
 	 */
 	function foilNeedsSafariVideoSafe() {
 		return false;
@@ -2998,39 +2998,28 @@
 })();
 
 /**
- * Homepage sermon: poster until click, then same-origin wrapper iframe
- * (?emerson_sermon_embed=…) that nests YouTube — same idea as gallery
- * /player-embed/, so Safari foil can keep animating while the sermon plays.
+ * Homepage sermon player.
+ *
+ * Desktop: poster until click → same-origin wrapper (?emerson_sermon_embed=…)
+ * so foil can keep animating (YouTube one level deeper, like gallery).
+ *
+ * iPhone/iPad: after window load, mount a real youtube-nocookie iframe with
+ * no autoplay and no custom play facade. Stack Overflow / EmbedPlus support /
+ * r/Wordpress agree: the facade (poster → load player on tap) is what forces
+ * a second tap on iOS; with the real player already in the page, one tap on
+ * YouTube’s own control plays in-place. Mount after `load` so YouTube does not
+ * hold Safari’s spinner the way an eager embed used to.
  */
 (function () {
-	function hydrateSermonPoster(img) {
-		var src = img.getAttribute('data-src');
-		if (!src) {
-			return;
+	function sermonAppleTouch() {
+		var ua = navigator.userAgent || '';
+		if (/iPad|iPhone|iPod/.test(ua)) {
+			return true;
 		}
-		img.removeAttribute('data-src');
-		img.src = src;
+		return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
 	}
 
-	function hydrateSermonPosters() {
-		document.querySelectorAll('.emerson-latest-sermon__poster[data-src]').forEach(hydrateSermonPoster);
-	}
-
-	if (document.readyState === 'complete') {
-		window.setTimeout(hydrateSermonPosters, 0);
-	} else {
-		window.addEventListener('load', hydrateSermonPosters);
-	}
-
-	function loadSermon(figure) {
-		if (!figure || figure.classList.contains('is-playing')) {
-			return;
-		}
-		var src = figure.getAttribute('data-embed-src') || '';
-		var title = figure.getAttribute('data-embed-title') || 'Sunday service';
-		if (!src) {
-			return;
-		}
+	function sermonIframe(src, title) {
 		var iframe = document.createElement('iframe');
 		iframe.id = 'emerson-latest-sermon-player';
 		iframe.title = title;
@@ -3042,11 +3031,45 @@
 		iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
 		iframe.setAttribute('allowfullscreen', '');
 		iframe.setAttribute('playsinline', '');
+		return iframe;
+	}
+
+	function mountSermon(figure, src) {
+		if (!figure || figure.classList.contains('is-playing') || !src) {
+			return;
+		}
+		var title = figure.getAttribute('data-embed-title') || 'Sunday service';
 		figure.classList.add('is-playing');
 		while (figure.firstChild) {
 			figure.removeChild(figure.firstChild);
 		}
-		figure.appendChild(iframe);
+		figure.appendChild(sermonIframe(src, title));
+	}
+
+	function hydrateSermonPoster(img) {
+		var src = img.getAttribute('data-src');
+		if (!src) {
+			return;
+		}
+		img.removeAttribute('data-src');
+		img.src = src;
+	}
+
+	function afterWindowLoad() {
+		document.querySelectorAll('.emerson-latest-sermon__poster[data-src]').forEach(hydrateSermonPoster);
+		if (!sermonAppleTouch()) {
+			return;
+		}
+		/* Real in-page player — first tap is YouTube’s play, not our facade. */
+		document.querySelectorAll('.emerson-latest-sermon').forEach(function (figure) {
+			mountSermon(figure, figure.getAttribute('data-youtube-src') || '');
+		});
+	}
+
+	if (document.readyState === 'complete') {
+		window.setTimeout(afterWindowLoad, 0);
+	} else {
+		window.addEventListener('load', afterWindowLoad);
 	}
 
 	document.querySelectorAll('.emerson-latest-sermon').forEach(function (figure) {
@@ -3055,7 +3078,10 @@
 			return;
 		}
 		play.addEventListener('click', function () {
-			loadSermon(figure);
+			if (sermonAppleTouch()) {
+				return;
+			}
+			mountSermon(figure, figure.getAttribute('data-embed-src') || '');
 		});
 	});
 })();

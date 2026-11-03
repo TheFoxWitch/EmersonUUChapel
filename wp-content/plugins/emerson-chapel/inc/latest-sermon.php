@@ -137,8 +137,13 @@ function emerson_latest_sermon_resolved(): array {
 }
 
 /**
- * Click-to-load player: poster until play, then same-origin wrapper iframe
- * (YouTube nested inside), matching gallery pages so Safari foil can keep moving.
+ * Homepage sermon player markup.
+ *
+ * Desktop: poster until click, then same-origin wrapper (YouTube nested inside)
+ * so Safari foil can keep moving — same idea as gallery /player-embed/.
+ * iPhone/iPad: after window load, JS mounts a real YouTube iframe (no facade).
+ * EmbedPlus / Reddit / SO all land on the same point: a click-to-load facade
+ * costs an extra tap on iOS; the real in-page player plays on one tap.
  */
 function emerson_latest_sermon_html(): string {
 	$sermon = emerson_latest_sermon_resolved();
@@ -147,9 +152,10 @@ function emerson_latest_sermon_html(): string {
 	if ( $id === '' ) {
 		return '';
 	}
-	$src    = emerson_latest_sermon_embed_src( $id );
-	$poster = emerson_youtube_poster_url( $id );
-	$label  = sprintf(
+	$src     = emerson_latest_sermon_embed_src( $id );
+	$youtube = emerson_youtube_embed_src( $id, false );
+	$poster  = emerson_youtube_poster_url( $id );
+	$label   = sprintf(
 		/* translators: %s: sermon title */
 		__( 'Play %s', 'emerson-chapel' ),
 		$title
@@ -159,11 +165,15 @@ function emerson_latest_sermon_html(): string {
 	 * Poster loads after window load (data-src). An eager i.ytimg.com request
 	 * (and its old <link rel=preload>) could leave Safari’s spinner running
 	 * forever when YouTube is slow or blocked on the phone’s network.
+	 *
+	 * data-youtube-src: no autoplay — iPhone mounts this iframe after load so
+	 * the first tap hits YouTube’s own play control (in-page, one tap).
 	 */
 	$pixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 	return '<figure class="emerson-latest-sermon"'
 		. ' data-embed-src="' . esc_url( $src ) . '"'
+		. ' data-youtube-src="' . esc_url( $youtube ) . '"'
 		. ' data-embed-title="' . esc_attr( $title ) . '">'
 		. '<button type="button" class="emerson-latest-sermon__play" aria-label="' . esc_attr( $label ) . '">'
 		. '<img class="emerson-latest-sermon__poster" src="' . $pixel . '" data-src="' . esc_url( $poster ) . '" alt="" width="480" height="360" decoding="async">'

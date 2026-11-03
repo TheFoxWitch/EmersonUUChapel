@@ -703,6 +703,22 @@ function emerson_paypal_dialog(): void {
 }
 add_action( 'wp_footer', 'emerson_paypal_dialog', 5 );
 
+/**
+ * PayPal fees is live math only (no submit / email). CFF’s math captcha is a
+ * Form Settings toggle, not a field in the builder — keep it off.
+ */
+add_filter(
+	'cpcff_get_option',
+	static function ( $value, $option, $form_id ) {
+		if ( 'cv_enable_captcha' === $option && (int) $form_id === EMERSON_PAYPAL_FORM_ID ) {
+			return 'false';
+		}
+		return $value;
+	},
+	10,
+	3
+);
+
 add_action(
 	'admin_menu',
 	static function (): void {

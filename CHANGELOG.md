@@ -12,6 +12,14 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-11-03
 
+### Calendar: open next day with events when today is empty
+- Church Admin’s sidebar is one day only. On load, if today has no events Emerson selects the next day in the current month that does (grid count or sheet/series). Waits for `calendar-render` to finish first — jumping earlier was wiped when CA rewrote the sidebar back to today’s empty list. One auto-click per month paint.
+- **File:** `assets/js/custom.js`.
+
+### PayPal fees modal: no math captcha
+- Approximate PayPal Fees is live calculator math only (no submit/email). CFF’s captcha is a Form Settings toggle (`cv_enable_captcha`), not a builder field — Emerson forces it off for form 8. Local DB updated to match.
+- **File:** `inc/modals.php`. **Local DB:** Calculated Fields form 8.
+
 ### Homepage sermon: one-tap play on desktop and phone
 - Desktop still used the click-to-load facade (poster → iframe), so it needed two clicks like iPhone used to. After `window` load, every device now mounts a real player with no autoplay — first click/tap is YouTube’s own play. Desktop keeps the nested `?emerson_sermon_embed=` shell (foil); Apple keeps direct youtube-nocookie.
 - **File:** `inc/latest-sermon.php`, `assets/js/custom.js`.

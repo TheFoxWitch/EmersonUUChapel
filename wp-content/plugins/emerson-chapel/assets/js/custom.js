@@ -1449,32 +1449,173 @@
 		}
 
 		/*
-		 * Church Admin only selects a day on click (sets .ca-current + day-render).
-		 * Month load can leave today’s sidebar thin until that click — do it once
-		 * when today is on the grid and nothing is selected yet.
-		 * Never click again: a second click → AJAX → MutationObserver → decorate loop
-		 * can keep Safari’s spinner going on a phone.
+		 * Church Admin only fills the sidebar for one day (today on month load).
+		 * When today is empty, jump once to the next day on this month that has
+		 * events so visitors see real titles before they choose a cell.
+		 *
+		 * Wait until calendar-render has painted the grid (.ca-events badges).
+		 * An early decorate used to lock the month while the skeleton still had
+		 * zero counts, so the jump never ran after AJAX.
+		 * One click per visible month only — a second click → AJAX → observer
+		 * loop can keep Safari’s spinner going on a phone.
 		 */
-		var todayPicked = false;
+		var autoDayMonth = '';
+		var calendarRenderDone = false;
 		var phoneLite = emersonPhoneLike();
-		function ensureTodaySelected() {
-			/* day.click() → CA AJAX → DOM rewrite. On phones that fed a hang loop. */
-			if (phoneLite || todayPicked) {
-				return;
+
+		function dayHasEvents(day) {
+			var ymd = day.getAttribute('data-date') || '';
+			if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+				return false;
 			}
-			if (document.querySelector('.ca-day.ca-current[data-date]')) {
-				todayPicked = true;
-				return;
+			var sunday = data.sundays[ymd] || {};
+			if (sunday.title || sunday.holiday || sunday.speaker) {
+				return true;
 			}
-			var today = todayYmd();
-			var day = document.querySelector(
-				'.ca-day[data-date="' + today + '"]:not(.ca-inactive)'
+			if (otherEvents(ymd).length) {
+				return true;
+			}
+			if (
+				data.serviceRequests &&
+				data.serviceRequests[ymd] &&
+				data.serviceRequests[ymd].length
+			) {
+				return true;
+			}
+			var count = day.querySelector('.ca-events');
+			if (count) {
+				var text = (count.textContent || '').replace(/\s+/g, ' ').trim();
+				var match = text.match(/(\d+)\s*events?/i);
+				if (match && parseInt(match[1], 10) > 0) {
+					return true;
+				}
+			}
+			return !!day.querySelector(
+				'.emerson-ca-service, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-requests'
 			);
-			if (!day) {
+		}
+
+		function emersonMonthHasEvents(monthKey) {
+			var key;
+			for (key in data.sundays) {
+				if (
+					Object.prototype.hasOwnProperty.call(data.sundays, key) &&
+					String(key).slice(0, 7) === monthKey
+				) {
+					var sunday = data.sundays[key] || {};
+					if (sunday.title || sunday.holiday || sunday.speaker) {
+						return true;
+					}
+				}
+			}
+			if (data.events) {
+				for (key in data.events) {
+					if (
+						Object.prototype.hasOwnProperty.call(data.events, key) &&
+						String(key).slice(0, 7) === monthKey &&
+						data.events[key] &&
+						data.events[key].length
+					) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		/*
+		 * Initial PHP markup has dates but no .ca-events; those arrive on
+		 * calendar-render. Do not click before that paint — an early jump is
+		 * wiped when populateCalendarMonth writes today’s empty sidebar last.
+		 */
+		function monthGridReady(monthKey) {
+			if (document.querySelector('.ca-day[data-date] .ca-events')) {
+				return true;
+			}
+			return calendarRenderDone && emersonMonthHasEvents(monthKey);
+		}
+
+		function pickSidebarDay() {
+			var today = todayYmd();
+			var days = datedDays().slice().sort(function (a, b) {
+				return (a.getAttribute('data-date') || '').localeCompare(
+					b.getAttribute('data-date') || ''
+				);
+			});
+			if (!days.length) {
+				return null;
+			}
+			var todayEl = null;
+			var i;
+			for (i = 0; i < days.length; i++) {
+				if (days[i].getAttribute('data-date') === today) {
+					todayEl = days[i];
+					break;
+				}
+			}
+			/* Only auto-jump in the month that contains today. */
+			if (!todayEl) {
+				return null;
+			}
+			if (dayHasEvents(todayEl)) {
+				return todayEl;
+			}
+			for (i = 0; i < days.length; i++) {
+				var ymd = days[i].getAttribute('data-date') || '';
+				if (ymd > today && dayHasEvents(days[i])) {
+					return days[i];
+				}
+			}
+			return null;
+		}
+
+		var autoDayWaitTries = 0;
+
+		function scheduleAutoDayRetry() {
+			if (autoDayWaitTries >= 40) {
 				return;
 			}
-			todayPicked = true;
-			day.click();
+			autoDayWaitTries += 1;
+			window.setTimeout(ensureTodaySelected, 150);
+		}
+
+		function ensureTodaySelected() {
+			if (autoDayMonth) {
+				return;
+			}
+			var first = document.querySelector(
+				'.ca-day[data-date]:not(.ca-inactive)'
+			);
+			var monthKey = first
+				? String(first.getAttribute('data-date') || '').slice(0, 7)
+				: '';
+			/* Skeleton days often have data-date="" until calendar-render. */
+			if (!monthKey || !/^\d{4}-\d{2}$/.test(monthKey)) {
+				scheduleAutoDayRetry();
+				return;
+			}
+			if (!monthGridReady(monthKey)) {
+				scheduleAutoDayRetry();
+				return;
+			}
+			autoDayWaitTries = 0;
+			var target = pickSidebarDay();
+			if (!target) {
+				autoDayMonth = monthKey;
+				return;
+			}
+			var current = document.querySelector(
+				'.ca-day.ca-current[data-date]:not(.ca-inactive)'
+			);
+			if (
+				current &&
+				current.getAttribute('data-date') === target.getAttribute('data-date')
+			) {
+				autoDayMonth = monthKey;
+				return;
+			}
+			autoDayMonth = monthKey;
+			target.click();
 		}
 
 		function decorate() {
@@ -1485,6 +1626,47 @@
 			decorateSidebar();
 			applyCompactWeek();
 			fitDayCopy();
+		}
+
+		function calendarAjaxPayload(settings) {
+			var payload = '';
+			if (!settings) {
+				return '';
+			}
+			if (typeof settings.data === 'string') {
+				return settings.data;
+			}
+			if (settings.data && typeof settings.data === 'object') {
+				try {
+					return window.jQuery ? window.jQuery.param(settings.data) : '';
+				} catch (err) {
+					return '';
+				}
+			}
+			return payload;
+		}
+
+		function isCalendarAjax(settings) {
+			var payload = calendarAjaxPayload(settings);
+			return (
+				payload.indexOf('calendar-render') !== -1 ||
+				payload.indexOf('calendar-day-render') !== -1
+			);
+		}
+
+		function onCalendarAjax(settings) {
+			var payload = calendarAjaxPayload(settings);
+			if (payload.indexOf('calendar-day-render') !== -1) {
+				decorateSoon();
+				return;
+			}
+			if (payload.indexOf('calendar-render') !== -1) {
+				calendarRenderDone = true;
+				/* Month paint resets the sidebar to “today” — allow one fresh jump. */
+				autoDayMonth = '';
+				autoDayWaitTries = 0;
+				decorateSoon();
+			}
 		}
 
 		document.addEventListener('click', function (event) {
@@ -1635,47 +1817,36 @@
 		})();
 
 		var root = document.querySelector('.church-admin-calendar, .ca-calendar');
+		var decorateSoonTimer = null;
+		function decorateSoon() {
+			if (decorateSoonTimer) {
+				clearTimeout(decorateSoonTimer);
+			}
+			decorateSoonTimer = setTimeout(function () {
+				decorateSoonTimer = null;
+				decorate();
+			}, 120);
+		}
+		/* Both paths: CA month paint is AJAX — never rely on MutationObserver alone. */
+		if (window.jQuery) {
+			window.jQuery(document).ajaxComplete(function (_event, _xhr, settings) {
+				if (isCalendarAjax(settings)) {
+					onCalendarAjax(settings);
+				}
+			});
+		}
+		/* Boot strap: keep trying until month paint + jump (or give up). */
+		ensureTodaySelected();
+		window.setTimeout(decorateSoon, 400);
+		window.setTimeout(decorateSoon, 1200);
 		/*
 		 * Phones: never use MutationObserver on the calendar. It re-entered on our
 		 * own sidebar writes and kept Safari’s load spinner spinning. Decorate once
 		 * after CA’s Ajax, and again only on explicit calendar Ajax — not on every DOM tweak.
 		 */
 		if (phoneLite || !root || typeof MutationObserver === 'undefined') {
-			var phoneDecorateTimer = null;
-			function phoneDecorateSoon() {
-				if (phoneDecorateTimer) {
-					clearTimeout(phoneDecorateTimer);
-				}
-				phoneDecorateTimer = setTimeout(function () {
-					phoneDecorateTimer = null;
-					decorate();
-				}, 120);
-			}
-			phoneDecorateSoon();
-			window.setTimeout(phoneDecorateSoon, 600);
-			if (window.jQuery) {
-				window.jQuery(document).ajaxComplete(function (_event, _xhr, settings) {
-					var payload = '';
-					if (!settings) {
-						return;
-					}
-					if (typeof settings.data === 'string') {
-						payload = settings.data;
-					} else if (settings.data && typeof settings.data === 'object') {
-						try {
-							payload = window.jQuery.param(settings.data);
-						} catch (err) {
-							payload = '';
-						}
-					}
-					if (
-						payload.indexOf('calendar-render') !== -1 ||
-						payload.indexOf('calendar-day-render') !== -1
-					) {
-						phoneDecorateSoon();
-					}
-				});
-			}
+			decorateSoon();
+			window.setTimeout(decorateSoon, 600);
 			return;
 		}
 		/*

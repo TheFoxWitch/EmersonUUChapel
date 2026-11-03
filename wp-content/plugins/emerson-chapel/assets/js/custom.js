@@ -2154,9 +2154,9 @@
 	}
 	/**
 	 * Safari blacks out a *direct* YouTube iframe when foil keeps continuous
-	 * translate3d loops. Desktop nests YouTube in ?emerson_sermon_embed=… so foil
-	 * can keep moving. iPhone mounts a direct player after load (no facade) and
-	 * leaves foil alone — foil stays off by default on phones. Tab-hidden still
+	 * translate3d loops. Desktop mounts a nested ?emerson_sermon_embed=… player
+	 * after load so foil can keep moving; Apple mounts youtube-nocookie directly.
+	 * No facade on either — first tap hits YouTube’s control. Tab-hidden still
 	 * pauses GPU work.
 	 */
 	function foilNeedsSafariVideoSafe() {
@@ -2998,17 +2998,13 @@
 })();
 
 /**
- * Homepage sermon player.
+ * Homepage sermon player — no click-to-load facade on any device.
  *
- * Desktop: poster until click → same-origin wrapper (?emerson_sermon_embed=…)
- * so foil can keep animating (YouTube one level deeper, like gallery).
- *
- * iPhone/iPad: after window load, mount a real youtube-nocookie iframe with
- * no autoplay and no custom play facade. Stack Overflow / EmbedPlus support /
- * r/Wordpress agree: the facade (poster → load player on tap) is what forces
- * a second tap on iOS; with the real player already in the page, one tap on
- * YouTube’s own control plays in-place. Mount after `load` so YouTube does not
- * hold Safari’s spinner the way an eager embed used to.
+ * After window load, mount a real player (no autoplay). First click/tap hits
+ * YouTube’s own play control. Desktop uses the nested same-origin shell
+ * (?emerson_sermon_embed=…) so foil can keep moving; Apple uses direct
+ * youtube-nocookie. Mount after `load` so YouTube does not hold Safari’s
+ * spinner the way an eager embed used to.
  */
 (function () {
 	function sermonAppleTouch() {
@@ -3057,12 +3053,11 @@
 
 	function afterWindowLoad() {
 		document.querySelectorAll('.emerson-latest-sermon__poster[data-src]').forEach(hydrateSermonPoster);
-		if (!sermonAppleTouch()) {
-			return;
-		}
-		/* Real in-page player — first tap is YouTube’s play, not our facade. */
 		document.querySelectorAll('.emerson-latest-sermon').forEach(function (figure) {
-			mountSermon(figure, figure.getAttribute('data-youtube-src') || '');
+			var src = sermonAppleTouch()
+				? figure.getAttribute('data-youtube-src') || ''
+				: figure.getAttribute('data-embed-src') || '';
+			mountSermon(figure, src);
 		});
 	}
 
@@ -3071,19 +3066,6 @@
 	} else {
 		window.addEventListener('load', afterWindowLoad);
 	}
-
-	document.querySelectorAll('.emerson-latest-sermon').forEach(function (figure) {
-		var play = figure.querySelector('.emerson-latest-sermon__play');
-		if (!play) {
-			return;
-		}
-		play.addEventListener('click', function () {
-			if (sermonAppleTouch()) {
-				return;
-			}
-			mountSermon(figure, figure.getAttribute('data-embed-src') || '');
-		});
-	});
 })();
 
 (function () {

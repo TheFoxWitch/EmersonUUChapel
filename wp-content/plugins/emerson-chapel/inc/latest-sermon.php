@@ -84,13 +84,14 @@ function emerson_youtube_embed_src( string $id, bool $autoplay = true ): string 
  *
  * Gallery videos use AIOVG’s /player-embed/… frame so YouTube sits one level
  * deeper than the foil layer. Safari can keep foil animating there. The
- * homepage uses this wrapper for the same compositor boundary.
+ * homepage uses this wrapper for the same compositor boundary. Default is no
+ * autoplay so a pre-mounted player waits for one tap on YouTube’s control.
  */
-function emerson_latest_sermon_embed_src( string $id ): string {
+function emerson_latest_sermon_embed_src( string $id, bool $autoplay = false ): string {
 	return add_query_arg(
 		array(
 			'emerson_sermon_embed' => $id,
-			'autoplay'             => '1',
+			'autoplay'             => $autoplay ? '1' : '0',
 		),
 		home_url( '/' )
 	);
@@ -139,11 +140,11 @@ function emerson_latest_sermon_resolved(): array {
 /**
  * Homepage sermon player markup.
  *
- * Desktop: poster until click, then same-origin wrapper (YouTube nested inside)
- * so Safari foil can keep moving — same idea as gallery /player-embed/.
- * iPhone/iPad: after window load, JS mounts a real YouTube iframe (no facade).
- * EmbedPlus / Reddit / SO all land on the same point: a click-to-load facade
- * costs an extra tap on iOS; the real in-page player plays on one tap.
+ * After window load, JS mounts a real player (no click-to-load facade). A facade
+ * costs an extra tap on every browser: first tap loads the iframe, second hits
+ * YouTube’s play. Pre-mounted, one tap on YouTube’s control plays in-place.
+ * Desktop uses the nested same-origin shell so foil can keep moving; Apple uses
+ * a direct youtube-nocookie iframe.
  */
 function emerson_latest_sermon_html(): string {
 	$sermon = emerson_latest_sermon_resolved();
@@ -152,7 +153,7 @@ function emerson_latest_sermon_html(): string {
 	if ( $id === '' ) {
 		return '';
 	}
-	$src     = emerson_latest_sermon_embed_src( $id );
+	$src     = emerson_latest_sermon_embed_src( $id, false );
 	$youtube = emerson_youtube_embed_src( $id, false );
 	$poster  = emerson_youtube_poster_url( $id );
 	$label   = sprintf(
@@ -162,12 +163,9 @@ function emerson_latest_sermon_html(): string {
 	);
 
 	/*
-	 * Poster loads after window load (data-src). An eager i.ytimg.com request
-	 * (and its old <link rel=preload>) could leave Safari’s spinner running
-	 * forever when YouTube is slow or blocked on the phone’s network.
-	 *
-	 * data-youtube-src: no autoplay — iPhone mounts this iframe after load so
-	 * the first tap hits YouTube’s own play control (in-page, one tap).
+	 * Poster is a stand-in until after window load (data-src). Eager YouTube /
+	 * i.ytimg.com requests can leave Safari’s spinner running; JS replaces this
+	 * with the real iframe once load has finished.
 	 */
 	$pixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
@@ -175,7 +173,7 @@ function emerson_latest_sermon_html(): string {
 		. ' data-embed-src="' . esc_url( $src ) . '"'
 		. ' data-youtube-src="' . esc_url( $youtube ) . '"'
 		. ' data-embed-title="' . esc_attr( $title ) . '">'
-		. '<button type="button" class="emerson-latest-sermon__play" aria-label="' . esc_attr( $label ) . '">'
+		. '<button type="button" class="emerson-latest-sermon__play" aria-label="' . esc_attr( $label ) . '" disabled>'
 		. '<img class="emerson-latest-sermon__poster" src="' . $pixel . '" data-src="' . esc_url( $poster ) . '" alt="" width="480" height="360" decoding="async">'
 		. '<span class="emerson-latest-sermon__play-icon" aria-hidden="true"></span>'
 		. '</button>'

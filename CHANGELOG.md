@@ -10,6 +10,12 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-03
+
+### Homepage sermon: one-tap play on desktop and phone
+- Desktop still used the click-to-load facade (poster → iframe), so it needed two clicks like iPhone used to. After `window` load, every device now mounts a real player with no autoplay — first click/tap is YouTube’s own play. Desktop keeps the nested `?emerson_sermon_embed=` shell (foil); Apple keeps direct youtube-nocookie.
+- **File:** `inc/latest-sermon.php`, `assets/js/custom.js`.
+
 ## 2026-11-02
 
 ### Homepage sermon: real in-page player on iPhone (one tap)

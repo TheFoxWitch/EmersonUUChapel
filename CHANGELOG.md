@@ -12,6 +12,10 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-11-03
 
+### Foil: stop mid-scroll “jump” on iPhone
+- With the animated background on, scrolling to the homepage sermon and tapping play could make the foil sheet jump once. Cause: Safari’s URL bar / video chrome fires `visualViewport` resize; Emerson re-painted the stamp canvas when height grew ~70–100px, which clears the bitmap and restarts drift mid-animation. Intermittent because the second visit often already had the bar collapsed (canvas tall enough). Phone paint now pads ~2 rows of height, and height-only refits under 140px are ignored (width/rotate still refits).
+- **File:** `assets/js/custom.js`.
+
 ### Touch targets: foil emoji + hamburger
 - Taps on the background toggle and mobile menu were easy to miss: the cookie banner sat above the emoji (z-index), the emoji sat in Safari’s bottom chrome, the burger was only 44px beside the logo, and neither used `touch-action: manipulation`. Invisible hit-slop, a slightly larger burger (48px), safe-area / raised bottom offset, and z-index above the cookie notice — visuals unchanged.
 - **File:** `assets/css/custom.css`, `inc/foil-background.php`.

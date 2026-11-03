@@ -2615,6 +2615,8 @@
 	}
 	/**
 	 * Viewport used to size the foil stamp field (inner + visualViewport).
+	 * On phones, pad height so Safari’s collapsing URL bar does not force a
+	 * mid-drift canvas re-paint (that reallocation looks like the foil “jumps”).
 	 */
 	function foilViewportSize() {
 		var vv = window.visualViewport;
@@ -2627,6 +2629,10 @@
 			if (vv.height) {
 				h = Math.max(h, Math.round(vv.height));
 			}
+		}
+		/* ~2 compact rows — covers expanded↔collapsed toolbar without a refit. */
+		if (emersonPhoneLike()) {
+			h += 148;
 		}
 		return {
 			w: w > 0 ? w : 390,
@@ -3190,6 +3196,8 @@
 	/*
 	 * Cursor mobile preview / rotate: if the stamp field is shorter than the
 	 * viewport after a resize, re-paint in place (no wipe) while foil is on.
+	 * Ignore small height-only growth (iOS toolbar / video chrome) — resetting
+	 * canvas.width mid-drift jumps the translate3d sheet.
 	 */
 	var foilResizeTimer = 0;
 	function foilRefitToViewport() {
@@ -3202,7 +3210,10 @@
 		var vp = foilViewportSize();
 		var needW = Math.ceil(vp.w / 0.88);
 		var needH = Math.ceil(vp.h / 0.88);
-		if (foilCanvas.width >= needW - 4 && foilCanvas.height >= needH - 4) {
+		var widthShort = foilCanvas.width < needW - 4;
+		var heightShortBy = needH - foilCanvas.height;
+		/* Toolbar show/hide is ~50–120px; only refit for rotate or a large shortfall. */
+		if (!widthShort && heightShortBy <= 140) {
 			return;
 		}
 		var symbols = [];

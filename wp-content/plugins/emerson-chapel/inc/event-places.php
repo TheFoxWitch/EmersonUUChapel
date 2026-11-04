@@ -198,8 +198,8 @@ function emerson_event_places_series_admin_save(): ?string {
 			'recurring'   => emerson_listed_recurring_code( $nth, $wday ),
 			'location'    => EMERSON_GROUP_LOCATION_ROTATES,
 			'description' => sanitize_textarea_field( (string) wp_unslash( $_POST['series_description'] ?? '' ) ),
-			'link'        => home_url( '/engage/' ),
-			'link_title'  => 'Engage',
+			'link'        => home_url( '/community-opportunities/' ),
+			'link_title'  => 'Community Opportunities',
 		),
 		$old_id
 	);

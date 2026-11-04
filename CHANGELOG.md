@@ -10,7 +10,97 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-04
+
+### Community Opportunities URL is /community-opportunities/
+- Page 68 slug is **community-opportunities** (was `engage`). Nav, recurring-event links, and Church Admin calendar sidebar links use the new path; `/engage/` redirects 301. Calendar link label is **Community Opportunities**.
+- **File:** `themes/emerson-uuchapel/parts/header.html`, `inc/calendar-listed-events.php`, `inc/event-places.php`, `inc/navigation.php`. **Local DB:** page 68, nav 710, `emerson_listed_series`, CA calendar `link` rows.
+
+### Nav: Engage is a dropdown label; submenu says Community Opportunities
+- Top-level **Engage** matches About/Worship (opens the menu only, no page link). The first submenu item is **Community Opportunities**.
+- **File:** `themes/emerson-uuchapel/parts/header.html`. **Local DB:** Navigation “main” (710).
+
+### Members hub: Emerson Board One Stop Shop link
+- Admins and Church Admin–permissioned accounts see **Emerson Board One Stop Shop** on the Signed-in line (board Google Sheet, new tab).
+- **File:** `inc/members.php`.
+
+### Gutenberg Button “invalid content” from class / JSON mismatch
+- Gutenberg flags a Button when the CSS class is on the wrapper `<div>` but missing from the `<!-- wp:button {"className":…} -->` comment (often after **Attempt recovery**). That looks like a hyphen problem. Repair uses `parse_blocks` / `serialize_blocks` so nested button JSON is not truncated; saving a page (and a one-time migration) syncs `className` with the div. Modals class renames now run the same repair after rewriting pages. Prefer Advanced → Additional CSS class(es) over recovery. `paypal-fees-button` is the PayPal Fees opener — not a Gutenberg default; duplicating that Button copies the class.
+- **File:** `inc/modals.php`.
+
+### Homepage SNSD Button cleanup (typo class + invalid block)
+- A duplicate SNSD Button used class `pemerson-modal-snsd-survery` (leading `p`); another had the class on the `<div>` only, which Gutenberg treats as invalid and makes the block hard to select/delete. Removed the typo Button, synced `className`, and kept one SNSD Button in the CTA row.
+- **Local DB:** homepage page 15.
+
+### forms.gle iframe embeds resolve to the full Google Form URL
+- SNSD used a `forms.gle` short link, so the dialog iframe paid an extra redirect (and skipped `embedded=true`) while the pledge card already used `docs.google.com/…/viewform?embedded=true`. Embed URLs now resolve short links (cached) and add `embedded=true`.
+- **File:** `inc/modals.php`. **Local DB:** SNSD modal URL stored as the full viewform address.
+
+### Saving a custom dialog no longer turns it into PayPal fees
+- Built-in CTA class “learning” and renames could adopt or overwrite `emerson-modal-*` classes, so saving SNSD style/label left the Button as `paypal-fees-button` (PayPal text, look, and dialog). Learning ignores `emerson-modal-*`; built-in renames refuse those classes; label sync sets the rewrite guard; saving a custom dialog heals Buttons that still have its label but a PayPal/pledge class.
+- **File:** `inc/modals.php`. **Local DB:** homepage SNSD Button class.
+
+### SNSD CTA was still classed as PayPal fees
+- Homepage CTA row had an SNSD-labeled Button whose Additional CSS class was still `paypal-fees-button`, so the front rewrote it into PayPal (label, blue look, fees dialog). Class set to `emerson-modal-snsd-survery`; stray duplicate SNSD Button removed. Built-in PayPal/recommitment openers now skip any Button that already matches a custom modal class.
+- **File:** `inc/modals.php`. **Local DB:** homepage page 15.
+
+### Annual pledge button text is Pledge Card
+- Modals label and homepage Button now say **2026-27 Pledge Card** (was still “Pledge Form” after the class rename).
+- **File:** `inc/modals.php`. **Local DB:** `emerson_annual_pledge_label`.
+
+### Built-in modal CSS classes are configurable (and learn from Gutenberg)
+- Recommitment, Pledge, and PayPal each have a **CSS class** field under Modals. Changing it there rewrites matching Buttons on pages. If someone renames the class only in Gutenberg (next to another CTA), saving the page updates the Modals option automatically. Legacy aliases (`pledge-form`, `pledge-button`, `paypal-fees-button`) still work. No `--` in class names (breaks the editor).
+- **File:** `inc/modals.php`.
+
+### Annual pledge Gutenberg class is pledge-card
+- Renaming the homepage Button class to `pledge-card` broke the opener because the plugin only looked for `pledge-form`. Canonical class is now **`pledge-card`**; **`pledge-form`** still works as a legacy alias.
+- **File:** `inc/modals.php`, `assets/css/custom.css`. **Local DB:** homepage Button className aligned to `pledge-card`.
+
+### Modals button text is no longer overwritten by the page editor
+- Saving a page (or an autosave) was copying Gutenberg Button labels back into Modals options, so a change under **Modals → Button text** looked like it “didn’t stick.” Modals is the source of truth again; saving there still syncs the wording onto matching Buttons. Sync matching is token-safe.
+- **File:** `inc/modals.php`.
+
+### Built-in Pledge / Recommitment Button style
+- Homepage `pledge-form` was hardcoded the same green as Commitment, so Modals style changes never showed. **Modals → Pledge Form** and **Recommitment Form** now each have a **Button style** (green / blue / outline). Default for Pledge is blue outline so it reads apart from Commitment. Style is applied on the front via `emerson-cta--{style}`.
+- **File:** `inc/modals.php`, `assets/css/custom.css`. **Local DB:** `emerson_annual_pledge_style`.
+
+### Custom modal Button style (outline) no longer stolen by pledge-form
+- Class matching used `\b`, so `pledge-form` matched inside `emerson-modal-2026-2027-pledge-form`. The built-in Pledge opener overwrote the custom modal Button and the outline style looked like a solid fill. Matching is now whole CSS tokens; outline borders are not cleared by the shared `border: 0` reset.
+- **File:** `inc/modals.php`, `assets/css/custom.css`.
+
+### Custom modal CSS class is Gutenberg-safe (single hyphen)
+- `emerson-modal--{id}` put `--` into the block comment, which Gutenberg escapes as `\u002d\u002d` and often marks “invalid content.” The class is now **`emerson-modal-{id}`** (one hyphen). A one-time migration rewrites existing page Buttons; the old `--` form still opens the dialog. Front-end openers no longer rewrite Button HTML in the editor/REST.
+- **File:** `inc/modals.php`. **Local DB:** homepage and other pages that used the old class.
+
+### Custom modal Buttons match CTA styles
+- A Gutenberg Button with `emerson-modal-{id}` now gets the same `emerson-cta--{style}` wrapper as the shortcode opener (Modals → Button style: green / blue / outline). The block editor also paints those classes so new buttons don’t look like plain core Buttons.
+- **File:** `inc/modals.php`, `assets/css/custom.css`.
+
+### CTA button text follows the page (and Modals)
+- The homepage recommitment button kept showing **2026-27 Recommitment Form** after the editor said **2026-27 Commitment Form**, because the front always overwrote the label from the Modals option. Saving a page/post that uses `recommitment-form`, `pledge-form`, or `paypal-fees-button` now copies that Button’s wording into the matching Modals option. Modals → Save still pushes wording out to those Buttons.
+- **File:** `inc/modals.php`. **Local DB:** `emerson_pledge_label` set to match the homepage Button.
+
 ## 2026-11-03
+
+### Pledge / Recommitment dialog heading is optional
+- Those dialogs were always printing the **Button text** as an `<h2>` above the embed. They now have a separate **Dialog heading** field (blank by default) — empty means only the × shows, so the Google/Microsoft form title is not duplicated.
+- **File:** `inc/modals.php`.
+
+### Custom modal CSS class can be renamed
+- **Modals → Edit dialog** now has a **CSS class slug** field (`emerson-modal--{slug}`). Changing it updates matching Button classes and `[emerson_modal id="…"]` shortcodes on pages/posts/patterns. Saving button text also syncs that wording into those Gutenberg Buttons. Class matching is token-safe so `pledge-form` no longer collides with `emerson-modal--…-pledge-form`.
+- **File:** `inc/modals.php`.
+
+### Recommitment vs Pledge form buttons
+- Gutenberg class `pledge-button` is renamed to **`recommitment-form`** (legacy class still works) for the Microsoft recommitment dialog. New class **`pledge-form`** opens the annual Google pledge form (`…/forms/d/1I5Afn2BMJWSS8cAzA8tEJyXi7F0g3tDYzsZTTVMfPJo/viewform`; `/edit` links are converted to `/viewform`). Modals admin has separate Recommitment and Pledge Form sections. Homepage CTA: recommitment + pledge + PayPal fees.
+- **File:** `inc/modals.php`, `inc/recommitment.php`, `assets/js/recommitment.js`, `assets/css/custom.css`. **Local DB:** page 15; options `emerson_annual_pledge_*`.
+
+### Modal buttons: Gutenberg-safe classes (no Edit as HTML)
+- Core Button blocks must stay as links in the editor. Hand-edited `<button>` markup and shortcodes pasted *inside* a Button block show “unexpected or invalid content.” Emerson openers use **Additional CSS class(es)** only:
+  - `pledge-button` — Commitment Form
+  - `paypal-fees-button` — Approximate PayPal Fees
+  - `emerson-modal--{id}` — custom dialog from **Modals**
+- Stopped auto-injecting custom modal buttons into the pledge/PayPal row (that made the front show 3 buttons when Gutenberg had 2). Class goes on the Button block Advanced panel (wrapper), not on the link text. Homepage CTA reset to two valid Buttons.
+- **File:** `inc/modals.php`. **Local DB:** page 15 buttons.
 
 ### Foil: stop mid-scroll “jump” on iPhone
 - With the animated background on, scrolling to the homepage sermon and tapping play could make the foil sheet jump once. Cause: Safari’s URL bar / video chrome fires `visualViewport` resize; Emerson re-painted the stamp canvas when height grew ~70–100px, which clears the bitmap and restarts drift mid-animation. Intermittent because the second visit often already had the bar collapsed (canvas tall enough). Phone paint now pads ~2 rows of height, and height-only refits under 140px are ignored (width/rotate still refits).

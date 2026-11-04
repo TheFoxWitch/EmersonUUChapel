@@ -110,7 +110,16 @@ function emerson_recommit_will_inject_into_buttons(): bool {
 	if ( function_exists( 'emerson_page_has_cta_buttons_row' ) ) {
 		return emerson_page_has_cta_buttons_row();
 	}
-	return str_contains( $content, 'pledge-button' )
+	if ( function_exists( 'emerson_cta_button_classes' ) && function_exists( 'emerson_content_has_css_class' ) ) {
+		foreach ( emerson_cta_button_classes() as $class ) {
+			if ( emerson_content_has_css_class( $content, $class ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+	return str_contains( $content, 'recommitment-form' )
+		|| str_contains( $content, 'pledge-button' )
 		|| str_contains( $content, 'paypal-fees-button' );
 }
 
@@ -152,7 +161,20 @@ function emerson_recommit_inject_into_buttons( string $content, array $block ): 
 	if ( str_contains( $content, 'data-emerson-recommit' ) ) {
 		return $content;
 	}
-	if ( ! str_contains( $content, 'pledge-button' ) && ! str_contains( $content, 'paypal-fees-button' ) ) {
+	$has_cta = false;
+	if ( function_exists( 'emerson_cta_button_classes' ) && function_exists( 'emerson_content_has_css_class' ) ) {
+		foreach ( emerson_cta_button_classes() as $class ) {
+			if ( emerson_content_has_css_class( $content, $class ) ) {
+				$has_cta = true;
+				break;
+			}
+		}
+	} else {
+		$has_cta = str_contains( $content, 'recommitment-form' )
+			|| str_contains( $content, 'pledge-button' )
+			|| str_contains( $content, 'paypal-fees-button' );
+	}
+	if ( ! $has_cta ) {
 		return $content;
 	}
 	if ( ! emerson_recommit_will_inject_into_buttons() ) {

@@ -8,6 +8,29 @@
 
 declare( strict_types=1 );
 
+/**
+ * Old Engage page slug → Community Opportunities.
+ */
+add_action(
+	'template_redirect',
+	static function (): void {
+		if ( is_admin() || ! is_404() ) {
+			return;
+		}
+		$path = trim( (string) wp_parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH ), '/' );
+		if ( $path !== 'engage' ) {
+			return;
+		}
+		$target = get_page_by_path( 'community-opportunities' );
+		if ( ! ( $target instanceof WP_Post ) ) {
+			return;
+		}
+		wp_safe_redirect( get_permalink( $target ), 301 );
+		exit;
+	},
+	1
+);
+
 add_filter(
 	'render_block_core/navigation-submenu',
 	static function ( string $html, array $block ): string {

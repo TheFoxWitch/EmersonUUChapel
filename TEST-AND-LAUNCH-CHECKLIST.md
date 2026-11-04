@@ -198,31 +198,52 @@ To go back to the newest sermon in **Video Gallery**, clear **YouTube URL** and 
 
 ## Re-commitment Form — how to update the link
 
-The homepage button **Emerson Community Survey** is a Shortcode block: `[emerson_community_survey]`. It opens the chapel commitment form in Calculated Fields. Submitting it emails the office. Change the button wording under **Modals → Emerson Community Survey**. Click **Edit form** on that screen to change the fields, wording, and submit button. Check **Include the signature box** and save to put the drawing area, **Clear signature**, and the date back after the email field. Move or remove the shortcode in the page editor like any other block. The separate **2026-27 Commitment Form** button is the Microsoft form.
+The homepage button **Emerson Community Survey** is a Shortcode block: `[emerson_community_survey]`. It opens a Calculated Fields survey emailed to the office. Change the button wording under **Modals → Emerson Community Survey**. Click **Edit form** on that screen to change the fields. Check **Include the signature box** and save for the drawing area. The separate **Recommitment Form** and **Pledge Form** buttons are Microsoft/Google forms (see below).
 
 **Who can do this:** anyone who can edit pages (Administrator or Editor).
 
 **Where:** WordPress admin (the left-hand menu) → **Modals**. It is a speech-bubble icon, just under **Sunday Schedule**.
 
 1. In WordPress, open **Modals**.
-2. Under **Emerson Community Survey**, change **Button text** if the wording should change. Those words are the button and the heading in the dialog. Place the button with `[emerson_community_survey]` (already on the home page).
+2. Under **Emerson Community Survey**, change **Button text** if the wording should change. Place the button with `[emerson_community_survey]`.
 3. Click **Save survey button**.
-4. On the homepage, click the button and confirm the commitment form opens.
 
-### 2026-27 Commitment Form
+### Recommitment Form
 
-The homepage **2026-27 Commitment Form** button opens its form in a dialog. Change the wording and the form address under **Modals → 2026-27 Commitment Form**, then click **Save commitment form**. Do not edit that button on the homepage. Editing it there does not change the dialog, and an old link left in the page is ignored.
+1. Left sidebar → **Modals** → **Recommitment Form**.
+2. Set **Button text** and **Form URL** (Microsoft or Google).
+3. **Save recommitment form**.
+4. On the page, Button → Advanced → Additional CSS class(es): `recommitment-form` (legacy `pledge-button` still works).
 
-A Microsoft Forms address looks like `https://forms.cloud.microsoft/r/…`. A Google Forms address looks like `https://docs.google.com/forms/…`. Until a link is saved, the button opens the 2026–2027 commitment form.
+### Pledge Form
+
+1. Left sidebar → **Modals** → **Pledge Form**.
+2. Set **Button text** and **Form URL** (Google Form; an `/edit` link is stored as `/viewform`).
+3. **Save pledge form**.
+4. On the page, Button → Advanced → Additional CSS class(es): `pledge-card` (legacy `pledge-form` still works).
 
 ### Approximate PayPal Fees
 
-The same dialog opens from the homepage and from Make a Contribution.
+The same dialog opens from the homepage and from Make a Contribution. Form ID **8** is wired in Emerson — do not paste a Calculated Fields shortcode on the page.
 
-1. Open **Modals**.
-2. Under **Approximate PayPal Fees**, change **Button text** and **Dialog heading** if the wording should change.
+**Wording / fee math (admin):**
+
+1. Left sidebar → **Modals**.
+2. Under **Approximate PayPal Fees**, change **Button text** and **Dialog heading** if needed.
 3. Click **Save PayPal fees**.
-4. Click **Edit form** to change the fields and the fee math. That opens Calculated Fields.
+4. Click **Edit form** to change the fields and the fee math (Calculated Fields form 8).
+
+**Put the button on a page (block editor — Gutenberg-safe):**
+
+1. Edit the page (Home or Make a Contribution).
+2. Add a **Buttons** block if needed, then a **Button** inside it (leave it as a normal link).
+3. Select the Button → right sidebar → **Advanced** → **Additional CSS class(es)** — one of:
+   - `recommitment-form` — Recommitment Form (Microsoft)
+   - `pledge-card` — annual Pledge Form (Google; legacy `pledge-form` still works). Rename under **Modals → CSS class**, or rename in Gutenberg next to another CTA and save the page — Modals learns the new class.
+   - `paypal-fees-button` — Approximate PayPal Fees
+   - `emerson-modal-your-id` — a custom dialog from **Modals** (exact id from that screen; single hyphen — `--` breaks Gutenberg)
+4. Link URL can be `#`.
+5. **Update**. Do **not** Edit as HTML, force a `<button>`, or paste `[emerson_modal …]` inside a Button block — that creates the red “Attempt recovery” boxes.
 
 ## Documents — how to upload or change a file
 
@@ -440,7 +461,7 @@ Ask these before the WPvivid backup where possible; section 2 checks they're ans
   - Serve Emerson Chapel and Engage banners: `service.png`, `women-together.jpeg`, `men-together.jpeg`, `circle-suppers.jpeg` and `board-meetings.jpg` (uploaded 2021/11 and 2022/07). Engage also needs `image.jpeg` (2022/07), the "Serve Our Wider Community" photo. Until then those banners are solid blue. See `CHANGELOG.md` for how to put the photos back.
 - [x] **Twitter/X.** They no longer use it (2026-10-03). Removed from the footer, Ways to Connect, and two leftover empty links on Religious Education and Our Congregation.
 - [ ] **Church Leadership: personal emails and extra contact details.** The page lists names and roles only. Two board members' personal emails were sent for a possible contact list; they are **not** on the page, and must not go into GitHub. Ask leadership whether they want personal emails (or other private contact details) on this public page. If yes: add them on the page only, not in the repo. If no: leave the names as they are.
-- [ ] **2026 commitment form.** The homepage button says **2026-27 Commitment Form** and is edited under **Modals → 2026-27 Commitment Form**. Until a different address is saved, it opens the 2026–2027 commitment form. The old Welcome! page (412) still has an even older "Join The 2022-2023 Pledge Drive" link (`forms.gle/GfZt7bZsiYhPiFWX9`); update or remove that too if the page stays.
+- [ ] **Recommitment + Pledge forms.** Homepage Buttons use classes `recommitment-form` and `pledge-card` (legacy `pledge-form` OK). Wording/URLs under **Modals → Recommitment Form** and **Modals → Pledge Form**. Confirm both dialogs open the right form. The old Welcome! page (412) may still have an older pledge-drive link (`forms.gle/GfZt7bZsiYhPiFWX9`); update or remove if that page stays.
 - [ ] **Mint green (`#00d084`).** It has low contrast as text on white. Keep it, or choose a darker green for text? The homepage **You Are Welcome!** heading is no longer mint (rainbow gradient, 2026-10-08). Mint is still the pledge / contribute button background.
 - [ ] **Privacy Policy.** Leadership approves the wording. Local draft updated **2026-11-01** for Microsoft Forms (commitment), on-site Calculated Fields surveys, newsletter confirm → Church Admin / Mailchimp, Google Maps on Visit Us, login lockout logging, and Cookies page third-party list. **Terms of Use** (1076) same date + third-party pointer to Privacy. Still needs church sign-off on Privacy, **Cookies** (`/cookies/`), **Terms of Use** (`/terms-of-use/`), and the cookie notice. Church Admin needs PHP's `calendar` extension (local `Dockerfile`; ask host if live errors).
 

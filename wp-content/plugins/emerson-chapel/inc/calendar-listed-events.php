@@ -15,6 +15,7 @@ const EMERSON_GROUP_EXCEPTIONS_OPTION = 'emerson_group_exceptions';
 const EMERSON_GROUP_DEFAULT_VENUE     = 'Rotating';
 const EMERSON_LISTED_SERIES_OPTION    = 'emerson_listed_series';
 const EMERSON_LISTED_SERIES_MIGRATED  = 'emerson_listed_series_v1';
+const EMERSON_COMMUNITY_URL_MIGRATED  = 'emerson_community_opportunities_url_v1';
 
 /**
  * Built-in Engage / Board series used on first install and migration.
@@ -22,7 +23,7 @@ const EMERSON_LISTED_SERIES_MIGRATED  = 'emerson_listed_series_v1';
  * @return list<array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}>
  */
 function emerson_listed_series_defaults(): array {
-	$engage = home_url( '/engage/' );
+	$community = home_url( '/community-opportunities/' );
 	return array(
 		array(
 			'id'          => 'womyns-web',
@@ -34,8 +35,8 @@ function emerson_listed_series_defaults(): array {
 			'recurring'   => 'n11',
 			'location'    => EMERSON_GROUP_LOCATION_ROTATES,
 			'description' => 'For all women of the chapel. First Monday of the month, 7:00 pm. Location rotates; the current host is in This Week at Emerson.',
-			'link'        => $engage,
-			'link_title'  => 'Engage',
+			'link'        => $community,
+			'link_title'  => 'Community Opportunities',
 		),
 		array(
 			'id'          => 'mens-night',
@@ -47,8 +48,8 @@ function emerson_listed_series_defaults(): array {
 			'recurring'   => 'n15',
 			'location'    => EMERSON_GROUP_LOCATION_ROTATES,
 			'description' => 'For men and male-identifying members. First Friday of the month, 6:00–8:00 pm. Location rotates; the current host is in This Week at Emerson.',
-			'link'        => $engage,
-			'link_title'  => 'Engage',
+			'link'        => $community,
+			'link_title'  => 'Community Opportunities',
 		),
 		array(
 			'id'          => 'board',
@@ -60,8 +61,8 @@ function emerson_listed_series_defaults(): array {
 			'recurring'   => 'n31',
 			'location'    => EMERSON_GROUP_LOCATION_ROTATES,
 			'description' => 'Board of Trustees meeting. Third Monday of the month, 6:30 pm. Open to all members. Location rotates; the current place is in This Week at Emerson unless a place is set for that Monday.',
-			'link'        => $engage,
-			'link_title'  => 'Engage',
+			'link'        => $community,
+			'link_title'  => 'Community Opportunities',
 		),
 	);
 }
@@ -115,12 +116,12 @@ function emerson_listed_series_normalize( array $raw ): ?array {
 		$location = EMERSON_GROUP_LOCATION_ROTATES;
 	}
 	$link = trim( (string) ( $raw['link'] ?? '' ) );
-	if ( $link === '' ) {
-		$link = home_url( '/engage/' );
+	if ( $link === '' || preg_match( '#/engage/?$#i', $link ) ) {
+		$link = home_url( '/community-opportunities/' );
 	}
 	$link_title = trim( (string) ( $raw['link_title'] ?? '' ) );
-	if ( $link_title === '' ) {
-		$link_title = 'Engage';
+	if ( $link_title === '' || $link_title === 'Engage' ) {
+		$link_title = 'Community Opportunities';
 	}
 	$recurring = trim( (string) ( $raw['recurring'] ?? '' ) );
 	if ( $recurring === '' || ! preg_match( '/^n[1-4][1-7]$/', $recurring ) ) {
@@ -226,9 +227,54 @@ function emerson_listed_series_maybe_migrate(): void {
  * @param bool $migrate Run one-time migration when true.
  * @return list<array{id:string,title:string,time:string,end:string,nth:int,wday:int,recurring:string,location:string,description:string,link:string,link_title:string}>
  */
+/**
+ * One-time: /engage/ → /community-opportunities/ on listed series + Church Admin calendar links.
+ */
+function emerson_community_opportunities_url_maybe_migrate(): void {
+	if ( get_option( EMERSON_COMMUNITY_URL_MIGRATED ) ) {
+		return;
+	}
+	$new_url   = home_url( '/community-opportunities/' );
+	$new_title = 'Community Opportunities';
+	$series    = get_option( EMERSON_LISTED_SERIES_OPTION, array() );
+	if ( is_array( $series ) && $series !== array() ) {
+		$changed = false;
+		foreach ( $series as $i => $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$link = (string) ( $row['link'] ?? '' );
+			if ( $link === '' || preg_match( '#/engage/?$#i', $link ) || (string) ( $row['link_title'] ?? '' ) === 'Engage' ) {
+				$series[ $i ]['link']       = $new_url;
+				$series[ $i ]['link_title'] = $new_title;
+				$changed                    = true;
+			}
+		}
+		if ( $changed ) {
+			update_option( EMERSON_LISTED_SERIES_OPTION, $series, false );
+		}
+	}
+	global $wpdb;
+	$table = $wpdb->prefix . 'church_admin_calendar_date';
+	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from prefix.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET link = %s, link_title = %s WHERE link LIKE %s OR link_title = %s",
+				$new_url,
+				$new_title,
+				'%/engage/',
+				'Engage'
+			)
+		);
+	}
+	update_option( EMERSON_COMMUNITY_URL_MIGRATED, 1, false );
+}
+
 function emerson_listed_series_all( bool $migrate = true ): array {
 	if ( $migrate ) {
 		emerson_listed_series_maybe_migrate();
+		emerson_community_opportunities_url_maybe_migrate();
 	}
 	$stored = get_option( EMERSON_LISTED_SERIES_OPTION, array() );
 	if ( ! is_array( $stored ) || $stored === array() ) {

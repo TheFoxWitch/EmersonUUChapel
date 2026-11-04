@@ -787,11 +787,14 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 
 /*
  * Shared CTA button variants (Modals → Button style).
- * Legacy block classes (pledge-button, etc.) keep working by sharing these rules.
+ * Gutenberg classes: recommitment-form, pledge-card, paypal-fees-button,
+ * and custom emerson-modal-{id} (front also gets emerson-cta--{style}).
+ * (legacy pledge-button = recommitment-form; legacy pledge-form = pledge-card).
  */
-/* Green fill — Commitment Form / Make a Contribution */
+/* Green fill — Commitment / Make a Contribution (pledge-card style comes from Modals → emerson-cta--*) */
 .emerson-cta--green .wp-block-button__link,
-.pledge-button .wp-block-button__link,
+.recommitment-form:not([class*="emerson-cta--"]) .wp-block-button__link,
+.pledge-button:not([class*="emerson-cta--"]) .wp-block-button__link,
 .contribute-button .wp-block-button__link {
 	border-radius: 25px;
 	background: var(--wp--preset--color--vivid-green-cyan);
@@ -800,8 +803,10 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 }
 .emerson-cta--green .wp-block-button__link:hover,
 .emerson-cta--green .wp-block-button__link:focus-visible,
-.pledge-button .wp-block-button__link:hover,
-.pledge-button .wp-block-button__link:focus-visible,
+.recommitment-form:not([class*="emerson-cta--"]) .wp-block-button__link:hover,
+.recommitment-form:not([class*="emerson-cta--"]) .wp-block-button__link:focus-visible,
+.pledge-button:not([class*="emerson-cta--"]) .wp-block-button__link:hover,
+.pledge-button:not([class*="emerson-cta--"]) .wp-block-button__link:focus-visible,
 .contribute-button .wp-block-button__link:hover,
 .contribute-button .wp-block-button__link:focus-visible {
 	background: var(--wp--preset--color--vivid-green-cyan);
@@ -852,16 +857,39 @@ html.emerson-foil .wp-site-blocks .emerson-sunday-location__zoom-btn {
 }
 button.wp-block-button__link[data-emerson-paypal-fees],
 button.wp-block-button__link[data-emerson-pledge],
+button.wp-block-button__link[data-emerson-pledge-form],
 button.wp-block-button__link[data-emerson-modal],
 button.wp-block-button__link[data-emerson-recommit] {
-	border: 0;
 	font: inherit;
 	cursor: pointer;
 }
+/* Fill variants: drop the browser/button default border. Outline keeps its 2px rule below. */
+.emerson-cta--green .wp-block-button__link[data-emerson-paypal-fees],
+.emerson-cta--green .wp-block-button__link[data-emerson-pledge],
+.emerson-cta--green .wp-block-button__link[data-emerson-pledge-form],
+.emerson-cta--green .wp-block-button__link[data-emerson-modal],
+.emerson-cta--green .wp-block-button__link[data-emerson-recommit],
+.emerson-cta--blue .wp-block-button__link[data-emerson-paypal-fees],
+.emerson-cta--blue .wp-block-button__link[data-emerson-pledge],
+.emerson-cta--blue .wp-block-button__link[data-emerson-pledge-form],
+.emerson-cta--blue .wp-block-button__link[data-emerson-modal],
+.emerson-cta--blue .wp-block-button__link[data-emerson-recommit],
+.recommitment-form .wp-block-button__link[data-emerson-pledge],
+.pledge-card .wp-block-button__link[data-emerson-pledge-form],
+.pledge-form .wp-block-button__link[data-emerson-pledge-form],
+.paypal-fees-button .wp-block-button__link[data-emerson-paypal-fees] {
+	border: 0;
+}
+.emerson-cta--outline .wp-block-button__link,
 .emerson-cta--outline .wp-block-button__link[data-emerson-modal],
 .emerson-cta--outline .wp-block-button__link[data-emerson-recommit],
+.emerson-cta--outline .wp-block-button__link[data-emerson-pledge],
+.emerson-cta--outline .wp-block-button__link[data-emerson-pledge-form],
+.emerson-cta--outline .wp-block-button__link[data-emerson-paypal-fees],
 .recommit-button .wp-block-button__link {
 	border: 2px solid var(--emerson-blue);
+	background: #fff;
+	color: var(--emerson-blue);
 }
 .page-id-49 form[action*="paypal.com/donate"] {
 	display: flex;

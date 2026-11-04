@@ -12,6 +12,9 @@ declare( strict_types=1 );
 
 const EMERSON_MEMBERS_PAGE = '/members/';
 
+/** Board working spreadsheet (Members hub link for admins / Church Admin users). */
+const EMERSON_BOARD_ONE_STOP_SHOP_URL = 'https://docs.google.com/spreadsheets/d/1JBk7_xWMlKgbRVKwWms_NcOJEeLLip8-IyvtFoyW3yM';
+
 /**
  * A readable name for the signed-in account or a directory person: WordPress first + last, then display name, then the directory row.
  */
@@ -89,6 +92,10 @@ add_shortcode(
 		}
 		if ( current_user_can( 'manage_options' ) || emerson_has_church_admin_permission( $user->ID ) ) {
 			$links[] = sprintf( '<a href="%s">Church Admin</a>', esc_url( admin_url( 'admin.php?page=premium_church_admin' ) ) );
+			$links[] = sprintf(
+				'<a href="%s" target="_blank" rel="noopener noreferrer">Emerson Board One Stop Shop</a>',
+				esc_url( EMERSON_BOARD_ONE_STOP_SHOP_URL )
+			);
 		}
 		$links[] = sprintf( '<a href="%s">Log out</a>', esc_url( wp_logout_url( home_url( EMERSON_MEMBERS_PAGE ) ) ) );
 

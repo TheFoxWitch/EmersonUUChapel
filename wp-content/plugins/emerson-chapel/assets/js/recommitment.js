@@ -913,6 +913,7 @@
 		bindIframeDialog(dialog, '[data-emerson-recommit]');
 	}
 	bindIframeDialog(document.getElementById('emerson-pledge'), '[data-emerson-pledge]');
+	bindIframeDialog(document.getElementById('emerson-pledge-form'), '[data-emerson-pledge-form]');
 	/* One listener per modal id (getElementById) so a duplicated <dialog> cannot open twice. */
 	var boundModalIds = {};
 	document.querySelectorAll('[data-emerson-modal]').forEach(function (opener) {

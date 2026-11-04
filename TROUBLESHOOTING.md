@@ -123,6 +123,35 @@ Embeds need the watch-page URL, `https://www.youtube.com/watch?v=VIDEO_ID`. They
 ### A page's slug came out as `...-2`
 Another post (often an old draft) already had that slug. Rename the other post's slug, then set the intended one.
 
+### Community Opportunities used to be `/engage/`
+The page slug is **`community-opportunities`**. Old bookmarks to `/engage/` get a 301 from `inc/navigation.php`. If that redirect stops working, check the file is still loaded and that page 68’s slug is still `community-opportunities`.
+
+---
+
+## Modals and Gutenberg Buttons (homepage CTAs)
+
+Custom dialogs and the built-in pledge / recommitment / PayPal openers are driven by **Additional CSS class(es)** on a normal Button block. Do not paste `[emerson_modal …]` inside a Button.
+
+### Gutenberg says the Button has unexpected / invalid content
+- **Usual cause:** the CSS class is on the wrapper `<div class="wp-block-button …">` but missing from `<!-- wp:button {"className":…} -->` (or the two disagree). That often follows **Attempt recovery**, or a rename that only updated one side.
+- **Looks like a hyphen problem.** Double hyphens (`emerson-modal--…`) are escaped in the block comment and commonly invalidate the block. Use a **single** hyphen: `emerson-modal-{slug}`.
+- **Fix:** select the Button → sidebar **Advanced → Additional CSS class(es)** and set the class cleanly, then update/save. Prefer that over **Attempt recovery**. Saving the page also runs a repair that syncs `className` with the div (`inc/modals.php`).
+- If the block won’t select (only the link text highlights), open **List View**, select the Button there, or fix the mismatch from the database / re-add the Button.
+
+### I changed a custom dialog’s style/label and the Button became PayPal Fees
+- **Cause:** the Button still had class `paypal-fees-button` (often from duplicating the PayPal CTA and only changing the wording). On the front, that class always becomes the fees opener (PayPal text, blue look, fees dialog), so Modals style for the custom dialog never applies.
+- **Fix:** set Additional CSS class(es) to `emerson-modal-{slug}` (for SNSD: `emerson-modal-snsd-survery`). Saving the dialog under **Modals** also heals Buttons that still show that dialog’s label but keep a PayPal/pledge class.
+- Built-in CTA “learning” will not adopt an `emerson-modal-*` class as the PayPal class anymore.
+
+### A Google Form iframe in a dialog is much slower than another
+- Same lazy `data-src` pattern for every dialog — the difference is usually the **form URL**.
+- A **`forms.gle/…` short link** forces an extra redirect inside the iframe and skips `embedded=true`. Prefer Google’s full **`docs.google.com/forms/…/viewform`** address (Send → `<>`), or paste the short link and let Modals resolve it on embed.
+- Anything still slow after that is Google loading that form’s own content.
+
+### Top-level Engage in the nav goes somewhere / submenu still says Engage
+- Top-level **Engage** is a dropdown label only (like About / Worship), not a page link.
+- The first submenu item is **Community Opportunities** → `/community-opportunities/`. Theme file: `parts/header.html`; live menu also lives in Navigation post **main** (id 710) — keep both in sync if you edit in the Site Editor.
+
 ---
 
 ## Email

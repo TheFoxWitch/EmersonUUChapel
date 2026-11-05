@@ -3565,18 +3565,22 @@ blockquote {
 .emerson-private-sheet-tabs {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.4rem;
-	margin: 0 0 1rem;
+	gap: 0.55rem;
+	margin: 0 0 1.25rem;
 }
 
 .emerson-private-sheet-tabs a {
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
 	min-height: 44px;
-	padding: 0.4rem 0.75rem;
-	border: 1px solid #d5d8e8;
-	border-radius: 4px;
+	padding: 0.45rem 0.85rem;
+	border: 1px solid #c5cae0;
+	border-radius: 6px;
+	background: #f7f8fc;
 	text-decoration: none;
+	line-height: 1.25;
+	box-sizing: border-box;
 }
 
 .emerson-private-sheet-tabs a.is-current {
@@ -3612,6 +3616,17 @@ blockquote {
 .emerson-private-sheet th {
 	background: #f4f4f4;
 	font-weight: 600;
+}
+
+.emerson-private-sheet a.emerson-private-sheet-link {
+	color: var(--emerson-blue, #3f4fa0);
+	text-decoration: underline;
+	text-underline-offset: 0.12em;
+}
+
+.emerson-private-sheet a.emerson-private-sheet-link:hover,
+.emerson-private-sheet a.emerson-private-sheet-link:focus-visible {
+	color: #2e3a78;
 }
 
 /* Newcomer form: Other “what are you looking for” box */

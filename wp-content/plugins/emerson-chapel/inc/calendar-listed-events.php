@@ -1148,3 +1148,25 @@ function emerson_calendar_buffer_sidebar_descriptions(): void {
 		}
 	);
 }
+
+/**
+ * Church Admin Premium calendar form: dropdown is name=location, typed line is
+ * name=location1. Premium then does `$form['location']==$form['location1']`
+ * (comparison, not assignment), so typed locations never save. Copy location1
+ * into location before CA reads $_POST.
+ */
+function emerson_calendar_fix_premium_location_post(): void {
+	if ( empty( $_POST['start_date'] ) || empty( $_POST['title'] ) ) {
+		return;
+	}
+	if ( empty( $_POST['edit_event'] ) && empty( $_POST['save_date'] ) && ! isset( $_POST['location1'] ) ) {
+		return;
+	}
+	$from_dropdown = isset( $_POST['location'] ) ? trim( (string) wp_unslash( $_POST['location'] ) ) : '';
+	$typed         = isset( $_POST['location1'] ) ? trim( (string) wp_unslash( $_POST['location1'] ) ) : '';
+	if ( $from_dropdown === '' && $typed !== '' ) {
+		$_POST['location'] = $typed;
+	}
+}
+
+add_action( 'admin_init', 'emerson_calendar_fix_premium_location_post', 1 );

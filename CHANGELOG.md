@@ -10,7 +10,37 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-05
+
+### Directory: intern login re-linked after handoff cleanup
+- Recreated Church Admin person + household for the intern WordPress user after the directory row was removed for handoff cleanup. Login was fine; serving dates need the `user_id` link. Front directory also requires `gdpr_reason` (CA SQL: `gdpr_reason IS NOT NULL`); set that so the entry lists.
+- **Local DB only.**
+
+### Church Admin calendar: typed Event location now saves
+- Premium’s save used `==` instead of `=` when copying the free-text location (`location1`) into `location`, so one-off places never stuck. Emerson copies `location1` into `location` before CA reads the POST. Emerson Bonfire (7 Nov) location set to the rotating / This Week at Emerson line.
+- **File:** `inc/calendar-listed-events.php`. **Local DB:** calendar_date 6974.
+
+### Serving / Service Requests: clean slate before handoff
+- Cleared all local test ticks from `wp_emerson_serving_answers` and `wp_emerson_serving_roles` (past and future). Re-ran `emerson_serving_sync()` so Church Admin `not_available` matches “nobody has offered yet.” Calendar events and the Sunday sheet were not touched.
+- **Local DB only.**
+
+### Calendar: next-month padding no longer shows this month’s early events
+- Church Admin blanks leading/trailing `.ca-inactive` cells when changing months but leaves the old `data-date`. Emerson was still painting those dates (e.g. Nov 1–2 into December’s gray cells). Inactive cells now drop the stale date before decorate.
+- **File:** `assets/js/custom.js`.
+
+### Docker: WordPress 7.1.4 + PHP 8.2.35 (Oct 2026 security)
+- Base image moved from `wordpress:6.8-php8.2-apache` (PHP 8.2.29) to `wordpress:7.1.4-php8.2-apache` so Site Health matches the Oct 2026 PHP RCE fixes. Calendar extension still built in. Compose image tag is `emerson-wordpress:7.1.4-php8.2-apache-calendar`.
+- **File:** `Dockerfile`, `docker-compose.yml`. Rebuild: `docker compose build --pull wordpress && docker compose up -d wordpress`.
+
 ## 2026-11-04
+
+### Private spreadsheet tabs readable on phone
+- Worksheet tab chips (borders, gap, padding) are inlined on the viewer page so they still show when a phone on LAN cannot load `custom.css` from localhost.
+- **File:** `inc/private-files.php`, `assets/css/custom.css`.
+
+### Private spreadsheet viewer shows Excel hyperlinks
+- Worksheet cells with Excel hyperlinks render as clickable links (new tab). Only `https://` is allowed; bare `http://`, `//…`, and `www.…` are upgraded to https. Other schemes stay plain text.
+- **File:** `inc/private-files.php`, `assets/css/custom.css`.
 
 ### Community Opportunities URL is /community-opportunities/
 - Page 68 slug is **community-opportunities** (was `engage`). Nav, recurring-event links, and Church Admin calendar sidebar links use the new path; `/engage/` redirects 301. Calendar link label is **Community Opportunities**.

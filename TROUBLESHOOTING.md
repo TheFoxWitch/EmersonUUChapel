@@ -64,6 +64,9 @@ On the live site, the limit comes from the host's PHP settings. Check it under *
 ### Calendar "This calendar PDF" gives a server error (`cal_days_in_month()` undefined)
 Church Admin needs PHP's `calendar` extension, which the stock `wordpress` Docker image doesn't include. The project `Dockerfile` adds it (`docker-php-ext-install calendar`). If the error comes back, check `docker compose exec wordpress php -m | grep calendar`. If it's missing, run `docker compose build wordpress && docker compose up -d wordpress`.
 
+### Typed Event location on a one-off calendar event does not save
+Premium’s event form has a location **dropdown** (`location`) and a free-text box (`location1`). The typed box is the right place for “Rotating location — check This Week at Emerson” when it is not already in the dropdown. Upstream Premium then copies `location1` with `==` instead of `=`, so the text never lands in the database. Emerson Chapel fixes that on `admin_init` (`emerson_calendar_fix_premium_location_post` in `inc/calendar-listed-events.php`). Do not patch Church Admin for this.
+
 ### "My password is right but I still can't log in" (even after a reset)
 Usually it's the **Limit Login Attempts** lockout, not the database. Four failed tries lock that connection out for 20 minutes, and during that time even the correct password is refused. A password reset doesn't lift it.
 - **Check:** `docker compose run --rm -T wpcli eval 'print_r(get_option("limit_login_lockouts")); print_r(get_option("limit_login_logged"));'`. The log shows the *username that was typed*.

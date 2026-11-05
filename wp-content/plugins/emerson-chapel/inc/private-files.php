@@ -272,7 +272,181 @@ function emerson_private_xlsx_col( string $ref ): int {
 }
 
 /**
- * @return list<list<string>>
+ * Turn a spreadsheet URL into a safe https href, or empty if it must stay plain text.
+ * Plain http is upgraded to https (same host/path). Other schemes are refused.
+ */
+function emerson_private_safe_href( string $url ): string {
+	$url = trim( $url );
+	if ( $url === '' ) {
+		return '';
+	}
+	if ( preg_match( '#^(javascript|data|vbscript|file|about):#i', $url ) ) {
+		return '';
+	}
+	if ( preg_match( '#^//#', $url ) ) {
+		$url = 'https:' . $url;
+	} elseif ( preg_match( '#^www\.#i', $url ) ) {
+		$url = 'https://' . $url;
+	} elseif ( preg_match( '#^http://#i', $url ) ) {
+		$url = 'https://' . substr( $url, strlen( 'http://' ) );
+	}
+	if ( ! preg_match( '#^https://#i', $url ) ) {
+		return '';
+	}
+	$clean = esc_url_raw( $url, array( 'https' ) );
+	return is_string( $clean ) && $clean !== '' ? $clean : '';
+}
+
+/**
+ * If cell text is clearly a web URL, return an https href.
+ */
+function emerson_private_href_from_text( string $text ): string {
+	$text = trim( $text );
+	if ( $text === '' || strlen( $text ) > 2000 ) {
+		return '';
+	}
+	if ( ! preg_match( '#^(?:https?://|www\.)\S+$#i', $text ) ) {
+		return '';
+	}
+	return emerson_private_safe_href( $text );
+}
+
+/**
+ * @return array{text:string, href:string}
+ */
+function emerson_private_cell( string $text, string $href = '' ): array {
+	$text = (string) $text;
+	$href = $href !== '' ? emerson_private_safe_href( $href ) : '';
+	if ( $href === '' ) {
+		$href = emerson_private_href_from_text( $text );
+	}
+	return array(
+		'text' => $text,
+		'href' => $href,
+	);
+}
+
+/**
+ * Expand A1 or A1:C3 into cell refs (capped).
+ *
+ * @return list<string>
+ */
+function emerson_private_xlsx_expand_ref( string $ref ): array {
+	$ref = strtoupper( trim( $ref ) );
+	if ( $ref === '' ) {
+		return array();
+	}
+	if ( ! str_contains( $ref, ':' ) ) {
+		return preg_match( '/^[A-Z]+\d+$/', $ref ) ? array( $ref ) : array();
+	}
+	$parts = explode( ':', $ref, 2 );
+	if ( count( $parts ) !== 2
+		|| ! preg_match( '/^([A-Z]+)(\d+)$/', $parts[0], $a )
+		|| ! preg_match( '/^([A-Z]+)(\d+)$/', $parts[1], $b )
+	) {
+		return array();
+	}
+	$c1 = emerson_private_xlsx_col( $a[1] . '1' );
+	$c2 = emerson_private_xlsx_col( $b[1] . '1' );
+	$r1 = (int) $a[2];
+	$r2 = (int) $b[2];
+	if ( $c1 > $c2 ) {
+		[ $c1, $c2 ] = array( $c2, $c1 );
+	}
+	if ( $r1 > $r2 ) {
+		[ $r1, $r2 ] = array( $r2, $r1 );
+	}
+	if ( ( $c2 - $c1 + 1 ) * ( $r2 - $r1 + 1 ) > 200 ) {
+		return array( $a[1] . $a[2] );
+	}
+	$out = array();
+	for ( $r = $r1; $r <= $r2; $r++ ) {
+		for ( $c = $c1; $c <= $c2; $c++ ) {
+			$col = '';
+			$n   = $c + 1;
+			while ( $n > 0 ) {
+				$n--;
+				$col = chr( 65 + ( $n % 26 ) ) . $col;
+				$n   = intdiv( $n, 26 );
+			}
+			$out[] = $col . $r;
+		}
+	}
+	return $out;
+}
+
+/**
+ * External hyperlinks on a worksheet: cell ref (A1) => target URL.
+ *
+ * @return array<string, string>
+ */
+function emerson_private_xlsx_sheet_hyperlinks( ZipArchive $zip, string $sheet_path ): array {
+	$base = basename( $sheet_path );
+	$rels_path = 'xl/worksheets/_rels/' . $base . '.rels';
+	$targets   = array();
+	$rels_raw  = $zip->getFromName( $rels_path );
+	if ( is_string( $rels_raw ) && $rels_raw !== '' ) {
+		if ( preg_match_all(
+			'/<Relationship\b([^>]*)\/?>/',
+			$rels_raw,
+			$tags,
+			PREG_SET_ORDER
+		) ) {
+			foreach ( $tags as $tag ) {
+				$attrs = $tag[1];
+				if ( ! preg_match( '#Type="[^"]*hyperlink"#i', $attrs ) ) {
+					continue;
+				}
+				$id     = '';
+				$target = '';
+				if ( preg_match( '/\bId="([^"]+)"/', $attrs, $m ) ) {
+					$id = $m[1];
+				}
+				if ( preg_match( '/\bTarget="([^"]+)"/', $attrs, $m ) ) {
+					$target = html_entity_decode( $m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				}
+				if ( $id !== '' && $target !== '' ) {
+					$targets[ $id ] = $target;
+				}
+			}
+		}
+	}
+
+	$sheet_raw = $zip->getFromName( $sheet_path );
+	if ( ! is_string( $sheet_raw ) || $sheet_raw === '' || ! str_contains( $sheet_raw, 'hyperlink' ) ) {
+		return array();
+	}
+	$map = array();
+	if ( preg_match_all( '/<hyperlink\b([^>]*)\/?>/', $sheet_raw, $links, PREG_SET_ORDER ) ) {
+		foreach ( $links as $link ) {
+			$attrs = $link[1];
+			$ref   = '';
+			$rid   = '';
+			$loc   = '';
+			if ( preg_match( '/\bref="([^"]+)"/', $attrs, $m ) ) {
+				$ref = $m[1];
+			}
+			if ( preg_match( '/\br:id="([^"]+)"/', $attrs, $m ) ) {
+				$rid = $m[1];
+			}
+			if ( preg_match( '/\bTarget="([^"]+)"/', $attrs, $m ) ) {
+				$loc = html_entity_decode( $m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+			}
+			$url = $rid !== '' ? ( $targets[ $rid ] ?? '' ) : $loc;
+			$url = emerson_private_safe_href( $url );
+			if ( $ref === '' || $url === '' ) {
+				continue;
+			}
+			foreach ( emerson_private_xlsx_expand_ref( $ref ) as $cell_ref ) {
+				$map[ $cell_ref ] = $url;
+			}
+		}
+	}
+	return $map;
+}
+
+/**
+ * @return list<list<array{text:string, href:string}>>
  */
 function emerson_private_read_csv( string $path ): array {
 	$handle = fopen( $path, 'rb' );
@@ -282,7 +456,10 @@ function emerson_private_read_csv( string $path ): array {
 	$rows  = array();
 	$limit = 500;
 	while ( count( $rows ) < $limit && ( $row = fgetcsv( $handle ) ) !== false ) {
-		$rows[] = array_map( static fn( $cell ) => (string) $cell, $row );
+		$rows[] = array_map(
+			static fn( $cell ) => emerson_private_cell( (string) $cell ),
+			$row
+		);
 	}
 	fclose( $handle );
 	return $rows;
@@ -389,9 +566,17 @@ function emerson_private_format_number( string $raw, string $fmt ): string {
 }
 
 /**
- * Every worksheet except Numbers' "Export Summary" cover sheet.
- *
- * @return list<array{name:string, rows:list<list<string>>, note:string}>
+ * Cell display text (supports legacy string cells and {text,href} cells).
+ */
+function emerson_private_cell_text( mixed $cell ): string {
+	if ( is_array( $cell ) ) {
+		return (string) ( $cell['text'] ?? '' );
+	}
+	return (string) $cell;
+}
+
+/**
+ * @return list<array{name:string, rows:list<list<array{text:string, href:string}>>, note:string}>
  */
 function emerson_private_read_xlsx( string $path ): array {
 	if ( ! class_exists( 'ZipArchive' ) ) {
@@ -464,8 +649,9 @@ function emerson_private_read_xlsx( string $path ): array {
 
 	$out = array();
 	foreach ( $sheets as $sheet ) {
-		$raw = $zip->getFromName( $sheet['path'] );
-		$xml = is_string( $raw ) ? emerson_private_xml( $raw ) : null;
+		$raw  = $zip->getFromName( $sheet['path'] );
+		$xml  = is_string( $raw ) ? emerson_private_xml( $raw ) : null;
+		$hrefs = emerson_private_xlsx_sheet_hyperlinks( $zip, $sheet['path'] );
 		$rows = array();
 		if ( $xml && isset( $xml->sheetData ) ) {
 			$max_col = 0;
@@ -499,7 +685,7 @@ function emerson_private_read_xlsx( string $path ): array {
 						$fmt   = $formats[ $style ] ?? 'General';
 						$value = emerson_private_format_number( (string) $cell->v, $fmt );
 					}
-					$line[ $col ] = $value;
+					$line[ $col ] = emerson_private_cell( $value, $hrefs[ strtoupper( $ref ) ] ?? '' );
 					$max_col      = max( $max_col, $col );
 				}
 				$rows[ $r - 1 ] = $line;
@@ -509,18 +695,28 @@ function emerson_private_read_xlsx( string $path ): array {
 			foreach ( $rows as $line ) {
 				$padded = array();
 				for ( $i = 0; $i < $width; $i++ ) {
-					$padded[] = (string) ( $line[ $i ] ?? '' );
+					$padded[] = isset( $line[ $i ] ) && is_array( $line[ $i ] )
+						? $line[ $i ]
+						: emerson_private_cell( '' );
 				}
 				$padded_rows[] = $padded;
 			}
 			$rows = $padded_rows;
-			while ( $rows && count( array_filter( $rows[ count( $rows ) - 1 ], static fn( $c ) => $c !== '' ) ) === 0 ) {
+			while (
+				$rows
+				&& count(
+					array_filter(
+						$rows[ count( $rows ) - 1 ],
+						static fn( $c ) => emerson_private_cell_text( $c ) !== ''
+					)
+				) === 0
+			) {
 				array_pop( $rows );
 			}
 			$used = 0;
 			foreach ( $rows as $line ) {
 				for ( $i = count( $line ) - 1; $i >= 0; $i-- ) {
-					if ( $line[ $i ] !== '' ) {
+					if ( emerson_private_cell_text( $line[ $i ] ) !== '' ) {
 						$used = max( $used, $i + 1 );
 						break;
 					}
@@ -545,7 +741,25 @@ function emerson_private_read_xlsx( string $path ): array {
 }
 
 /**
- * @param list<array{name:string, rows:list<list<string>>, note:string}> $sheets
+ * HTML for one spreadsheet cell (plain text or safe https link).
+ */
+function emerson_private_render_cell_html( mixed $cell ): string {
+	if ( ! is_array( $cell ) ) {
+		$cell = emerson_private_cell( (string) $cell );
+	}
+	$text = (string) ( $cell['text'] ?? '' );
+	$href = emerson_private_safe_href( (string) ( $cell['href'] ?? '' ) );
+	if ( $href === '' ) {
+		return esc_html( $text );
+	}
+	$label = $text !== '' ? $text : $href;
+	return '<a class="emerson-private-sheet-link" href="' . esc_url( $href ) . '" target="_blank" rel="noopener noreferrer">'
+		. esc_html( $label )
+		. '</a>';
+}
+
+/**
+ * @param list<array{name:string, rows:list<list<array{text:string, href:string}|string>>, note:string}> $sheets
  */
 function emerson_private_render_sheets( string $name, array $sheets, int $current ): void {
 	$label    = preg_replace( '/\.(xlsx|xls|csv)$/i', '', $name );
@@ -559,8 +773,24 @@ function emerson_private_render_sheets( string $name, array $sheets, int $curren
 	echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">';
 	echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
 	echo '<title>' . esc_html( $label !== '' ? $label : $name ) . '</title>';
-	echo '<link rel="stylesheet" href="' . esc_url( emerson_chapel_url( 'assets/css/custom.css' ) ) . '?v=' . (string) filemtime( emerson_chapel_path( 'assets/css/custom.css' ) ) . '">';
-	echo '<style>html,body{background:#fff;color:#1e1e1e;}</style>';
+	// Inline critical styles: phones on LAN often cannot load custom.css when WP thinks the host is localhost.
+	echo '<style>
+html,body{margin:0;background:#fff;color:#1e1e1e}
+.emerson-private-sheet-page{max-width:72rem;margin:0 auto;padding:1.25rem 1rem 3rem;font-family:"Source Serif Pro","Iowan Old Style",Palatino,Georgia,serif}
+.emerson-private-sheet-page a{color:#1e1e1e}
+.emerson-private-sheet-nav{margin:0 0 1.25rem}
+.emerson-private-sheet-page h1{font-size:1.6rem;line-height:1.2;margin:0 0 .35rem;word-break:break-word}
+.emerson-private-sheet-kind{color:#666;margin:0 0 1rem}
+.emerson-private-sheet-tabs{display:flex;flex-wrap:wrap;gap:.55rem;margin:0 0 1.25rem;padding:0;list-style:none}
+.emerson-private-sheet-tabs a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.45rem .85rem;border:1px solid #c5cae0;border-radius:6px;background:#f7f8fc;color:#1e1e1e;text-decoration:none;font-size:.95rem;line-height:1.25;box-sizing:border-box}
+.emerson-private-sheet-tabs a.is-current{background:#3f4fa0;border-color:#3f4fa0;color:#fff}
+.emerson-private-sheet-note{margin:0 0 1rem;max-width:40rem}
+.emerson-private-sheet-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.emerson-private-sheet{border-collapse:collapse;width:max-content;min-width:100%}
+.emerson-private-sheet th,.emerson-private-sheet td{border:1px solid #ddd;padding:.4rem .7rem;text-align:left;vertical-align:top;white-space:pre-wrap}
+.emerson-private-sheet th{background:#f4f4f4;font-weight:600}
+.emerson-private-sheet a.emerson-private-sheet-link{color:#3f4fa0;text-decoration:underline;text-underline-offset:.12em}
+</style>';
 	echo '</head><body class="emerson-private-sheet-page">';
 	echo '<p class="emerson-private-sheet-nav"><a href="' . esc_url( $back ) . '">Back to Members</a>';
 	echo ' · <a href="' . esc_url( $download ) . '">Download Excel</a></p>';
@@ -584,7 +814,7 @@ function emerson_private_render_sheets( string $name, array $sheets, int $curren
 			$tag = $first ? 'th' : 'td';
 			echo '<tr>';
 			foreach ( $row as $cell ) {
-				echo '<' . $tag . '>' . esc_html( $cell ) . '</' . $tag . '>';
+				echo '<' . $tag . '>' . emerson_private_render_cell_html( $cell ) . '</' . $tag . '>';
 			}
 			echo '</tr>';
 			$first = false;

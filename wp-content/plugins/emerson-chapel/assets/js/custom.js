@@ -662,12 +662,36 @@
 			return mark;
 		}
 
+		/*
+		 * Church Admin’s populateCalendarMonth blanks padding cells and marks
+		 * them .ca-inactive, but leaves the previous month’s data-date on the
+		 * node. Without this scrub, December’s leading gray cells still say
+		 * 2026-11-01 / 2026-11-02 and Emerson paints those events into them.
+		 */
+		function scrubInactiveDayDates() {
+			document.querySelectorAll('.ca-day.ca-inactive').forEach(function (day) {
+				if (day.classList.contains('emerson-ca-week-spill')) {
+					return;
+				}
+				day.removeAttribute('data-date');
+				day.querySelectorAll(
+					'.emerson-ca-service, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-available, .emerson-ca-requests'
+				).forEach(function (node) {
+					node.remove();
+				});
+			});
+		}
+
 		function decorateDays() {
-			document.querySelectorAll('.ca-day[data-date]').forEach(function (day) {
+			scrubInactiveDayDates();
+			document.querySelectorAll('.ca-day[data-date]:not(.ca-inactive)').forEach(function (day) {
 				day.querySelectorAll('.emerson-ca-service, .emerson-ca-event, .emerson-ca-serving, .emerson-ca-available, .emerson-ca-requests').forEach(function (node) {
 					node.remove();
 				});
 				var ymd = day.getAttribute('data-date');
+				if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+					return;
+				}
 				var row = data.sundays[ymd] || {};
 				var extras = otherEvents(ymd);
 				var mark = servingMark(ymd);
@@ -1692,12 +1716,13 @@
 				autoDayWaitTries = 0;
 				/*
 				 * CA’s populateCalendarMonth replaces each day’s innerHTML but
-				 * leaves is-compact-day on the node. Strip the stale flag and
-				 * decorate once the DOM is updated (success runs before this).
+				 * leaves is-compact-day and the prior data-date on padding
+				 * (.ca-inactive) nodes. Strip those before Emerson decorates.
 				 */
 				document.querySelectorAll('.ca-day.is-compact-day').forEach(function (day) {
 					day.classList.remove('is-compact-day');
 				});
+				scrubInactiveDayDates();
 				decorate();
 				window.setTimeout(decorate, 100);
 			}

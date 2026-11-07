@@ -1,10 +1,13 @@
 <?php
 /**
- * Private spreadsheets: files live outside the web root and are listed only for
- * administrators and the Finance role. Everyone else gets no markup and no file.
+ * Private spreadsheets / documents: listed only for administrators and the Finance role.
+ * Everyone else gets no markup and no file.
  *
- * Drop files in private-files/ on this Mac (xlsx, csv, pdf, ods, or a Numbers package).
- * PDFs and Excel/CSV open in the browser. Other types download.
+ * Prefer WordPress-root localfiles/ (sibling of wp-content) with a deny .htaccess —
+ * same layout as live. Local Docker mounts project localfiles/ there.
+ * Fallback: project private-files/ → /var/emerson-private (outside the web root).
+ * Optionally define EMERSON_PRIVATE_DIR in wp-config.php.
+ * Allowed types: xlsx, csv, pdf, docx, ods, Numbers. PDFs, Excel/CSV, and Word open in the browser.
  */
 
 declare( strict_types=1 );
@@ -12,12 +15,16 @@ declare( strict_types=1 );
 const EMERSON_PRIVATE_CAP = 'emerson_view_spreadsheets';
 
 /**
- * Directory for finance spreadsheets. Prefer a path outside the web root.
- * Optional wp-config.php: define( 'EMERSON_PRIVATE_DIR', '/home/ACCOUNT/emerson-private' );
+ * Directory for finance spreadsheets / documents.
+ *
+ * Order: EMERSON_PRIVATE_DIR (wp-config) → ABSPATH localfiles/ (live + local plug-and-play) →
+ * Docker /var/emerson-private → wp-content/emerson-private.
  */
 function emerson_private_files_dir(): string {
 	if ( defined( 'EMERSON_PRIVATE_DIR' ) && is_string( EMERSON_PRIVATE_DIR ) && EMERSON_PRIVATE_DIR !== '' ) {
 		$dir = EMERSON_PRIVATE_DIR;
+	} elseif ( is_dir( ABSPATH . 'localfiles' ) ) {
+		$dir = ABSPATH . 'localfiles';
 	} elseif ( is_dir( '/var/emerson-private' ) ) {
 		$dir = '/var/emerson-private';
 	} else {
@@ -83,7 +90,17 @@ function emerson_private_file_is_allowed( string $name ): bool {
 	if ( '' === $name || str_contains( $name, '..' ) || str_contains( $name, '/' ) || str_contains( $name, '\\' ) ) {
 		return false;
 	}
-	return (bool) preg_match( '/^[A-Za-z0-9][A-Za-z0-9._ -]*\.(xlsx|xls|csv|pdf|ods|zip|numbers)$/i', $name );
+	return (bool) preg_match( '/^[A-Za-z0-9][A-Za-z0-9._ -]*\.(xlsx|xls|csv|pdf|docx|ods|zip|numbers)$/i', $name );
+}
+
+/**
+ * Filename from the private-file request. Do not use sanitize_file_name() — it turns
+ * spaces into hyphens and would miss files like “Alice Fox-Metz Letter.docx”.
+ */
+function emerson_private_request_filename(): string {
+	$raw = (string) wp_unslash( $_GET['file'] ?? '' );
+	$raw = rawurldecode( $raw );
+	return emerson_private_file_is_allowed( $raw ) ? $raw : '';
 }
 
 function emerson_private_file_kind( string $name ): string {
@@ -91,6 +108,7 @@ function emerson_private_file_kind( string $name ): string {
 		'pdf' => 'PDF',
 		'xlsx', 'xls' => 'Excel',
 		'csv' => 'CSV',
+		'docx' => 'Word',
 		'ods' => 'OpenDocument',
 		'numbers' => 'Numbers',
 		default => 'download',
@@ -98,7 +116,7 @@ function emerson_private_file_kind( string $name ): string {
 }
 
 function emerson_private_file_can_preview( string $name ): bool {
-	return in_array( emerson_private_file_extension( $name ), array( 'xlsx', 'csv', 'pdf' ), true );
+	return in_array( emerson_private_file_extension( $name ), array( 'xlsx', 'csv', 'pdf', 'docx' ), true );
 }
 
 function emerson_private_file_mime( string $name ): string {
@@ -106,6 +124,7 @@ function emerson_private_file_mime( string $name ): string {
 		'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 		'xls' => 'application/vnd.ms-excel',
 		'csv' => 'text/csv; charset=utf-8',
+		'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 		'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
 		'pdf' => 'application/pdf',
 		'zip' => 'application/zip',
@@ -158,15 +177,15 @@ add_shortcode(
 		}
 		$files = emerson_private_file_list();
 		$html  = '<div class="emerson-private-files" id="spreadsheets">';
-		$html .= '<h3>Spreadsheets</h3>';
+		$html .= '<h3>Spreadsheets &amp; documents</h3>';
 		$html .= '<p>These files are only listed for accounts with the Finance role (and administrators). Other members do not see this section.</p>';
 		if ( ! $files ) {
-			$html .= '<p>No spreadsheets have been added yet.</p></div>';
+			$html .= '<p>No files have been added yet.</p></div>';
 			return $html;
 		}
 		$html .= '<ul>';
 		foreach ( $files as $name ) {
-			$label = preg_replace( '/\.(xlsx|xls|csv|pdf|ods|zip|numbers)$/i', '', $name );
+			$label = preg_replace( '/\.(xlsx|xls|csv|pdf|docx|ods|zip|numbers)$/i', '', $name );
 			$html .= '<li><a href="' . esc_url( emerson_private_file_url( $name ) ) . '">' . esc_html( $label !== '' ? $label : $name ) . '</a>';
 			$html .= ' <span class="emerson-private-files__kind">' . esc_html( emerson_private_file_kind( $name ) ) . '</span>';
 			if ( emerson_private_file_can_preview( $name ) && 'pdf' !== emerson_private_file_extension( $name ) ) {
@@ -194,8 +213,8 @@ add_action(
 			wp_die( 'You do not have access to these files.', 'Forbidden', array( 'response' => 403 ) );
 		}
 		check_admin_referer( 'emerson_private_file' );
-		$name = sanitize_file_name( (string) wp_unslash( $_GET['file'] ?? '' ) );
-		$path = emerson_private_resolved_path( $name );
+		$name = emerson_private_request_filename();
+		$path = '' !== $name ? emerson_private_resolved_path( $name ) : null;
 		if ( null === $path ) {
 			wp_die( 'That file is not available.', 'Not found', array( 'response' => 404 ) );
 		}
@@ -210,6 +229,10 @@ add_action(
 		$ext = emerson_private_file_extension( $name );
 		if ( ! $download && in_array( $ext, array( 'xlsx', 'csv' ), true ) ) {
 			emerson_private_render_spreadsheet( $path, $name );
+			exit;
+		}
+		if ( ! $download && 'docx' === $ext ) {
+			emerson_private_render_docx( $path, $name );
 			exit;
 		}
 		emerson_private_stream_file( $path, $name, 'pdf' === $ext && ! $download );
@@ -756,6 +779,90 @@ function emerson_private_render_cell_html( mixed $cell ): string {
 	return '<a class="emerson-private-sheet-link" href="' . esc_url( $href ) . '" target="_blank" rel="noopener noreferrer">'
 		. esc_html( $label )
 		. '</a>';
+}
+
+/**
+ * Word (.docx) preview page: fetch the gated file in-browser and convert with Mammoth.js
+ * (same idea as the CodeForGeek tutorial; file stays login-gated, no public iframe viewer).
+ */
+function emerson_private_render_docx( string $path, string $name ): void {
+	unset( $path ); // Auth + path already checked; browser loads bytes via the download URL.
+	$label    = preg_replace( '/\.docx$/i', '', $name );
+	$download = emerson_private_file_url( $name, true );
+	// wp_nonce_url() HTML-escapes & → &amp;; fine in href, broken for fetch().
+	$fetch_abs = html_entity_decode( $download, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$back     = home_url( '/members/#spreadsheets' );
+	$mammoth  = wp_make_link_relative( emerson_chapel_url( 'assets/vendor/mammoth.browser.min.js' ) );
+	$fetch    = wp_make_link_relative( $fetch_abs );
+	$ver      = (string) filemtime( emerson_chapel_path( 'assets/vendor/mammoth.browser.min.js' ) );
+	nocache_headers();
+	header( 'Content-Type: text/html; charset=UTF-8' );
+	header( 'X-Content-Type-Options: nosniff' );
+	echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">';
+	echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
+	echo '<title>' . esc_html( $label !== '' ? $label : $name ) . '</title>';
+	echo '<style>
+html,body{margin:0;background:#fff;color:#1e1e1e}
+.emerson-private-doc-page{max-width:48rem;margin:0 auto;padding:1.25rem 1rem 3rem;font-family:"Source Serif Pro","Iowan Old Style",Palatino,Georgia,serif}
+.emerson-private-doc-page a{color:#1e1e1e}
+.emerson-private-doc-nav{margin:0 0 1.25rem}
+.emerson-private-doc-page h1{font-size:1.6rem;line-height:1.2;margin:0 0 .35rem;word-break:break-word}
+.emerson-private-doc-kind{color:#666;margin:0 0 1rem}
+.emerson-private-doc-status{margin:0 0 1rem;color:#666}
+.emerson-private-doc-status.is-error{color:#8a1f1f}
+.emerson-private-doc-body{line-height:1.5}
+.emerson-private-doc-body p{margin:0 0 .85rem}
+.emerson-private-doc-body h1,.emerson-private-doc-body h2,.emerson-private-doc-body h3{line-height:1.25;margin:1.25rem 0 .5rem}
+.emerson-private-doc-body ul,.emerson-private-doc-body ol{margin:0 0 .85rem;padding-left:1.4rem}
+.emerson-private-doc-body table{border-collapse:collapse;width:100%;margin:0 0 1rem}
+.emerson-private-doc-body th,.emerson-private-doc-body td{border:1px solid #ddd;padding:.35rem .55rem;text-align:left;vertical-align:top}
+.emerson-private-doc-body a{color:#3f4fa0}
+</style>';
+	echo '<script src="' . esc_url( $mammoth ) . '?v=' . rawurlencode( $ver ) . '"></script>';
+	echo '</head><body class="emerson-private-doc-page">';
+	echo '<p class="emerson-private-doc-nav"><a href="' . esc_url( $back ) . '">Back to Members</a>';
+	echo ' · <a href="' . esc_url( $download ) . '">Download Word</a></p>';
+	echo '<h1>' . esc_html( $label !== '' ? $label : $name ) . '</h1>';
+	echo '<p class="emerson-private-doc-kind">Word</p>';
+	echo '<p class="emerson-private-doc-status" id="emerson-doc-status" aria-live="polite">Opening document…</p>';
+	echo '<div class="emerson-private-doc-body" id="emerson-doc-body"></div>';
+	echo '<script>
+(function () {
+	var status = document.getElementById("emerson-doc-status");
+	var body = document.getElementById("emerson-doc-body");
+	var url = ' . wp_json_encode( $fetch, JSON_UNESCAPED_SLASHES ) . ';
+	function fail(message) {
+		if (status) {
+			status.textContent = message;
+			status.classList.add("is-error");
+		}
+	}
+	if (!window.mammoth || typeof window.mammoth.convertToHtml !== "function") {
+		fail("The Word viewer could not load. Use Download Word instead.");
+		return;
+	}
+	fetch(url, { credentials: "same-origin" })
+		.then(function (response) {
+			if (!response.ok) {
+				throw new Error("Could not load the document (" + response.status + ").");
+			}
+			return response.arrayBuffer();
+		})
+		.then(function (buffer) {
+			return window.mammoth.convertToHtml({ arrayBuffer: buffer });
+		})
+		.then(function (result) {
+			body.innerHTML = result.value || "<p>(This document has no readable text.)</p>";
+			if (status) {
+				status.remove();
+			}
+		})
+		.catch(function () {
+			fail("Could not open this Word document in the browser. Use Download Word instead.");
+		});
+})();
+</script>';
+	echo '</body></html>';
 }
 
 /**

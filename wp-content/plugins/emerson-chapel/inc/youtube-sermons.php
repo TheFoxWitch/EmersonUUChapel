@@ -294,6 +294,12 @@ function emerson_youtube_sermons_sync(): array {
 			),
 			false
 		);
+	} elseif ( $all === array() ) {
+		/*
+		 * Feeds failed (or both channels empty). Drop the stale homepage cache so
+		 * the front page can fall through to the newest Video Gallery sermon.
+		 */
+		delete_option( EMERSON_YOUTUBE_HOMEPAGE_OPTION );
 	}
 
 	$index    = emerson_youtube_gallery_index();

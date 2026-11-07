@@ -376,13 +376,15 @@ add_action(
 			'emerson-chapel',
 			'emersonScheduleSheet',
 			array(
-				'themes'        => $data['themes'],
-				'sundays'       => $sundays,
-				'events'        => $others,
+				'themes'          => $data['themes'],
+				'sundays'         => $sundays,
+				'events'          => $others,
 				'canViewRoster'   => $can,
 				'labels'          => $can ? emerson_schedule_roster_labels() : array(),
 				'serving'         => emerson_schedule_my_serving(),
 				'serviceRequests' => emerson_schedule_service_requests( $from, $until ),
+				'zoomUrl'         => function_exists( 'emerson_sunday_zoom_url' ) ? emerson_sunday_zoom_url() : '',
+				'zoomTitle'       => function_exists( 'emerson_sunday_zoom_link_title' ) ? emerson_sunday_zoom_link_title() : 'Join on Zoom',
 			)
 		);
 	},

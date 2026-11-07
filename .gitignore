@@ -23,6 +23,11 @@ wp-content/uploads/
 private-files/*
 !private-files/README.md
 
+# Live-style private folder (WordPress root sibling of wp-content). Track template only.
+localfiles/*
+!localfiles/README.md
+!localfiles/.htaccess
+
 # Generated caches and temp files
 wp-content/cache/
 wp-content/upgrade/

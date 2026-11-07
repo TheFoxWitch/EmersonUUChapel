@@ -117,12 +117,20 @@ function emerson_sync_calendar_row( string $title, string $date, string $locatio
 	if ( $time !== '' && preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
 		$time .= ':00';
 	}
+	$fields = array(
+		'location'   => $location,
+		'start_time' => $time,
+	);
+	// Sunday Service: keep Zoom in CA’s link fields so the sidebar / list match Board Meeting’s Community Opportunities link (desktop + mobile).
+	if ( strcasecmp( $title, 'Sunday Service' ) === 0 && function_exists( 'emerson_sunday_zoom_url' ) ) {
+		$fields['link']       = emerson_sunday_zoom_url();
+		$fields['link_title'] = function_exists( 'emerson_sunday_zoom_link_title' )
+			? emerson_sunday_zoom_link_title()
+			: 'Join on Zoom';
+	}
 	$wpdb->update(
 		$table,
-		array(
-			'location'   => $location,
-			'start_time' => $time,
-		),
+		$fields,
 		array(
 			'title'      => $title,
 			'start_date' => $date,

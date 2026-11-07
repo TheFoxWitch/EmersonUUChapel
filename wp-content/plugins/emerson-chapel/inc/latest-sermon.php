@@ -98,10 +98,24 @@ function emerson_latest_sermon_embed_src( string $id, bool $autoplay = false ): 
 }
 
 /**
+ * Sermon day (YYYY-MM-DD) from a title, for comparing homepage candidates.
+ */
+function emerson_latest_sermon_title_day( string $title ): string {
+	if ( function_exists( 'emerson_youtube_sermon_date_from_title' ) ) {
+		$day = emerson_youtube_sermon_date_from_title( $title );
+		if ( is_string( $day ) && $day !== '' ) {
+			return $day;
+		}
+	}
+	return '';
+}
+
+/**
  * Resolved homepage sermon: YouTube id + title, or empty id when none.
  *
- * Order: manual Homepage video URL → cached channel latest (YouTube sync) →
- * newest Video Gallery sermon.
+ * Order: manual Homepage video URL → newer of (channel-sync cache, Video Gallery).
+ * Gallery wins when the YouTube Atom sync is stale or feeds fail, so an old
+ * cached upload (e.g. 2024-04-14) cannot hide a newer gallery sermon.
  *
  * @return array{id:string, title:string}
  */
@@ -116,24 +130,48 @@ function emerson_latest_sermon_resolved(): array {
 		);
 	}
 
+	$candidates = array();
+
 	if ( function_exists( 'emerson_youtube_homepage_cached' ) ) {
 		$cached = emerson_youtube_homepage_cached();
 		if ( $cached['id'] !== '' ) {
-			return array(
+			$cached_title = $cached['title'] !== '' ? $cached['title'] : $title;
+			$candidates[] = array(
 				'id'    => $cached['id'],
-				'title' => $cached['title'] !== '' ? $cached['title'] : $title,
+				'title' => $cached_title,
+				'day'   => emerson_latest_sermon_title_day( $cached_title ),
 			);
 		}
 	}
 
 	$sermon = emerson_latest_gallery_sermon();
-	$url    = $sermon['url'];
-	if ( $sermon['title'] !== '' ) {
-		$title = $sermon['title'];
+	$gid    = emerson_youtube_id( $sermon['url'] );
+	if ( $gid !== '' ) {
+		$gallery_title = $sermon['title'] !== '' ? $sermon['title'] : $title;
+		$candidates[]  = array(
+			'id'    => $gid,
+			'title' => $gallery_title,
+			'day'   => emerson_latest_sermon_title_day( $gallery_title ),
+		);
 	}
+
+	if ( ! $candidates ) {
+		return array(
+			'id'    => '',
+			'title' => $title,
+		);
+	}
+
+	usort(
+		$candidates,
+		static function ( array $a, array $b ): int {
+			return strcmp( $b['day'], $a['day'] );
+		}
+	);
+
 	return array(
-		'id'    => emerson_youtube_id( $url ),
-		'title' => $title,
+		'id'    => $candidates[0]['id'],
+		'title' => $candidates[0]['title'],
 	);
 }
 

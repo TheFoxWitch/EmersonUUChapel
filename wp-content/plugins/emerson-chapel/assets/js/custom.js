@@ -818,6 +818,9 @@
 				/*
 				 * CA already prints title, time, location, then iCal. Emerson adds
 				 * holiday/speaker (and location only if CA omitted it), before iCal.
+				 * Zoom uses the same CA link slot as Board Meeting’s Community Opportunities
+				 * (DB link/link_title); if CA omitted it, insert that anchor so mobile
+				 * sidebar matches desktop.
 				 */
 				var hostNorm = (host.textContent || '').replace(/\s+/g, ' ');
 				var loc = row.location || '';
@@ -842,6 +845,28 @@
 						host.insertBefore(roster, ical);
 					} else {
 						host.appendChild(roster);
+					}
+				}
+				var zoomUrl = data.zoomUrl || '';
+				var zoomTitle = data.zoomTitle || 'Join on Zoom';
+				if (zoomUrl) {
+					var hasZoom = Array.prototype.some.call(host.querySelectorAll('a[href]'), function (a) {
+						var href = a.getAttribute('href') || '';
+						return href.indexOf('zoom.us/') !== -1 || (a.textContent || '').replace(/\s+/g, ' ').trim() === zoomTitle;
+					});
+					if (!hasZoom) {
+						var zoom = document.createElement('a');
+						zoom.href = zoomUrl;
+						zoom.textContent = zoomTitle;
+						zoom.className = 'emerson-ca-zoom-link';
+						ical = host.querySelector('a.vcf-link');
+						if (ical) {
+							host.insertBefore(zoom, ical);
+							host.insertBefore(document.createElement('br'), ical);
+						} else {
+							host.appendChild(document.createElement('br'));
+							host.appendChild(zoom);
+						}
 					}
 				}
 			}
@@ -3434,6 +3459,9 @@
 		var cache = Object.create(null);
 		var inflight = Object.create(null);
 		var $entry = $root.find('.church-admin-address-entry');
+		// Last household the member asked to see. Ignore slower AJAX that finishes
+		// after a newer click (e.g. letter M loads McNamara, then Metz is clicked).
+		var selectedId = '';
 
 		function fetchPerson(id) {
 			id = String(id || '');
@@ -3461,7 +3489,15 @@
 		}
 
 		function showPerson(id) {
+			id = String(id || '');
+			if (!id) {
+				return;
+			}
+			selectedId = id;
 			fetchPerson(id).done(function (html) {
+				if (selectedId !== id) {
+					return;
+				}
 				$entry.html(html);
 			});
 		}
@@ -3482,7 +3518,8 @@
 			'.church-admin-directory-name.church-admin-highlighted-name[data-id]'
 		);
 		if ($initialName.length && $entry.length && $.trim($entry.html())) {
-			cache[String($initialName.data('id'))] = $entry.html();
+			selectedId = String($initialName.data('id'));
+			cache[selectedId] = $entry.html();
 		}
 
 		$root.find('.church-admin-letter').off('click').on('click', function () {

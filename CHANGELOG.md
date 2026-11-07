@@ -10,7 +10,55 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-07
+
+### Service Schedule month grid uses the same float card as Home / Calendar
+- `.emerson-schedule` had the 75vw width but no white background / float shadow / radius, so it still looked see-through against the page. Same chrome as `.home` / `.page-id-70` `.church-admin-calendar` (`--emerson-float-shadow`, radius, padding). Grid no longer uses negative side margins that would poke past the padded card. Day-panel `0.8em` detail sizing unchanged.
+- **File:** `assets/css/custom.css`.
+
+### Service Schedule: Sunday detail panel text size matches calendar cells
+- Logged-in day panel (title, category, host, address) used `.emerson-ca-service` at `0.68em`, smaller than the month grid (`td` at `0.8em`). Scoped overrides bring that block in line with cell text; roster empty message and Close stay unchanged.
+- **File:** `assets/css/custom.css`.
+
+### Marketing mailbox SMTP for Emerson welcome / marketing sends
+- Harlan’s `marketing@emersonuuchapel.org` can send through Emerson without changing WP Mail SMTP’s webmaster@ NetSol login. Scoped helper `emerson_marketing_mail_send()` (and any `From: marketing@…` header) switches PHPMailer after WP Mail SMTP to marketing SMTP + From. Password stays in gitignored `.env` / Docker env (never in docs). WordPress send uses NetSol’s platform SMTP host on port **587** STARTTLS (branded `smtp.emersonuuchapel.org` fails TLS verify — cert is `*.hostingplatform.com`). Local redirect option still applies; copy still lands in `wp-content/local-mail/`.
+- **Mailbox clients (not WordPress):** prefer **IMAP** at `mail.emersonuuchapel.org`; outgoing `smtp.emersonuuchapel.org` port **587**; username `marketing@emersonuuchapel.org`. Do not use POP.
+- **File:** `inc/marketing-mail.php`, `emerson-chapel.php`, `docker-compose.yml` (env wiring). Secret: `.env` only.
+
+### Private files: local Docker uses project `localfiles/` like live
+- Files put in project `localfiles/` were invisible because Docker preferred empty `/var/emerson-private`, and the web-root `localfiles` inside the `wp_core` volume only had a leftover probe CSV (not the Mac folder). Compose now mounts `./localfiles` → `/var/www/html/localfiles`. Emerson prefers `ABSPATH/localfiles` before `/var/emerson-private`. Probe removed from the volume path.
+- **File:** `inc/private-files.php`, `docker-compose.yml`, `localfiles/README.md`, docs below.
+
+### Private files: live `localfiles/` plug-and-play
+- Live hosts that must keep everything under `public_html` / `htdocs` can drop a WordPress-root `localfiles/` folder (sibling of `wp-content`) with a deny `.htaccess`. Emerson discovers `ABSPATH . 'localfiles'` before Docker `/var/emerson-private` and before `wp-content/emerson-private`. Prefer `define( 'EMERSON_PRIVATE_DIR', __DIR__ . '/localfiles' );` in live `wp-config.php`. Local Docker mounts project `localfiles/` the same way; `private-files/` → `/var/emerson-private` remains a fallback.
+- **File:** `inc/private-files.php`, `localfiles/.htaccess`, `localfiles/README.md`, `.gitignore`, `DEPLOY-WPVIVID.md`, `TEST-AND-LAUNCH-CHECKLIST.md`, `private-files/README.md`, `HANDOFF.md`. Live: create the folder + define (WPvivid does not carry private file contents).
+
+## 2026-11-06
+
+### Homepage sermon: no longer stuck on stale YouTube cache
+- Channel Atom feeds were failing (404); the homepage kept showing cached **2024 04 14** instead of newer Video Gallery sermons (e.g. **2026-07-19**). Emerson now uses the newer of sync-cache vs gallery, and clears the cache when a sync gets no feed videos.
+- **File:** `inc/latest-sermon.php`, `inc/youtube-sermons.php`.
+
+### Security audit items 1–6 + 10; Harlan notes for #11
+- Tracker: `SECURITY-AUDIT.md` (come-back list for skipped #7–9 and #11). Emerson `inc/security.php`: Zephyr `manage_options`, Subscriber video caps, XML-RPC 403, `DISALLOW_FILE_EDIT`, unused Zephyr Admin role, unused app password, orphan NextGEN caps removed (plugin not installed). Harlan file-permission steps in `DEPLOY-WPVIVID.md`. Create-user vs edit-person in `TROUBLESHOOTING.md`.
+
+### Private files: Word (.docx) opens in the browser
+- Finance / admin private folder now allows `.docx`. Clicking the name loads a Mammoth.js viewer (vendored; same approach as the CodeForGeek tutorial) after the gated download — no public Google/Office iframe. Filenames with spaces no longer break (stopped using `sanitize_file_name`). Members section title is **Spreadsheets & documents**.
+- **File:** `inc/private-files.php`, `assets/vendor/mammoth.browser.min.js`, `private-files/README.md`. Test file locally: `Alice Fox-Metz Letter.docx`.
+
 ## 2026-11-05
+
+### Directory: late letter load no longer overwrites the name you clicked
+- Opening a letter starts AJAX for its first household; a quick click on another name (e.g. Metz after M → McNamara) could leave the name highlighted while the slower first-household response replaced the card. Emerson now ignores stale `show-person` responses.
+- **File:** `assets/js/custom.js`.
+
+### Calendar sidebar: Join on Zoom for Sunday Service
+- Church Admin Sunday Service rows get `link` / `link_title` for Zoom (same slot as Board Meeting’s Community Opportunities), so the day sidebar and Members list show it on desktop and phone. Kept on place sync; JS inserts the link if CA omitted it.
+- **File:** `inc/sunday-location.php`, `inc/board-location.php`, `inc/sunday-schedule-sheet.php`, `assets/js/custom.js`, `assets/css/custom.css`.
+
+### Members Upcoming events: Interest Group in, Unused out
+- Shortcode is now `category="2,3,4"` (Sunday Service, OWL, Interest Group). Dropped unused category 1 so Bonfire / group nights / Board show in the 28-day list.
+- **Local DB:** page 32. Backup: `backups/members/members-32-before-category-2-3-4.html`.
 
 ### Directory: intern login re-linked after handoff cleanup
 - Recreated Church Admin person + household for the intern WordPress user after the directory row was removed for handoff cleanup. Login was fine; serving dates need the `user_id` link. Front directory also requires `gdpr_reason` (CA SQL: `gdpr_reason IS NOT NULL`); set that so the entry lists.

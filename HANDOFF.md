@@ -1,6 +1,6 @@
 # Session handoff — UUA Church WordPress local dev
 
-Last updated: 2026-11-01
+Last updated: 2026-11-07
 
 **Full list of changes (and how to repeat each on the live site): [`CHANGELOG.md`](CHANGELOG.md).
 Problems hit and their fixes: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
@@ -20,7 +20,12 @@ Going live with a WPvivid backup of this local site: [`DEPLOY-WPVIVID.md`](DEPLO
 
 GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contains the docs, the Docker setup, the child theme, the mail catcher and `backups/`. No plugins, uploads or site backups (see `.gitignore`).
 
-> **Local email is in redirect mode (since 2026-09-29):** every email is really sent, through the church's NetSol account, but only to the intern's test mailbox. The subject shows the original recipient. A copy is also saved in `wp-content/local-mail/`. **Before the WPvivid backup**, switch back to save only with `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`. Every local-only setting and how to undo it is in the table at the top of [`DEPLOY-WPVIVID.md`](DEPLOY-WPVIVID.md). The testing list is in [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md).
+> **Local email is in redirect mode (since 2026-09-29):** every email is really sent, but only to the existing `emerson_local_mail_redirect_to` address. The subject shows the original recipient. A copy is also saved in `wp-content/local-mail/`. Ordinary office mail still goes through WP Mail SMTP (webmaster@ NetSol). Emerson marketing/welcome sends use `emerson_marketing_mail_send()` / `inc/marketing-mail.php` with `marketing@emersonuuchapel.org` (password in gitignored `.env`). **Before the WPvivid backup**, switch back to save only with `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`. Every local-only setting and how to undo it is in the table at the top of [`DEPLOY-WPVIVID.md`](DEPLOY-WPVIVID.md). The testing list is in [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md).
+
+### Marketing mailbox (2026-11-07)
+- **Send (WordPress):** `marketing@emersonuuchapel.org`, SMTP port **587** STARTTLS, username `marketing@…`. Emerson uses NetSol platform host `netsol-smtp-oxcs.hostingplatform.com` because branded `smtp.emersonuuchapel.org` presents a mismatched TLS cert. Password only in `.env` / Docker env (or live `wp-config` constants) — never commit.
+- **Mailbox clients:** prefer **IMAP** incoming `mail.emersonuuchapel.org`; outgoing `smtp.emersonuuchapel.org` port **587**; do not use POP. WordPress does not need IMAP to send.
+- **Tested locally:** marketing From + redirect to the existing test mailbox + `local-mail/` copy.
 
 ## Where we are
 
@@ -133,8 +138,16 @@ docker compose run --rm wpcli rewrite flush
 
 ---
 
+## Where we are (2026-11-06)
+
+- **Done recently:** private `.docx` viewer (Mammoth); Members upcoming events categories `2,3,4`; calendar Zoom link; directory AJAX race fix; Docker WP 7.1.4 / PHP 8.2.35.
+- **Create login for a signup:** not **People → Create user** (bulk/random). Edit that person → create/link WordPress user. See `TROUBLESHOOTING.md`.
+- **Security audit:** [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md) **1–6 and #10 done**. Skipped for later: #7 admins, #8 TablePress, #9 REST, #11 host FS (Harlan steps in `DEPLOY-WPVIVID.md`). Come-back checklist is in that file.
+- **Still open:** who gets **Finance** role; Harlan live `localfiles/` + prefer `EMERSON_PRIVATE_DIR` + optional file modes; Newcomer → account policy; admin demotion list (#7).
+
 ## Next session
 1. Make sure Docker Desktop is running, then `docker compose up -d`
-2. **Ask Harlan** about Newcomer → account invite → directory (checklist §4). Do not build that flow until he answers.
-3. Other open church questions in `TEST-AND-LAUNCH-CHECKLIST.md` §4; private spreadsheets steps in `DEPLOY-WPVIVID.md`.
-4. To publish: WPvivid backup of the local site, then restore onto the live site, following `DEPLOY-WPVIVID.md`
+2. Continue [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md) from the first **Pending** item (verify #1 first if not closed).
+3. **Ask Harlan** about Newcomer → account invite → directory (checklist §4). Do not build that flow until he answers.
+4. Other open church questions in `TEST-AND-LAUNCH-CHECKLIST.md` §4; live `localfiles/` private spreadsheets steps in `DEPLOY-WPVIVID.md`.
+5. To publish: WPvivid backup of the local site, then restore onto the live site, following `DEPLOY-WPVIVID.md`

@@ -395,12 +395,45 @@ function emerson_sunday_zoom_url(): string {
 	return 'http://zoom.us/j/92538603507?pwd=K3NJWVE4ZnhvWkJWK1Nmbm8zOXhQUT09';
 }
 
+function emerson_sunday_zoom_link_title(): string {
+	return __( 'Join on Zoom', 'emerson-uuchapel' );
+}
+
 function emerson_sunday_zoom_button_html(): string {
 	return '<p class="emerson-sunday-location__zoom">'
 		. '<a class="emerson-sunday-location__zoom-btn" href="' . esc_url( emerson_sunday_zoom_url() ) . '">'
-		. esc_html__( 'Join on Zoom', 'emerson-uuchapel' )
+		. esc_html( emerson_sunday_zoom_link_title() )
 		. '</a></p>';
 }
+
+/**
+ * Put Zoom on Church Admin “Sunday Service” rows (link / link_title), same pattern as
+ * Community Opportunities on Board Meeting — so the calendar sidebar and list show it
+ * on desktop and mobile. Leaves rows that already have a different custom link alone.
+ */
+function emerson_sunday_ensure_zoom_calendar_links(): void {
+	global $wpdb;
+	$table = $wpdb->prefix . 'church_admin_calendar_date';
+	if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+		return;
+	}
+	$url   = emerson_sunday_zoom_url();
+	$title = emerson_sunday_zoom_link_title();
+	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from prefix.
+	$wpdb->query(
+		$wpdb->prepare(
+			"UPDATE {$table}
+			SET link = %s, link_title = %s
+			WHERE title = %s
+			  AND ( link IS NULL OR link = '' OR link = %s )",
+			$url,
+			$title,
+			'Sunday Service',
+			$url
+		)
+	);
+}
+add_action( 'init', 'emerson_sunday_ensure_zoom_calendar_links', 25 );
 
 add_shortcode( 'emerson_sunday_location', 'emerson_sunday_location_html' );
 

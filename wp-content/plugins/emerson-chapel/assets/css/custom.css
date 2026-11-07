@@ -2150,7 +2150,8 @@ input.ca-search-submit:focus-visible {
  * Covers directory letters + household card, search result cards, register/edit
  * household, and other Church Admin shortcode white boxes (CA's stock shadow is
  * a hard 5px grey). CA's class is church_admin_search_result (underscores).
- * Homepage + Calendar page month grids use the same chrome (scoped below).
+ * Homepage + Calendar page month grids, and Service Schedule, use the same chrome
+ * (scoped below).
  */
 .church-admin-letters,
 .church-admin-address-entry,
@@ -2164,9 +2165,10 @@ input.ca-search-submit:focus-visible {
 	box-sizing: border-box;
 }
 
-/* Month calendar on Home and Calendar: one float card around the whole widget. */
+/* Month calendar on Home, Calendar, and Service Schedule: one float card. */
 .home .church-admin-calendar,
-.page-id-70 .church-admin-calendar {
+.page-id-70 .church-admin-calendar,
+.emerson-schedule {
 	background: #fff;
 	border: 0;
 	border-radius: var(--emerson-float-radius);
@@ -2377,9 +2379,9 @@ input.ca-search-submit:focus-visible {
 }
 
 .emerson-schedule__grid {
-	width: calc(100% + 49px);
-	margin-left: -25px;
-	margin-right: -24px;
+	width: 100%;
+	margin-left: 0;
+	margin-right: 0;
 	border-collapse: collapse;
 	table-layout: fixed;
 }
@@ -2427,6 +2429,23 @@ input.ca-search-submit:focus-visible {
 
 .emerson-schedule-day h3 {
 	margin: 0 0 0.4rem;
+}
+
+/*
+ * Day panel reuses .emerson-ca-service (default 0.68em for CA month cells).
+ * Match Service Schedule grid cells (td is 0.8em) for title / category / host / address.
+ */
+.emerson-schedule-day .emerson-ca-service {
+	font-size: 0.8em;
+}
+
+.emerson-schedule-day .emerson-ca-service__holiday,
+.emerson-schedule-day .emerson-ca-service__speaker {
+	font-size: 0.92em;
+}
+
+.emerson-schedule-day .emerson-ca-service__location {
+	font-size: 1em;
 }
 
 .emerson-schedule-day__close {
@@ -3855,6 +3874,17 @@ blockquote {
 	display: block;
 	margin-top: 17px;
 	text-align: center;
+}
+
+/* Sunday Zoom + Board Meeting Community Opportunities: same CA info-link slot, easy to tap on phone. */
+.church-admin-calendar .ca-sidebar-list > li > p > a:not(.vcf-link),
+.church-admin-calendar .ca-sidebar-list a.emerson-ca-zoom-link,
+.emerson-ca-day-card__details > a:not(.vcf-link) {
+	display: inline-block;
+	min-height: 44px;
+	padding: 0.35rem 0;
+	line-height: 1.35;
+	box-sizing: border-box;
 }
 
 /* Upcoming / Planning list: CA paints td.ca-list-event from category bgcolor (Sunday Service = pale yellow). */

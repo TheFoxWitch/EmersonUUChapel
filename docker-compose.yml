@@ -24,9 +24,16 @@ services:
       WORDPRESS_DB_USER: ${MYSQL_USER:-wordpress}
       WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wordpress}
       WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
+      EMERSON_MARKETING_SMTP_HOST: ${EMERSON_MARKETING_SMTP_HOST:-netsol-smtp-oxcs.hostingplatform.com}
+      EMERSON_MARKETING_SMTP_PORT: ${EMERSON_MARKETING_SMTP_PORT:-587}
+      EMERSON_MARKETING_SMTP_USER: ${EMERSON_MARKETING_SMTP_USER:-}
+      EMERSON_MARKETING_SMTP_PASS: ${EMERSON_MARKETING_SMTP_PASS:-}
+      EMERSON_MARKETING_FROM_EMAIL: ${EMERSON_MARKETING_FROM_EMAIL:-marketing@emersonuuchapel.org}
+      EMERSON_MARKETING_FROM_NAME: ${EMERSON_MARKETING_FROM_NAME:-Emerson UU Chapel}
     volumes:
       - wp_core:/var/www/html
       - ./wp-content:/var/www/html/wp-content
+      - ./localfiles:/var/www/html/localfiles
       - ./private-files:/var/emerson-private
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
 
@@ -39,12 +46,20 @@ services:
     volumes:
       - wp_core:/var/www/html
       - ./wp-content:/var/www/html/wp-content
+      - ./localfiles:/var/www/html/localfiles
       - ./private-files:/var/emerson-private
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: ${MYSQL_USER:-wordpress}
       WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wordpress}
       WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
+      EMERSON_MARKETING_SMTP_HOST: ${EMERSON_MARKETING_SMTP_HOST:-netsol-smtp-oxcs.hostingplatform.com}
+      EMERSON_MARKETING_SMTP_PORT: ${EMERSON_MARKETING_SMTP_PORT:-587}
+      EMERSON_MARKETING_SMTP_USER: ${EMERSON_MARKETING_SMTP_USER:-}
+      EMERSON_MARKETING_SMTP_PASS: ${EMERSON_MARKETING_SMTP_PASS:-}
+      EMERSON_MARKETING_FROM_EMAIL: ${EMERSON_MARKETING_FROM_EMAIL:-marketing@emersonuuchapel.org}
+      EMERSON_MARKETING_FROM_NAME: ${EMERSON_MARKETING_FROM_NAME:-Emerson UU Chapel}
+
     entrypoint: wp
     command: "--info"
 

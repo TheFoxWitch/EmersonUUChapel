@@ -67,6 +67,22 @@ Church Admin needs PHP's `calendar` extension, which the stock `wordpress` Docke
 ### Typed Event location on a one-off calendar event does not save
 Premium’s event form has a location **dropdown** (`location`) and a free-text box (`location1`). The typed box is the right place for “Rotating location — check This Week at Emerson” when it is not already in the dropdown. Upstream Premium then copies `location1` with `==` instead of `=`, so the text never lands in the database. Emerson Chapel fixes that on `admin_init` (`emerson_calendar_fix_premium_location_post` in `inc/calendar-listed-events.php`). Do not patch Church Admin for this.
 
+### Homepage sermon stuck on an old video (e.g. 2024 04 14)
+The player prefers a **YouTube channel sync cache**, then Video Gallery. If the Atom feeds fail (both chapel channel IDs were returning 404 from `feeds/videos.xml` in Nov 2026), sync stops updating and an old cached title can sit in `emerson_youtube_homepage_latest` forever.
+
+**Check:** `docker compose run --rm -T wpcli eval 'print_r(get_option("emerson_youtube_sermons_sync_log")); print_r(emerson_latest_sermon_resolved());'`
+
+**Fix:** Emerson now picks the **newer** of cache vs gallery by the dated title, and clears the cache when a sync sees no feed videos. Hard-refresh the homepage. To force gallery-only immediately: `docker compose run --rm -T wpcli eval 'delete_option("emerson_youtube_homepage_latest");'`.
+
+Channels themselves may still need new IDs later if YouTube feeds stay broken; the gallery copy of newer sermons (May/July 2026) is enough for the homepage until then.
+
+### Church Admin “Create user” made a random login, not the person I meant
+**People → Create user** (and “create users for GDPR confirmed”) is a **bulk** tool. It builds a username from the person’s name, sets a **random password**, emails it, and does not ask you to pick email/password. Use it only when you intentionally want mass account creation.
+
+For **one** new signup: **Church Admin → People** → open that person → under WordPress user, type a username in **Or create a new Wordpress User** (or link an existing account from **Users → Add New**) → **Save**. Then set their WordPress role under **Users** if they need **Finance** or similar.
+
+Confirming the register email only adds a Church Admin directory row. It does **not** create a row under **Users** until an admin issues the login (the thank-you page says that on purpose).
+
 ### "My password is right but I still can't log in" (even after a reset)
 Usually it's the **Limit Login Attempts** lockout, not the database. Four failed tries lock that connection out for 20 minutes, and during that time even the correct password is refused. A password reset doesn't lift it.
 - **Check:** `docker compose run --rm -T wpcli eval 'print_r(get_option("limit_login_lockouts")); print_r(get_option("limit_login_logged"));'`. The log shows the *username that was typed*.
@@ -164,11 +180,14 @@ The restored database has the church's real SMTP login in WP Mail SMTP.
 
 `wp-content/mu-plugins/local-mail-catcher.php` stops all email when the site address is `localhost` and saves each message to `wp-content/local-mail/`. If real email ever goes out locally, check that the file is still there and that the site address is still `http://localhost:8080` (**Settings → General**).
 
+### Marketing From overwritten by webmaster@
+WP Mail SMTP forces From to `webmaster@emersonuuchapel.org`. Emerson marketing/welcome mail must go through `emerson_marketing_mail_send()` (or a `From: marketing@emersonuuchapel.org` header) in `inc/marketing-mail.php`, which re-points PHPMailer after WP Mail SMTP. Credentials: gitignored `.env` / Docker env (`EMERSON_MARKETING_SMTP_*`). If TLS fails on `smtp.emersonuuchapel.org`, use `netsol-smtp-oxcs.hostingplatform.com` (same cert issue as the branded host). IMAP for clients is `mail.emersonuuchapel.org` (prefer IMAP, not POP) — WordPress send does not use IMAP.
+
 ### Testing real email locally (redirect mode)
 The catcher has two modes:
 
 - **Save only** (default): nothing is sent.
-- **Redirect**: email is sent for real through the church's NetSol account, but only to one test address. CC and BCC copies are removed, and the subject starts with `[LOCAL TEST → original recipient]`. A copy is still saved in `local-mail/`.
+- **Redirect**: email is sent for real (webmaster SMTP, or marketing SMTP when Emerson marks the send), but only to one test address. CC and BCC copies are removed, and the subject starts with `[LOCAL TEST → original recipient]`. A copy is still saved in `local-mail/`.
 
 ```bash
 export PATH="$HOME/.docker/bin:$PATH"

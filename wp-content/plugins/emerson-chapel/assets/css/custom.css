@@ -11,6 +11,8 @@
 	--emerson-blue: #3f4fa0;
 	--emerson-blue-dark: #2e3a78;
 	--emerson-h1-size: clamp(1.875rem, 1.35rem + 2.2vw, 2.75rem);
+	/* Marker wash for block-editor Highlight (<mark>). Soft gold, not a text recolour. */
+	--emerson-highlight: #ffe566;
 	/* Floating cards (member directory, register, other CA info panels). */
 	--emerson-float-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 	--emerson-float-radius: 12px;
@@ -20,6 +22,37 @@
 	--emerson-nav-reveal-duration: 0.9s;
 	--emerson-nav-reveal-delay: 0.5s;
 	--emerson-nav-reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * Block editor “Highlight” wraps text in <mark>. Without a background colour it often
+ * only changes text colour (inline background rgba(0,0,0,0)). Give a real highlighter.
+ * An editor-picked background still wins via its inline style (except transparent).
+ */
+.wp-block-post-content mark,
+.entry-content mark {
+	background-color: var(--emerson-highlight);
+	color: inherit;
+	padding: 0.05em 0.12em;
+	border-radius: 0.12em;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+
+.wp-block-post-content mark[style*="background-color:rgba(0, 0, 0, 0)"],
+.wp-block-post-content mark[style*="background-color: rgba(0, 0, 0, 0)"],
+.wp-block-post-content mark[style*="background-color:transparent"],
+.wp-block-post-content mark[style*="background-color: transparent"],
+.entry-content mark[style*="background-color:rgba(0, 0, 0, 0)"],
+.entry-content mark[style*="background-color: rgba(0, 0, 0, 0)"],
+.entry-content mark[style*="background-color:transparent"],
+.entry-content mark[style*="background-color: transparent"] {
+	background-color: var(--emerson-highlight) !important;
+}
+
+/* Foil page glow is white text-shadow; on a coloured <mark> it looks like fuzzy glow. */
+html.emerson-foil .wp-site-blocks mark {
+	text-shadow: none;
 }
 
 /* Links site-wide: Emerson blue (logo / social icons). TT3 paints

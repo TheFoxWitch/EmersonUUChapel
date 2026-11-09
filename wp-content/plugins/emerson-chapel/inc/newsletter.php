@@ -4,14 +4,16 @@
  *
  * - Homepage pop-up for logged-out visitors, and the [emerson_newsletter_form] shortcode for pages.
  * - Sign-ups are held for 7 days until the visitor clicks the emailed confirmation link.
- * - Confirmed subscribers are saved to Church Admin as member type "Mailing List" (hidden from the
- *   member directory) and the office is emailed so they can be added to Mailchimp.
+ * - Confirmed subscribers are saved to Church Admin as member type "Visitor" (Harlan:
+ *   new people are Visitors, not accounts; hidden from the member directory when show_me
+ *   is off) and the office is emailed so they can be added to Mailchimp.
  */
 
 declare( strict_types=1 );
 
 const EMERSON_NL_OFFICE_EMAIL   = 'office@emersonuuchapel.org';
-const EMERSON_NL_MEMBER_TYPE_ID = 1;
+/** Church Admin member type: Visitor (not Mailing List). */
+const EMERSON_NL_MEMBER_TYPE_ID = 4;
 const EMERSON_NL_PENDING_TTL    = 7 * DAY_IN_SECONDS;
 const EMERSON_NL_RESEND_WAIT    = 10 * MINUTE_IN_SECONDS;
 const EMERSON_NL_MAX_PER_HOUR   = 5;
@@ -523,7 +525,7 @@ function emerson_nl_save_to_church_admin( array $data ): string {
 		return 'Saving to Church Admin FAILED (database error), so please add them by hand.';
 	}
 
-	return sprintf( 'Added to Church Admin as member type "Mailing List" (household #%d, hidden from the member directory).', $household_id );
+	return sprintf( 'Added to Church Admin as member type "Visitor" (household #%d, hidden from the member directory).', $household_id );
 }
 
 add_action(

@@ -30,6 +30,7 @@ services:
       EMERSON_MARKETING_SMTP_PASS: ${EMERSON_MARKETING_SMTP_PASS:-}
       EMERSON_MARKETING_FROM_EMAIL: ${EMERSON_MARKETING_FROM_EMAIL:-marketing@emersonuuchapel.org}
       EMERSON_MARKETING_FROM_NAME: ${EMERSON_MARKETING_FROM_NAME:-Emerson UU Chapel}
+      EMERSON_GOOGLE_SHEETS_API_KEY: ${EMERSON_GOOGLE_SHEETS_API_KEY:-}
     volumes:
       - wp_core:/var/www/html
       - ./wp-content:/var/www/html/wp-content
@@ -59,6 +60,7 @@ services:
       EMERSON_MARKETING_SMTP_PASS: ${EMERSON_MARKETING_SMTP_PASS:-}
       EMERSON_MARKETING_FROM_EMAIL: ${EMERSON_MARKETING_FROM_EMAIL:-marketing@emersonuuchapel.org}
       EMERSON_MARKETING_FROM_NAME: ${EMERSON_MARKETING_FROM_NAME:-Emerson UU Chapel}
+      EMERSON_GOOGLE_SHEETS_API_KEY: ${EMERSON_GOOGLE_SHEETS_API_KEY:-}
 
     entrypoint: wp
     command: "--info"

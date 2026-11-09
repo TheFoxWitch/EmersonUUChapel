@@ -159,12 +159,26 @@ function emerson_sync_wp_site_icon_file(): void {
 	}
 }
 
+/**
+ * Drop core Site Icon tags everywhere. Default-filters add them at different
+ * priorities; Gutenberg/admin were still emitting a second set and the tab
+ * could flip to a cached older mark.
+ */
+function emerson_remove_core_site_icon_hooks(): void {
+	remove_action( 'wp_head', 'wp_site_icon' );
+	remove_action( 'wp_head', 'wp_site_icon', 99 );
+	remove_action( 'admin_head', 'wp_site_icon' );
+	remove_action( 'admin_head', 'wp_site_icon', 10 );
+	remove_action( 'admin_head', 'wp_site_icon', 99 );
+	remove_action( 'login_head', 'wp_site_icon' );
+	remove_action( 'login_head', 'wp_site_icon', 99 );
+	remove_action( 'do_faviconico', 'do_favicon' );
+}
+
 add_action(
 	'init',
 	static function (): void {
-		remove_action( 'wp_head', 'wp_site_icon', 99 );
-		remove_action( 'admin_head', 'wp_site_icon' );
-		remove_action( 'do_faviconico', 'do_favicon' );
+		emerson_remove_core_site_icon_hooks();
 		emerson_copy_root_icons();
 		emerson_icon_cache_rules();
 		emerson_sync_wp_site_icon_file();
@@ -172,6 +186,11 @@ add_action(
 	},
 	0
 );
+
+// Run again after other plugins may re-add core icons.
+add_action( 'wp_loaded', 'emerson_remove_core_site_icon_hooks', 99 );
+add_action( 'admin_init', 'emerson_remove_core_site_icon_hooks', 0 );
+add_action( 'login_init', 'emerson_remove_core_site_icon_hooks', 0 );
 
 add_action( 'do_faviconico', 'emerson_serve_root_icon', 0 );
 

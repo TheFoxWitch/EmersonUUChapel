@@ -83,6 +83,8 @@ function emerson_foil_style_defaults(): array {
 			'.wp-block-cover',
 			'.wp-block-columns',
 			'.emerson-welcome__rainbow',
+			/* Block-editor Highlight: white foil glow on coloured <mark> washes out the text. */
+			'mark',
 			/* Member directory: Emerson-blue name bar + opaque white panels. */
 			'.church-admin-new-directory',
 			'.church-admin-address-search',

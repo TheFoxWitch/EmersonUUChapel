@@ -10,7 +10,41 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-08
+
+### Media library: alt text on every image
+- 44 attachments had empty `_wp_attachment_image_alt`. Wrote descriptive alts in the same style as Love at the Center (959), including reusing that wording on duplicate Love graphics. Photos describe people, place and action; graphics name symbols and labels. All 54 images now have alt.
+- **Local DB:** Media Library attachment meta only (travels with WPvivid).
+
+### Sunday Schedule URL without gid still hits the right tab
+- Pasting the workbook share link without `gid=` made Emerson export tab `0`, which returns HTTP 400 on this file, so the site kept the last-good cache (stale cell edits). For the known church spreadsheet id, a missing `gid` now falls back to the Sunday Morning Schedule tab (`2058833792`). Admin copy clarifies `gid` is the tab id, not an edit lock.
+- **File:** `inc/sunday-schedule-sheet.php`. Local URL restored with `gid=2058833792` and refreshed.
+
+### Members calendar-list no longer doubles the Sunday address
+- Upcoming events showed the place under the speaker **and** as Church Admin’s `Location:` line — both from the same CA `location` field. List decorate now skips Emerson’s under-speaker place when CA already printed it (same guard as the month sidebar). Sheet holiday/speaker and master calendar unchanged.
+- **File:** `inc/sunday-schedule-sheet.php` (`emerson_schedule_decorate_list`).
+
+### Favicon no longer doubles up in wp-admin / Gutenberg
+- Core `wp_site_icon` was still on `admin_head` (priority 10) and `login_head`, so the editor tab got Emerson’s links **plus** WordPress’s Site Icon tags. Browsers could flip to a cached older mark. Emerson now strips those hooks on `init`, `wp_loaded`, `admin_init`, and `login_init`. Intended tab icon remains the round green badge.
+- **File:** `inc/site-icon.php`. Hard-refresh or reopen the tab after deploy; Safari may need a full quit (see `TROUBLESHOOTING.md`).
+
+### New people land as Visitors (Harlan), not Mailing List
+- Front-end Church Admin register (Members shortcode + CA registrations option) and Emerson newsletter confirmations now use member type **Visitor** (id 4). Email opt-in flags are unchanged (`email_send` / `news_send`). Existing directory rows were not rewritten. Backup: `backups/members/members-32-before-visitor-type-4.html`.
+- **File:** `inc/newsletter.php`; local DB page 32 + option `church_admin_member_type_id_for_registrations`.
+
+### Calendar can use Sheets API when docs.google.com TLS hangs
+- Local Mac/Docker completed TCP to `docs.google.com` but stalled after the TLS Client Hello, so the Sunday Schedule CSV export never returned (Downdetector “up” does not mean this path works). `sheets.googleapis.com` still answered. Emerson now prefers the Sheets API when `EMERSON_GOOGLE_SHEETS_API_KEY` / Sunday Schedule admin key is set, and falls back to the classic CSV export. Cooldown + last-good cache from 2026-11-07 stay in place.
+- **File:** `inc/sunday-schedule-sheet.php`, `docker-compose.yml` (env wiring). See `TROUBLESHOOTING.md` → Calendar / Sunday Schedule sheet.
+
 ## 2026-11-07
+
+### Block editor Highlight gets a real marker wash
+- WordPress Highlight often only recolours text (`<mark>` with transparent background). Emerson now paints a soft gold highlighter behind `mark` in post content; transparent backgrounds are forced to that wash. Editors can still pick another highlight colour in the toolbar (non-transparent inline background wins). Foil’s white text glow is skipped on `mark` (default + CSS), so blue/gold highlights don’t look fuzzy.
+- **File:** `assets/css/custom.css` (`--emerson-highlight`), `inc/foil-background.php` (`glow_exclude`).
+
+### Calendar no longer waits ~10s when Google Sheets is unreachable
+- Homepage / calendar / members were stalling (~10s TTFB) because Sunday Schedule fetched the Google Sheet CSV on every miss, and a failed fetch never wrote the cache — so each page waited out the timeout again. Front requests now use a 4s timeout; failures cool down for 5 minutes and keep serving the last good sheet data. Admin Refresh still uses 15s.
+- **File:** `inc/sunday-schedule-sheet.php`. See `TROUBLESHOOTING.md` → Calendar / Sunday Schedule sheet.
 
 ### Service Schedule month grid uses the same float card as Home / Calendar
 - `.emerson-schedule` had the 75vw width but no white background / float shadow / radius, so it still looked see-through against the page. Same chrome as `.home` / `.page-id-70` `.church-admin-calendar` (`--emerson-float-shadow`, radius, padding). Grid no longer uses negative side margins that would poke past the padded card. Day-panel `0.8em` detail sizing unchanged.

@@ -22,6 +22,8 @@ If the phone cannot connect: confirm both devices are on the same Wi‑Fi (not g
 ### Safari still shows an old tab icon (or the WordPress “W”)
 The files are the round green badge, built from `images/EmersonUUChapelLogoOriginal.png`. Every `<link rel="icon">` points at a **root** file (`/favicon.ico`, `/favicon-16.png`, `/favicon-32.png`, `/emerson-site-icon.png`, `/apple-touch-icon.png`, …) with `Cache-Control: max-age=0`. Do not use the copies under `wp-content/plugins/…` in the head — W3 Total Cache was giving those PNGs a one-year cache, so the tab flipped between the new badge and an old hands/drop mark.
 
+**Gutenberg / wp-admin tab wrong or flipping (2026-11-08):** Core `wp_site_icon` was still hooked on `admin_head`, so the editor HTML listed Emerson’s icons and WordPress’s Site Icon tags together. Emerson now removes those core hooks on admin/login too. After updating, hard-refresh the editor tab (or close and reopen it).
+
 Safari often ignores those tags and keeps the icon it already stored for `localhost`. A Private Window uses that same store, so it will not show the new logo either. Closing the window is not enough. Safari has to fully quit.
 
 **To make Safari fetch the new icon:**
@@ -162,6 +164,12 @@ Custom dialogs and the built-in pledge / recommitment / PayPal openers are drive
 - **Fix:** set Additional CSS class(es) to `emerson-modal-{slug}` (for SNSD: `emerson-modal-snsd-survery`). Saving the dialog under **Modals** also heals Buttons that still show that dialog’s label but keep a PayPal/pledge class.
 - Built-in CTA “learning” will not adopt an `emerson-modal-*` class as the PayPal class anymore.
 
+### A normal link Button becomes the Pledge Card (wrong label / opens the Google form)
+- **Cause:** `pledge-card` (and legacy `pledge-form`) is a **modal opener**, not a style-only class. On the front, Modals rewrites that Button into the annual pledge control (`data-emerson-pledge-form`), overwrites the label, and ignores the href. Same trap as `recommitment-form` / `paypal-fees-button`.
+- **Why removing the class “breaks” the look:** the outline paint comes from `emerson-cta emerson-cta--outline`, which Modals adds when it rewrites — almost nothing styles bare `.pledge-card` alone.
+- **Fix for a real page link with the same outline look:** Additional CSS class(es) = `emerson-cta emerson-cta--outline` (keep your own link + label). Blue fill for newcomer CTAs: `newcomer-button`.
+- **Example (2026-11-08):** Community Opportunities (page 68) Newcomer Information Form had class `pledge-card`; switched to `emerson-cta emerson-cta--outline` so it goes to `/contact-newcomer-information/`.
+
 ### A Google Form iframe in a dialog is much slower than another
 - Same lazy `data-src` pattern for every dialog — the difference is usually the **form URL**.
 - A **`forms.gle/…` short link** forces an extra redirect inside the iframe and skips `embedded=true`. Prefer Google’s full **`docs.google.com/forms/…/viewform`** address (Send → `<>`), or paste the short link and let Modals resolve it on embed.
@@ -170,6 +178,34 @@ Custom dialogs and the built-in pledge / recommitment / PayPal openers are drive
 ### Top-level Engage in the nav goes somewhere / submenu still says Engage
 - Top-level **Engage** is a dropdown label only (like About / Worship), not a page link.
 - The first submenu item is **Community Opportunities** → `/community-opportunities/`. Theme file: `parts/header.html`; live menu also lives in Navigation post **main** (id 710) — keep both in sync if you edit in the Site Editor.
+
+---
+
+## Calendar / Sunday Schedule sheet
+
+### Calendar still shows an old Sunday title after I edit the spreadsheet
+- **Usual cause:** fetch failed, so Emerson keeps the last-good cache (and a short cooldown). Check **Emerson → Sunday Schedule → Last fetch** for an error.
+- **Missing `gid=`:** the tab id in the URL (`gid=2058833792` for Sunday Morning Schedule). Without it, Google’s CSV export used tab `0` and returned HTTP 400 on this workbook. Keep `gid=` when you paste; `/edit` in the path is fine. Emerson now falls back to that Sunday tab for this known file id if `gid` is omitted.
+- **Fix:** paste the browser URL while that tab is open (with `gid=`), Save, then **Refresh from spreadsheet**.
+
+### Members Upcoming events shows the YMCA address twice
+- **Cause:** Emerson’s calendar-list decorate injected the Sunday place under the speaker, and Church Admin also printed `Location:` from the same CA `location` field. Not a master-calendar duplicate.
+- **Fix (2026-11-08):** `emerson_schedule_decorate_list()` skips the under-speaker place when CA already has `Location:` / the place text (same idea as the month sidebar). Keep using Event Places / CA location as usual.
+
+### Whole site takes ~10 seconds to load
+Usually the Sunday Schedule Google Sheet fetch, not Docker RAM. Emerson pulls a CSV from `docs.google.com` for sermon titles / themes. If Google HTTPS times out, older builds waited ~10–15s on **every** page and never cached the failure.
+
+**Check:** `docker compose run --rm -T wpcli option get emerson_schedule_sheet_meta` — look for `cURL error 28` or similar.  
+**Fix (2026-11-07):** `inc/sunday-schedule-sheet.php` uses a 4s front-end timeout, a 5-minute failure cooldown, and the last good sheet (`emerson_schedule_sheet_last`). Admin **Refresh** still waits up to 15s. After a cooldown, pages should answer quickly even while Google is down (calendar titles may be stale or empty until the next successful fetch).
+
+### Calendar missing Sunday titles even though Downdetector says Google Docs is up
+Downdetector only means Google’s public status page looks fine. This Mac/Docker path can still hang on **TLS to `docs.google.com`** (TCP connects, Client Hello never finishes) while **`sheets.googleapis.com` works**. Emerson’s CSV export URL uses `docs.google.com`, so the calendar stays empty.
+
+**Check from the host:**  
+`curl -4 -v --max-time 8 -o /dev/null 'https://docs.google.com/'` — if it stalls after “TLS handshake, Client hello”, that is the block.  
+`curl -4 --max-time 8 -o /dev/null -w '%{http_code}\n' 'https://sheets.googleapis.com/'` — a fast non-zero code means the API host is reachable.
+
+**Fix (2026-11-08):** set a **Google Sheets API** key (API enabled in Google Cloud; sheet still Anyone-with-the-link) under **Sunday Schedule → Sheets API key**, or `EMERSON_GOOGLE_SHEETS_API_KEY` in `.env` / Docker. Emerson then reads the same spreadsheet through `sheets.googleapis.com`. Recent cooldown/timeout changes do **not** break a healthy docs export; they only stop a dead path from stalling every page.
 
 ---
 

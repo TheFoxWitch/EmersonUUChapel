@@ -5,15 +5,25 @@
  * The church already keeps one spreadsheet. Same-file edits show here after the cache
  * expires (or after Refresh on the Sunday Schedule admin screen). A new spreadsheet
  * needs its URL pasted there. Serving-role names stay off the public calendar.
+ *
+ * Google fetch is short-timeout on front requests. Failures cool down for a few minutes
+ * and keep the last good data so a Sheets outage cannot stall every page ~10–15s.
+ *
+ * Some networks complete TLS to sheets.googleapis.com but hang on docs.google.com
+ * (CSV export). When a Sheets API key is set, Emerson prefers that path.
  */
 
 declare( strict_types=1 );
 
 const EMERSON_SCHEDULE_SHEET_OPTION    = 'emerson_schedule_sheet_url';
+const EMERSON_SCHEDULE_SHEET_API_OPTION = 'emerson_schedule_sheets_api_key';
 const EMERSON_SCHEDULE_SHEET_CACHE     = 'emerson_schedule_sheet';
+const EMERSON_SCHEDULE_SHEET_LAST      = 'emerson_schedule_sheet_last';
+const EMERSON_SCHEDULE_SHEET_COOLDOWN  = 'emerson_schedule_sheet_cooldown';
 const EMERSON_SCHEDULE_SHEET_META      = 'emerson_schedule_sheet_meta';
 const EMERSON_SCHEDULE_VIEWERS_OPTION  = 'emerson_schedule_viewers';
 const EMERSON_SCHEDULE_SHEET_TTL       = 30 * MINUTE_IN_SECONDS;
+const EMERSON_SCHEDULE_SHEET_FAIL_TTL  = 5 * MINUTE_IN_SECONDS;
 const EMERSON_SCHEDULE_SHEET_DEFAULT   = 'https://docs.google.com/spreadsheets/d/1-yBUlBc74nS2GB7QwJ4iIGpnVS673e4mt_CTAl_PfyI/edit?gid=2058833792';
 
 /**
@@ -48,13 +58,21 @@ function emerson_schedule_sheet_parse_url( string $url ): ?array {
 	if ( ! preg_match( '#/spreadsheets/d/([a-zA-Z0-9_-]+)#', $url, $id ) ) {
 		return null;
 	}
-	$gid = '0';
+	$gid = null;
 	if ( preg_match( '/[?&#]gid=(\d+)/', $url, $found ) ) {
 		$gid = $found[1];
+	} elseif (
+		preg_match( '#/spreadsheets/d/([a-zA-Z0-9_-]+)#', EMERSON_SCHEDULE_SHEET_DEFAULT, $def_id )
+		&& $def_id[1] === $id[1]
+		&& preg_match( '/[?&#]gid=(\d+)/', EMERSON_SCHEDULE_SHEET_DEFAULT, $def_gid )
+	) {
+		// Same church workbook without a tab id: keep Sunday Morning Schedule, not sheet 0
+		// (gid=0 export returns HTTP 400 on this file).
+		$gid = $def_gid[1];
 	}
 	return array(
 		'id'  => $id[1],
-		'gid' => $gid,
+		'gid' => $gid ?? '0',
 	);
 }
 
@@ -68,8 +86,269 @@ function emerson_schedule_sheet_export_url( string $url = '' ): string {
 	return 'https://docs.google.com/spreadsheets/d/' . $parsed['id'] . '/export?format=csv&gid=' . $parsed['gid'];
 }
 
+/**
+ * Google Sheets API key (optional). Constant / env first, then WordPress option.
+ * Needed when docs.google.com TLS is blocked but sheets.googleapis.com still works.
+ */
+function emerson_schedule_sheets_api_key(): string {
+	if ( defined( 'EMERSON_GOOGLE_SHEETS_API_KEY' ) ) {
+		$constant = constant( 'EMERSON_GOOGLE_SHEETS_API_KEY' );
+		if ( is_string( $constant ) && $constant !== '' ) {
+			return $constant;
+		}
+	}
+	$from_env = getenv( 'EMERSON_GOOGLE_SHEETS_API_KEY' );
+	if ( is_string( $from_env ) && $from_env !== '' ) {
+		return $from_env;
+	}
+	$stored = get_option( EMERSON_SCHEDULE_SHEET_API_OPTION, '' );
+	return is_string( $stored ) ? trim( $stored ) : '';
+}
+
+/**
+ * Download CSV via docs.google.com export (classic Anyone-with-link path).
+ *
+ * @return string|WP_Error CSV body or error.
+ */
+function emerson_schedule_sheet_fetch_docs_csv( string $export_url, int $timeout ) {
+	$response = wp_remote_get(
+		$export_url,
+		array(
+			'timeout'     => $timeout,
+			'user-agent'  => 'EmersonUUChapel/1.0 (WordPress calendar)',
+			'redirection' => 5,
+		)
+	);
+	if ( is_wp_error( $response ) ) {
+		return $response;
+	}
+	$code = (int) wp_remote_retrieve_response_code( $response );
+	$body = (string) wp_remote_retrieve_body( $response );
+	if ( $code < 200 || $code >= 300 || $body === '' ) {
+		return new WP_Error(
+			'emerson_sheet_http',
+			'Could not download the spreadsheet (HTTP ' . $code . '). Check that the sheet is shared so anyone with the link can view it.'
+		);
+	}
+	if ( 0 === strncmp( $body, '<', 1 ) ) {
+		return new WP_Error(
+			'emerson_sheet_html',
+			'Google returned a page instead of the spreadsheet. The file may be private, or this may be a new URL that needs Anyone-with-the-link access.'
+		);
+	}
+	return $body;
+}
+
+/**
+ * Turn a Sheets API values[][] matrix into CSV for the existing parser.
+ *
+ * @param array<int, array<int, string|int|float|bool|null>> $values API rows.
+ */
+function emerson_schedule_sheet_values_to_csv( array $values ): string {
+	$handle = fopen( 'php://temp', 'r+' );
+	if ( ! $handle ) {
+		return '';
+	}
+	foreach ( $values as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$cells = array();
+		foreach ( $row as $cell ) {
+			$cells[] = is_scalar( $cell ) || $cell === null ? (string) $cell : '';
+		}
+		fputcsv( $handle, $cells );
+	}
+	rewind( $handle );
+	$csv = stream_get_contents( $handle );
+	fclose( $handle );
+	return is_string( $csv ) ? $csv : '';
+}
+
+/**
+ * Download sheet grid via sheets.googleapis.com (works when docs.google.com TLS hangs).
+ *
+ * @return string|WP_Error CSV body or error.
+ */
+function emerson_schedule_sheet_fetch_api_csv( string $spreadsheet_id, string $gid, int $timeout ) {
+	$key = emerson_schedule_sheets_api_key();
+	if ( $key === '' ) {
+		return new WP_Error( 'emerson_sheet_no_key', 'No Google Sheets API key is configured.' );
+	}
+	$meta_url = add_query_arg(
+		array(
+			'fields' => 'sheets.properties',
+			'key'    => $key,
+		),
+		'https://sheets.googleapis.com/v4/spreadsheets/' . rawurlencode( $spreadsheet_id )
+	);
+	$meta_res = wp_remote_get(
+		$meta_url,
+		array(
+			'timeout'    => $timeout,
+			'user-agent' => 'EmersonUUChapel/1.0 (WordPress calendar)',
+		)
+	);
+	if ( is_wp_error( $meta_res ) ) {
+		return $meta_res;
+	}
+	$meta_code = (int) wp_remote_retrieve_response_code( $meta_res );
+	$meta_body = (string) wp_remote_retrieve_body( $meta_res );
+	$meta_json = json_decode( $meta_body, true );
+	if ( $meta_code < 200 || $meta_code >= 300 || ! is_array( $meta_json ) ) {
+		$msg = is_array( $meta_json ) && isset( $meta_json['error']['message'] )
+			? (string) $meta_json['error']['message']
+			: ( 'Sheets API metadata HTTP ' . $meta_code );
+		return new WP_Error( 'emerson_sheet_api_meta', $msg );
+	}
+	$title = '';
+	$want  = (int) $gid;
+	foreach ( $meta_json['sheets'] ?? array() as $sheet ) {
+		$props = is_array( $sheet ) ? ( $sheet['properties'] ?? null ) : null;
+		if ( ! is_array( $props ) ) {
+			continue;
+		}
+		if ( (int) ( $props['sheetId'] ?? -1 ) === $want ) {
+			$title = (string) ( $props['title'] ?? '' );
+			break;
+		}
+	}
+	if ( $title === '' && isset( $meta_json['sheets'][0]['properties']['title'] ) ) {
+		$title = (string) $meta_json['sheets'][0]['properties']['title'];
+	}
+	if ( $title === '' ) {
+		return new WP_Error( 'emerson_sheet_api_title', 'Could not find that tab in the Google spreadsheet.' );
+	}
+	$range = "'" . str_replace( "'", "''", $title ) . "'!A1:Z300";
+	$values_url = add_query_arg(
+		array(
+			'majorDimension' => 'ROWS',
+			'key'            => $key,
+		),
+		'https://sheets.googleapis.com/v4/spreadsheets/' . rawurlencode( $spreadsheet_id ) . '/values/' . rawurlencode( $range )
+	);
+	$values_res = wp_remote_get(
+		$values_url,
+		array(
+			'timeout'    => $timeout,
+			'user-agent' => 'EmersonUUChapel/1.0 (WordPress calendar)',
+		)
+	);
+	if ( is_wp_error( $values_res ) ) {
+		return $values_res;
+	}
+	$values_code = (int) wp_remote_retrieve_response_code( $values_res );
+	$values_body = (string) wp_remote_retrieve_body( $values_res );
+	$values_json = json_decode( $values_body, true );
+	if ( $values_code < 200 || $values_code >= 300 || ! is_array( $values_json ) ) {
+		$msg = is_array( $values_json ) && isset( $values_json['error']['message'] )
+			? (string) $values_json['error']['message']
+			: ( 'Sheets API values HTTP ' . $values_code );
+		return new WP_Error( 'emerson_sheet_api_values', $msg );
+	}
+	$values = $values_json['values'] ?? null;
+	if ( ! is_array( $values ) || $values === array() ) {
+		return new WP_Error( 'emerson_sheet_api_empty', 'Sheets API returned no cells for that tab.' );
+	}
+	$csv = emerson_schedule_sheet_values_to_csv( $values );
+	return $csv !== '' ? $csv : new WP_Error( 'emerson_sheet_api_csv', 'Could not convert Sheets API data to CSV.' );
+}
+
+/**
+ * Fetch spreadsheet CSV: Sheets API when a key is set (or as fallback), else docs export.
+ *
+ * @return string|WP_Error
+ */
+function emerson_schedule_sheet_fetch_csv( bool $refresh = false ) {
+	$parsed = emerson_schedule_sheet_parse_url( emerson_schedule_sheet_url() );
+	if ( ! $parsed ) {
+		return new WP_Error( 'emerson_sheet_url', 'The spreadsheet URL is not a Google Sheet link.' );
+	}
+	$timeout = $refresh ? 15 : 4;
+	$key     = emerson_schedule_sheets_api_key();
+	$errors  = array();
+
+	// Prefer API when configured — docs.google.com TLS often hangs on filtered networks.
+	if ( $key !== '' ) {
+		$api = emerson_schedule_sheet_fetch_api_csv( $parsed['id'], $parsed['gid'], $timeout );
+		if ( ! is_wp_error( $api ) ) {
+			return $api;
+		}
+		$errors[] = $api->get_error_message();
+	}
+
+	$export = emerson_schedule_sheet_export_url();
+	if ( $export === '' ) {
+		return new WP_Error( 'emerson_sheet_url', 'The spreadsheet URL is not a Google Sheet link.' );
+	}
+	$docs = emerson_schedule_sheet_fetch_docs_csv( $export, $timeout );
+	if ( ! is_wp_error( $docs ) ) {
+		return $docs;
+	}
+	$errors[] = $docs->get_error_message();
+
+	// Docs failed and we have not tried API yet (no key was set above path).
+	if ( $key === '' ) {
+		$errors[] = 'Optional fix: add a Google Sheets API key (Sunday Schedule admin, or EMERSON_GOOGLE_SHEETS_API_KEY). sheets.googleapis.com often works when docs.google.com times out.';
+	}
+
+	return new WP_Error( 'emerson_sheet_fetch', implode( ' | ', $errors ) );
+}
+
 function emerson_schedule_sheet_clear_cache(): void {
 	delete_transient( EMERSON_SCHEDULE_SHEET_CACHE );
+	delete_transient( EMERSON_SCHEDULE_SHEET_COOLDOWN );
+}
+
+/**
+ * True when cached sheet data has the current schema (including empty sunday lists).
+ *
+ * @param mixed $cached Transient or last-good payload.
+ */
+function emerson_schedule_sheet_cache_usable( $cached ): bool {
+	if ( ! is_array( $cached ) || ! isset( $cached['themes'], $cached['sundays'] ) || ! is_array( $cached['sundays'] ) ) {
+		return false;
+	}
+	if ( $cached['sundays'] === array() ) {
+		return true;
+	}
+	$sample = reset( $cached['sundays'] );
+	return is_array( $sample ) && array_key_exists( 'roster', $sample );
+}
+
+/**
+ * Last successful sheet payload (survives transient expiry and Google outages).
+ *
+ * @return array{themes:array<string,string>,sundays:array<string,array<string,mixed>>}|null
+ */
+function emerson_schedule_sheet_last_good(): ?array {
+	$last = get_option( EMERSON_SCHEDULE_SHEET_LAST, null );
+	return emerson_schedule_sheet_cache_usable( $last ) ? $last : null;
+}
+
+/**
+ * After a fetch failure: cool down so page loads do not wait on Google again,
+ * and keep serving the last good calendar data when we have it.
+ *
+ * @return array{themes:array<string,string>,sundays:array<string,array<string,mixed>>,error?:string}
+ */
+function emerson_schedule_sheet_fail( string $error ): array {
+	set_transient( EMERSON_SCHEDULE_SHEET_COOLDOWN, 1, EMERSON_SCHEDULE_SHEET_FAIL_TTL );
+	$last = emerson_schedule_sheet_last_good();
+	emerson_schedule_sheet_store_meta(
+		$error,
+		is_array( $last ) ? count( $last['sundays'] ) : 0,
+		is_array( $last ) ? count( $last['themes'] ) : 0
+	);
+	if ( $last ) {
+		$last['error'] = $error;
+		return $last;
+	}
+	return array(
+		'themes'  => array(),
+		'sundays' => array(),
+		'error'   => $error,
+	);
 }
 
 /**
@@ -78,55 +357,38 @@ function emerson_schedule_sheet_clear_cache(): void {
 function emerson_schedule_sheet_data( bool $refresh = false ): array {
 	if ( $refresh ) {
 		emerson_schedule_sheet_clear_cache();
-	}
-	$cached = get_transient( EMERSON_SCHEDULE_SHEET_CACHE );
-	if ( is_array( $cached ) && isset( $cached['themes'], $cached['sundays'] ) ) {
-		$sample = reset( $cached['sundays'] );
-		if ( is_array( $sample ) && array_key_exists( 'roster', $sample ) ) {
+	} else {
+		$cached = get_transient( EMERSON_SCHEDULE_SHEET_CACHE );
+		if ( emerson_schedule_sheet_cache_usable( $cached ) ) {
 			return $cached;
+		}
+		// Google timed out or failed recently — do not block every page for another 10–15s.
+		if ( get_transient( EMERSON_SCHEDULE_SHEET_COOLDOWN ) ) {
+			$last = emerson_schedule_sheet_last_good();
+			if ( $last ) {
+				$meta = get_option( EMERSON_SCHEDULE_SHEET_META, array() );
+				if ( is_array( $meta ) && ! empty( $meta['error'] ) && is_string( $meta['error'] ) ) {
+					$last['error'] = $meta['error'];
+				}
+				return $last;
+			}
+			return array(
+				'themes'  => array(),
+				'sundays' => array(),
+				'error'   => 'The Sunday schedule spreadsheet is temporarily unavailable.',
+			);
 		}
 	}
 
-	$empty = array(
-		'themes'  => array(),
-		'sundays' => array(),
-	);
-	$export = emerson_schedule_sheet_export_url();
-	if ( $export === '' ) {
-		$empty['error'] = 'The spreadsheet URL is not a Google Sheet link.';
-		emerson_schedule_sheet_store_meta( $empty['error'] );
-		return $empty;
+	$csv = emerson_schedule_sheet_fetch_csv( $refresh );
+	if ( is_wp_error( $csv ) ) {
+		return emerson_schedule_sheet_fail( $csv->get_error_message() );
 	}
 
-	// Follow Google's own redirects only; $export is always a rebuilt docs.google.com URL.
-	$response = wp_remote_get(
-		$export,
-		array(
-			'timeout'     => 15,
-			'user-agent'  => 'EmersonUUChapel/1.0 (WordPress calendar)',
-			'redirection' => 5,
-		)
-	);
-	if ( is_wp_error( $response ) ) {
-		$empty['error'] = $response->get_error_message();
-		emerson_schedule_sheet_store_meta( $empty['error'] );
-		return $empty;
-	}
-	$code = (int) wp_remote_retrieve_response_code( $response );
-	$body = (string) wp_remote_retrieve_body( $response );
-	if ( $code < 200 || $code >= 300 || $body === '' ) {
-		$empty['error'] = 'Could not download the spreadsheet (HTTP ' . $code . '). Check that the sheet is shared so anyone with the link can view it.';
-		emerson_schedule_sheet_store_meta( $empty['error'] );
-		return $empty;
-	}
-	if ( 0 === strncmp( $body, '<', 1 ) ) {
-		$empty['error'] = 'Google returned a page instead of the spreadsheet. The file may be private, or this may be a new URL that needs Anyone-with-the-link access.';
-		emerson_schedule_sheet_store_meta( $empty['error'] );
-		return $empty;
-	}
-
-	$parsed = emerson_schedule_sheet_parse_csv( $body );
+	$parsed = emerson_schedule_sheet_parse_csv( $csv );
 	set_transient( EMERSON_SCHEDULE_SHEET_CACHE, $parsed, EMERSON_SCHEDULE_SHEET_TTL );
+	delete_transient( EMERSON_SCHEDULE_SHEET_COOLDOWN );
+	update_option( EMERSON_SCHEDULE_SHEET_LAST, $parsed, false );
 	emerson_schedule_sheet_store_meta( '', count( $parsed['sundays'] ), count( $parsed['themes'] ) );
 	return $parsed;
 }
@@ -428,12 +690,22 @@ function emerson_schedule_decorate_list( string $html ): string {
 			if ( $row['title'] !== '' ) {
 				$event = preg_replace( '/<strong>Sunday Service<\/strong>/', '<strong>' . esc_html( $row['title'] ) . '</strong>', $event, 1 ) ?? $event;
 			}
+			/*
+			 * CA calendar-list already prints "Location: {location}". Only inject
+			 * Emerson's place under the speaker when that line is missing (same
+			 * idea as the month sidebar caHasPlace guard in custom.js).
+			 */
+			$place        = function_exists( 'emerson_sunday_place_line' ) ? emerson_sunday_place_line( $ymd ) : '';
+			$event_plain  = preg_replace( '/\s+/', ' ', wp_strip_all_tags( $event ) ) ?? '';
+			$place_plain  = preg_replace( '/\s+/', ' ', $place ) ?? '';
+			$ca_has_place = (bool) preg_match( '/Location\s*:/i', $event )
+				|| ( $place_plain !== '' && false !== stripos( $event_plain, $place_plain ) );
 			$detail = emerson_schedule_detail_html(
 				array(
 					'holiday'  => $row['holiday'],
 					'title'    => '',
 					'speaker'  => $row['speaker'],
-					'location' => function_exists( 'emerson_sunday_place_line' ) ? emerson_sunday_place_line( $ymd ) : '',
+					'location' => $ca_has_place ? '' : $place,
 				),
 				'emerson-ca-list'
 			);
@@ -818,6 +1090,14 @@ function emerson_schedule_admin_save(): ?string {
 		return 'That does not look like a Google Sheet link. Paste the address from the browser while the Sunday Morning Schedule tab is open.';
 	}
 	update_option( EMERSON_SCHEDULE_SHEET_OPTION, $url, false );
+	if ( isset( $_POST['sheets_api_key'] ) ) {
+		$key = trim( (string) wp_unslash( $_POST['sheets_api_key'] ) );
+		if ( $key === '' ) {
+			delete_option( EMERSON_SCHEDULE_SHEET_API_OPTION );
+		} else {
+			update_option( EMERSON_SCHEDULE_SHEET_API_OPTION, $key, false );
+		}
+	}
 	emerson_schedule_sheet_data( true );
 	return 'Saved. The calendar will use this spreadsheet.';
 }
@@ -849,12 +1129,23 @@ function emerson_schedule_admin_page(): void {
 	}
 	echo '<p>The public calendar reads <strong>monthly theme</strong>, <strong>holiday</strong>, <strong>title</strong>, and <strong>speaker</strong> from the church&#8217;s Sunday Morning Schedule spreadsheet. Serving-role names stay off the public site. The line under the month name is the theme; the PDF is <strong>This calendar PDF</strong> at the top of the Calendar page.</p>';
 	echo '<p>Edit the same Google Sheet they already use. Those edits show on the site after about 30 minutes, or immediately after <strong>Refresh from spreadsheet</strong>.</p>';
-	echo '<p>If they <em>replace</em> the file (a new spreadsheet, or a different tab), paste the new address below. It is the URL in the browser while that tab is open &mdash; it contains <code>/spreadsheets/d/&hellip;</code> and usually <code>gid=</code>.</p>';
+	echo '<p>If they <em>replace</em> the file (a new spreadsheet, or a different tab), paste the new address below. Use the URL from the browser while the Sunday Morning Schedule tab is open. It must include <code>gid=</code> (the tab id) &mdash; without it Google may return the wrong sheet or an error. <code>gid</code> is not an edit lock; the <code>/edit</code> path is fine. Emerson rebuilds a CSV export from the file id + tab.</p>';
 	echo '<form method="post">';
 	wp_nonce_field( 'emerson_schedule_save' );
 	echo '<table class="form-table" role="presentation"><tr><th scope="row"><label for="emerson-sheet-url">Spreadsheet URL</label></th><td>';
 	echo '<input name="sheet_url" id="emerson-sheet-url" type="url" class="large-text" value="' . esc_attr( emerson_schedule_sheet_url() ) . '">';
-	echo '<p class="description">Anyone-with-the-link view is enough. Do not put this edit address on a public page if they want the file private.</p>';
+	echo '<p class="description">Must include <code>gid=</code> for the Sunday Morning Schedule tab (example: <code>gid=2058833792</code>). Anyone-with-the-link view is enough. Do not put this edit address on a public page if they want the file private.</p>';
+	echo '</td></tr>';
+	$api_key     = emerson_schedule_sheets_api_key();
+	$api_via_env = ( defined( 'EMERSON_GOOGLE_SHEETS_API_KEY' ) && (string) constant( 'EMERSON_GOOGLE_SHEETS_API_KEY' ) !== '' )
+		|| ( is_string( getenv( 'EMERSON_GOOGLE_SHEETS_API_KEY' ) ) && getenv( 'EMERSON_GOOGLE_SHEETS_API_KEY' ) !== '' );
+	echo '<tr><th scope="row"><label for="emerson-sheets-api-key">Sheets API key</label></th><td>';
+	echo '<input name="sheets_api_key" id="emerson-sheets-api-key" type="password" class="regular-text" value="' . esc_attr( $api_via_env ? '' : $api_key ) . '" autocomplete="off" ' . disabled( $api_via_env, true, false ) . '>';
+	if ( $api_via_env ) {
+		echo '<p class="description">Using <code>EMERSON_GOOGLE_SHEETS_API_KEY</code> from the server environment. Leave the box empty.</p>';
+	} else {
+		echo '<p class="description">Optional. When <code>docs.google.com</code> times out (common on some networks), Emerson reads the same sheet through <code>sheets.googleapis.com</code> with this key. Create a Google Cloud API key with <strong>Google Sheets API</strong> enabled; the sheet still needs Anyone-with-the-link view. Leave blank to clear a saved key.</p>';
+	}
 	echo '</td></tr></table>';
 	echo '<p class="submit">';
 	echo '<button type="submit" name="emerson_schedule_save" value="1" class="button button-primary">Save URL</button> ';

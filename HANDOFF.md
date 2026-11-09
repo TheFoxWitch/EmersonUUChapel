@@ -20,7 +20,7 @@ Going live with a WPvivid backup of this local site: [`DEPLOY-WPVIVID.md`](DEPLO
 
 GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contains the docs, the Docker setup, the child theme, the mail catcher and `backups/`. No plugins, uploads or site backups (see `.gitignore`).
 
-> **Local email is in redirect mode (since 2026-09-29):** every email is really sent, but only to the existing `emerson_local_mail_redirect_to` address. The subject shows the original recipient. A copy is also saved in `wp-content/local-mail/`. Ordinary office mail still goes through WP Mail SMTP (webmaster@ NetSol). Emerson marketing/welcome sends use `emerson_marketing_mail_send()` / `inc/marketing-mail.php` with `marketing@emersonuuchapel.org` (password in gitignored `.env`). **Before the WPvivid backup**, switch back to save only with `docker compose run --rm -T wpcli option delete emerson_local_mail_redirect_to`. Every local-only setting and how to undo it is in the table at the top of [`DEPLOY-WPVIVID.md`](DEPLOY-WPVIVID.md). The testing list is in [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md).
+> **Local email is in save-only mode (as of 2026-11-08):** nothing is sent for real; each message is saved under `wp-content/local-mail/` with the real To/Subject (no `[LOCAL TEST → …]` prefix). Ordinary office mail would use WP Mail SMTP (webmaster@) on live; Emerson marketing/welcome uses `emerson_marketing_mail_send()` / `inc/marketing-mail.php` with `marketing@emersonuuchapel.org` (password in gitignored `.env`). To temporarily redirect real SMTP to one inbox again: `docker compose run --rm -T wpcli option update emerson_local_mail_redirect_to you@example.com`. Keep save-only before any WPvivid backup (`DEPLOY-WPVIVID.md`). Testing list: [`TEST-AND-LAUNCH-CHECKLIST.md`](TEST-AND-LAUNCH-CHECKLIST.md).
 
 ### Marketing mailbox (2026-11-07)
 - **Send (WordPress):** `marketing@emersonuuchapel.org`, SMTP port **587** STARTTLS, username `marketing@…`. Emerson uses NetSol platform host `netsol-smtp-oxcs.hostingplatform.com` because branded `smtp.emersonuuchapel.org` presents a mismatched TLS cert. Password only in `.env` / Docker env (or live `wp-config` constants) — never commit.
@@ -60,7 +60,7 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
   - `.gitignore` ready for GitHub.
   - **Newsletter sign-up:**
     - homepage pop-up and a Ways to Connect form, with email confirmation;
-    - confirmed subscribers saved to Church Admin as "Mailing List", and the office notified;
+    - confirmed subscribers saved to Church Admin as "Visitor" (Harlan, 2026-11-08; was Mailing List), and the office notified;
     - the pop-up comes back 30 days after it's closed;
     - Ways to Connect published, and the Privacy Policy updated.
 
@@ -87,7 +87,7 @@ GitHub: `git@github.com:TheFoxWitch/EmersonUUChapel.git` (branch `main`). Contai
 
 ### How forms and sign-up work (findings 2026-09-28)
 - **Newcomer Information form (WPForms 351, page 325):** emails `office@emersonuuchapel.org` only. Submissions aren't stored (WPForms Lite), no account is created, and visitors get no email.
-- **Church Admin sign-up (Members page, `/register/`):** visitor confirms their email, office is notified, **admin approval required**, then they're added to the directory with a login. Member types: Mailing List, Visitor, Friend, Member, Staff, and others.
+- **Church Admin sign-up (Members page, `/register/`):** new people are **Visitor** (type 4); they confirm email; office is notified; **admin approval required** — no auto login (Harlan). Logins only if an admin issues one later.
 - **Profile Builder sign-up (`/register-2/`, `/register-3/`):** retired (set to Draft) on 2026-09-28. It gave Subscriber accounts with no approval.
 - **Behind a login:** Address (member directory), Members page account and volunteer schedule, Member Home. Everything else is public.
 - **Church Admin permissions** (who can manage Directory, Calendar, Rota, Giving, etc.) are set per person under Church Admin's settings, not by WordPress role.

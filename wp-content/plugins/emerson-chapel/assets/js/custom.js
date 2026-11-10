@@ -441,6 +441,36 @@
 			return list.childNodes.length ? list : null;
 		}
 
+		/**
+		 * People who ticked can-serve / roles for this Sunday (not sheet assignments).
+		 */
+		function markedAvailableHtml(ymd) {
+			if (!data.canViewRoster) {
+				return null;
+			}
+			var names = (data.serviceRequests && data.serviceRequests[ymd]) || [];
+			if (!names.length) {
+				return null;
+			}
+			var wrap = document.createElement('div');
+			wrap.className = 'emerson-schedule-available';
+			var heading = document.createElement('h4');
+			heading.className = 'emerson-schedule-available__title';
+			heading.textContent = 'Marked Available';
+			wrap.appendChild(heading);
+			var list = document.createElement('ul');
+			list.className = 'emerson-schedule-available__list';
+			names.forEach(function (entry) {
+				var item = document.createElement('li');
+				var person = typeof entry === 'string' ? entry : entry.name || '';
+				var roles = entry && entry.roles && entry.roles.length ? entry.roles.join(', ') : '';
+				item.textContent = roles ? person + ': ' + roles : person;
+				list.appendChild(item);
+			});
+			wrap.appendChild(list);
+			return wrap;
+		}
+
 		function formatDay(ymd) {
 			var parts = String(ymd).split('-');
 			if (parts.length !== 3) {
@@ -1892,6 +1922,10 @@
 					var empty = document.createElement('p');
 					empty.textContent = 'The sheet has no serving names for this Sunday yet.';
 					panel.appendChild(empty);
+				}
+				var available = markedAvailableHtml(ymd);
+				if (available) {
+					panel.appendChild(available);
 				}
 				var close = document.createElement('button');
 				close.type = 'button';

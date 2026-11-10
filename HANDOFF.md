@@ -142,8 +142,8 @@ docker compose run --rm wpcli rewrite flush
 
 - **Done recently:** private `.docx` viewer (Mammoth); Members upcoming events categories `2,3,4`; calendar Zoom link; directory AJAX race fix; Docker WP 7.1.4 / PHP 8.2.35.
 - **Create login for a signup:** not **People → Create user** (bulk/random). Edit that person → create/link WordPress user. See `TROUBLESHOOTING.md`.
-- **Security audit:** [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md) **1–6 and #10 done**. Skipped for later: #7 admins, #8 TablePress, #9 REST, #11 host FS (Harlan steps in `DEPLOY-WPVIVID.md`). Come-back checklist is in that file.
-- **Still open:** who gets **Finance** role; Harlan live `localfiles/` + prefer `EMERSON_PRIVATE_DIR` + optional file modes; Newcomer → account policy; admin demotion list (#7).
+- **Security audit:** [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md) **1–6, #8–10 done**. **#7** deferred to church. **#9** REST discovery removed + anonymous users blocked (2026-11-10) — confirm Gutenberg save still works. **#11** closed (Harlan optional FS notes in `DEPLOY-WPVIVID.md`).
+- **Still open:** who gets **Finance** role; Harlan live `localfiles/` + prefer `EMERSON_PRIVATE_DIR`; Newcomer → account policy.
 
 ## Next session
 1. Make sure Docker Desktop is running, then `docker compose up -d`

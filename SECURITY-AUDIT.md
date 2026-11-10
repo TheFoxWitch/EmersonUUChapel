@@ -16,23 +16,27 @@ Related: Church Admin **People → Create user** is a bulk auto-login tool (rand
 | 4 | Theme/plugin file editor | `DISALLOW_FILE_EDIT` in Emerson | **Done** |
 | 5 | Unused Zephyr Administrator role | Remove when no holders | **Done** |
 | 6 | Unused application passwords | Revoked never-used password | **Done** |
-| 7 | Too many administrators | Church names who keep Admin | **Skipped for now** — see come-back list |
-| 8 | TablePress caps on Author | Confirm with church, then trim if unwanted | **Skipped for now** |
-| 9 | REST API auto-discover | Harden carefully after editor testing | **Skipped for now** |
+| 7 | Too many administrators | Leave current Admins as-is; church decides who to demote and does it in Users | **Deferred to church** (2026-11-09) |
+| 8 | TablePress caps on Author | Strip `tablepress_*` from Author; keep on Admin/Editor | **Done** (2026-11-10) |
+| 9 | REST API auto-discover | Remove front discovery; block anonymous `/wp/v2/users` | **Done** (2026-11-10) — verify Gutenberg after deploy |
 | 10 | NextGEN odd capability names | Remove orphan `NextGEN …` caps (plugin not installed) | **Done** (2026-11-06) |
 | 11 | Writable plugins/themes filesystem | Normal 755/644 only; **do not** set `DISALLOW_FILE_MODS` (blocks updates) | **Skip / closed** — see note below |
 
 ---
 
-## Come back later (skipped)
+## Come back later
 
 Use this list when ready; do not mark Done until checked on local.
 
-- [ ] **#7 Administrators** — Get a church decision on who stays **Administrator** vs **Editor** / **Finance** / **Subscriber**. Local count as of 2026-11-06: **6** administrator accounts (see session note / **Users → All Users** filtered by Administrator). Demote only with an explicit list.
-- [ ] **#8 TablePress on Author** — Ask whether Authors should add/edit/delete TablePress tables. If no, strip `tablepress_*` caps from Author (keep on Editor if editors need them).
-- [ ] **#9 REST API discovery** — Research a harden that does **not** break the block editor or Church Admin AJAX; test on local thoroughly before live.
+- [x] **#7 Administrators (decision recorded 2026-11-09)** — Keep everyone who is Admin for now. Church will decide who to remove and change roles themselves in **Users**. Emerson will not demote accounts. Local count was **6** Administrators as of 2026-11-06.
+- [x] **#8 TablePress on Author (2026-11-10)** — Church: **No**. Emerson strips `tablepress_*` from Author on `init` (`inc/security.php`). Administrators and Editors keep full TablePress access.
+- [x] **#9 REST API discovery (2026-11-10)** — After backup: removed public REST discovery (`rest_output_link_wp_head`, `rest_output_link_header`, RSD) and blocked anonymous `/wp/v2/users` (enumeration). Did **not** disable REST for logged-in users. **Test:** open Gutenberg, save a page, Members calendar still works.
 
 ~~#11~~ closed — writable plugins/themes is normal; keep dashboard updates. File Editor already disabled (#4). Do not use `DISALLOW_FILE_MODS`.
+
+### #8 explained (TablePress on Author) — done
+
+**TablePress** stores HTML tables in the admin (not a normal page table block). Authors previously could add/edit/delete/import/export those tables site-wide. Church answer **No** (2026-11-10): only Administrators and Editors manage TablePress. Emerson removes Author’s `tablepress_*` caps on every `init` so a plugin update cannot quietly put them back.
 
 ---
 

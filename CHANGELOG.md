@@ -10,6 +10,26 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-10
+
+### Schedule day panel lists Marked Available volunteers
+- Clicking a Sunday on `/schedule` still shows the Google Sheet roster first. Roster viewers now also get a separate **Marked Available** list (name + roles from the serving form), using the same `serviceRequests` data as the calendar Service Requests popup.
+- **File:** `assets/js/custom.js`, `assets/css/custom.css`, `inc/service-schedule.php` (legend).
+
+### Security audit #9: REST discovery + anonymous users
+- Public pages no longer advertise `/wp-json/` via `<link rel="https://api.w.org/">`, the HTTP `Link` header, or RSD. Anonymous `/wp/v2/users` returns 401 (was listing author profiles). Logged-in REST stays on for Gutenberg and plugins; Church Admin AJAX unchanged.
+- **File:** `inc/security.php`. Tracker: `SECURITY-AUDIT.md`. **Please verify:** edit/save a page in Gutenberg after deploy.
+
+### Security audit #8: Authors lose TablePress
+- Church: Authors must not manage TablePress tables. Emerson strips all `tablepress_*` caps from Author on `init`; Administrators and Editors keep them.
+- **File:** `inc/security.php`. Tracker: `SECURITY-AUDIT.md`.
+
+## 2026-11-09
+
+### Cookies page preference buttons centred
+- Preferences row (`Clear the newsletter reminder` / `Show the cookie notice again`) was left-aligned under centred headings. Flex now centres the pair and the status line.
+- **File:** `assets/css/custom.css` (`.emerson-cookie-pref`).
+
 ## 2026-11-08
 
 ### Media library: alt text on every image

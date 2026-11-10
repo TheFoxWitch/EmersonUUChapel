@@ -188,6 +188,11 @@ Custom dialogs and the built-in pledge / recommitment / PayPal openers are drive
 - **Missing `gid=`:** the tab id in the URL (`gid=2058833792` for Sunday Morning Schedule). Without it, Google’s CSV export used tab `0` and returned HTTP 400 on this workbook. Keep `gid=` when you paste; `/edit` in the path is fine. Emerson now falls back to that Sunday tab for this known file id if `gid` is omitted.
 - **Fix:** paste the browser URL while that tab is open (with `gid=`), Save, then **Refresh from spreadsheet**.
 
+### Gutenberg or plugins break after the REST harden (#9)
+- Emerson only removes **discovery** (public `api.w.org` link / `Link` header / RSD) and blocks **anonymous** `/wp/v2/users`. Logged-in REST stays on.
+- If the block editor cannot load or save: confirm you are logged in; hard-refresh wp-admin; check the browser network tab for `/wp-json/` 401/403 on non-user routes — that would be something else, not this harden.
+- To temporarily undo for diagnosis: comment out `emerson_security_remove_rest_discovery` and `emerson_security_block_anonymous_rest_users` in `inc/security.php`.
+
 ### Members Upcoming events shows the YMCA address twice
 - **Cause:** Emerson’s calendar-list decorate injected the Sunday place under the speaker, and Church Admin also printed `Location:` from the same CA `location` field. Not a master-calendar duplicate.
 - **Fix (2026-11-08):** `emerson_schedule_decorate_list()` skips the under-speaker place when CA already has `Location:` / the place text (same idea as the month sidebar). Keep using Event Places / CA location as usual.

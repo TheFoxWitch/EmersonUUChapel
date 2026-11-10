@@ -128,7 +128,7 @@ add_shortcode(
 			$out .= emerson_schedule_theme_html( substr( $first, 0, 7 ) );
 		}
 		if ( function_exists( 'emerson_schedule_can_view_roster' ) && emerson_schedule_can_view_roster() ) {
-			$out .= '<p class="emerson-schedule__legend">Click a Sunday for liturgist, greeter, and the rest of that day&#8217;s sheet row.</p>';
+			$out .= '<p class="emerson-schedule__legend">Click a Sunday for that day&#8217;s sheet roster and anyone Marked Available.</p>';
 		}
 		if ( $jobs ) {
 			$out .= '<p class="emerson-schedule__legend"><span class="emerson-schedule__serving">You&#8217;re serving</span> marks a Sunday you&#8217;re on the schedule.</p>';

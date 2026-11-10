@@ -2499,6 +2499,29 @@ input.ca-search-submit:focus-visible {
 	margin: 0;
 }
 
+.emerson-schedule-available {
+	margin: 0.85em 0 0;
+	padding-top: 0.65em;
+	border-top: 1px solid #e6e8f2;
+}
+
+.emerson-schedule-available__title {
+	margin: 0 0 0.35em;
+	font-size: 1em;
+	font-weight: 700;
+	color: #2e3a78;
+}
+
+.emerson-schedule-available__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.emerson-schedule-available__list li {
+	padding: 0.25em 0;
+}
+
 .emerson-schedule__grid td.is-serving {
 	box-shadow: inset 3px 0 0 var(--emerson-blue);
 }
@@ -3184,8 +3207,11 @@ blockquote {
 .emerson-cookie-pref {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.6rem;
-	margin: 0.75rem 0 0.35rem;
+	justify-content: center;
+	align-items: center;
+	gap: 0.75rem;
+	margin: 0.75rem auto 0.35rem;
+	text-align: center;
 }
 
 .emerson-cookie-pref button {
@@ -3211,6 +3237,7 @@ blockquote {
 	flex-basis: 100%;
 	min-height: 1.4em;
 	margin: 0;
+	text-align: center;
 }
 
 @media (max-width: 782px) {

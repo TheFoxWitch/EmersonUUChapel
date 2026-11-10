@@ -1685,33 +1685,64 @@ table.ca-calendar-list-chooser {
 }
 
 /*
- * CA front-end register actions (Edit address / person, Add, Delete… and Save on
- * Edit Address / Edit person): Emerson Blue; ~20% above the browser default submit
- * (was ~33%, then −10%). Same look on every page that renders these CA controls.
+ * CA front-end register actions share one size (~20% above browser default submit).
+ * Back / Save stay Emerson Blue. Household overview Edit / Delete / Add use CA’s
+ * green/red (`church-admin-button`) but match that same height, padding, and type.
  */
 input.church-admin-register-button,
 a.emerson-ca-register-back.church-admin-register-button,
-.church-admin-shortcode-output .church-admin-form-group > input[type="submit"] {
+.church-admin-shortcode-output .church-admin-form-group > input[type="submit"],
+.church-admin-shortcode-output input.church-admin-button,
+.church-admin-register input.church-admin-button {
 	min-height: 26px;
 	padding: 0.315em 0.765em;
 	border: 0;
 	border-radius: 3px;
-	background: var(--emerson-blue) !important;
-	color: #fff !important;
 	font: inherit;
 	font-size: 16.2px;
 	line-height: 1.2;
 	cursor: pointer;
 	transition: transform 0.3s ease-in-out;
+	box-sizing: border-box;
+}
+
+input.church-admin-register-button,
+a.emerson-ca-register-back.church-admin-register-button,
+.church-admin-shortcode-output .church-admin-form-group > input[type="submit"] {
+	background: var(--emerson-blue) !important;
+	color: #fff !important;
 }
 
 a.emerson-ca-register-back.church-admin-register-button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	box-sizing: border-box;
 	text-decoration: none;
 	vertical-align: middle;
+}
+
+/*
+ * CA date fields: calendar icon lives in the label; opens the picker on click.
+ * Input focus is for typing only (see church-admin-register.js).
+ */
+.church-admin-shortcode-output .emerson-ca-datepicker-trigger,
+.church-admin-form-group .emerson-ca-datepicker-trigger {
+	display: inline-block;
+	margin-left: 7px;
+	vertical-align: middle;
+	cursor: pointer;
+	line-height: 1;
+	/* Keep dashicon look even with jQuery UI’s .ui-datepicker-trigger class. */
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.church-admin-shortcode-output .church-admin-form-group button.ui-datepicker-trigger {
+	display: none !important;
 }
 
 /*
@@ -1740,8 +1771,10 @@ a.emerson-ca-register-back.church-admin-register-button {
 }
 
 /*
- * Household overview (people table present): centre the stacked card at every
- * viewport. Edit person / Edit address forms keep normal left-aligned fields.
+ * Household overview (people table present): centre the card. Header actions
+ * stack (Back → Edit information → Add a person). People are one column on
+ * mobile/tablet; two+ side-by-side on desktop (first person leftmost).
+ * Edit person / Edit address forms stay left-aligned (no ca-table).
  */
 .church-admin-register:has(table.ca-table) {
 	text-align: center;
@@ -1753,18 +1786,29 @@ a.emerson-ca-register-back.church-admin-register-button {
 }
 
 .church-admin-register:has(table.ca-table) > p,
-.church-admin-register:has(table.ca-table) > form {
+.church-admin-register:has(table.ca-table) > form,
+.church-admin-register:has(table.ca-table) .emerson-ca-register-add {
 	text-align: center;
 }
 
-.church-admin-register:has(table.ca-table) > form {
+.church-admin-shortcode-output p.emerson-ca-register-actions {
+	flex-direction: column;
+}
+
+.church-admin-register:has(table.ca-table) > form,
+.church-admin-register:has(table.ca-table) .emerson-ca-register-add {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
+	margin: 0.35rem 0 1em;
 	gap: 0.5rem;
 }
 
-/* Always stack people cells (CA only did this under 1000px). */
+.church-admin-register:has(table.ca-table) .emerson-ca-register-add {
+	margin-bottom: 1.25em;
+}
+
+/* People cells stack inside each person; table rows are the person cards. */
 .church-admin-register table.ca-table,
 .church-admin-register table.ca-table tbody,
 .church-admin-register table.ca-table tr {
@@ -1798,6 +1842,37 @@ a.emerson-ca-register-back.church-admin-register-button {
 	margin-right: auto;
 }
 
+/* Desktop: person rows side by side; first person (head / earliest) on the left. */
+@media (min-width: 1025px) {
+	.church-admin-register table.ca-table {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: flex-start;
+		gap: 2rem 3rem;
+		width: 100%;
+		max-width: 56rem;
+	}
+
+	.church-admin-register table.ca-table tbody {
+		display: contents;
+	}
+
+	.church-admin-register table.ca-table tr {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 16rem;
+		width: auto;
+		max-width: 20rem;
+		margin: 0;
+	}
+
+	.church-admin-register table.ca-table td {
+		width: 100%;
+		max-width: 100%;
+	}
+}
+
 input.church-admin-register-button:hover,
 input.church-admin-register-button:focus-visible,
 a.emerson-ca-register-back.church-admin-register-button:hover,
@@ -1806,6 +1881,13 @@ a.emerson-ca-register-back.church-admin-register-button:focus-visible,
 .church-admin-shortcode-output .church-admin-form-group > input[type="submit"]:focus-visible {
 	background: var(--emerson-blue) !important;
 	color: #fff !important;
+	transform: scale(1.05);
+}
+
+.church-admin-shortcode-output input.church-admin-button:hover,
+.church-admin-shortcode-output input.church-admin-button:focus-visible,
+.church-admin-register input.church-admin-button:hover,
+.church-admin-register input.church-admin-button:focus-visible {
 	transform: scale(1.05);
 }
 

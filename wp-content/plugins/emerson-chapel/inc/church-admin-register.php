@@ -12,6 +12,9 @@
  *   is on (missing here), and only reveals it on marital change — not on load. Emerson
  *   forces the option on the front end, shows/hides for Married, and saves the date to
  *   the household (CA's person save never writes wedding_anniversary).
+ * - Typed dates (birthday, anniversary, custom date fields): CA only persists the hidden
+ *   Y-m-d input filled by the calendar popup. Typing into the visible *x field is ignored.
+ *   Emerson rewrites those POST keys from the typed value before CA saves.
  * - Person photo: CA's draganddrop.js often never loads for the register block, and the
  *   markup has no file input — drops open the image in a new tab. Emerson wires click
  *   and drag/drop on Edit person/address boxes and on the household overview person
@@ -23,7 +26,7 @@
  *   wp_login_form. On Members that sits under Profile Builder’s login. Emerson strips that
  *   form and opens a dialog: “already registered — please log in above.”
  * - Household overview card: CA has no way back to Members; Emerson inserts a Back link
- *   immediately before “Edit address”.
+ *   immediately before “Edit information” (CA’s Edit address control).
  * - Logged-in visits to /register/ keep the WP page title “Register”; Emerson renames the
  *   on-page and browser titles to “Edit Profile” (new sign-up still says Register).
  *
@@ -332,13 +335,36 @@ function emerson_ca_ensure_photo_permission_on_save(): void {
 }
 
 /**
+ * During CA register/profile render, show date pickers as n/j/Y (e.g. 2/14/1980)
+ * so typed dates match the calendar and birthday behavior. Site-wide date_format
+ * stays untouched outside this request-scoped flag.
+ *
+ * @param mixed $format Stored WP date_format.
+ * @return mixed
+ */
+function emerson_ca_register_mdy_date_format( $format ) {
+	if ( ! empty( $GLOBALS['emerson_ca_mdy_dates'] ) ) {
+		return 'n/j/Y';
+	}
+	return $format;
+}
+
+add_filter( 'option_date_format', 'emerson_ca_register_mdy_date_format' );
+
+/**
  * Start request-scoped household spoofing for Directory editors.
  */
 function emerson_ca_begin_register_spoof(): void {
+	// Match birthday: easy US numeric dates on every CA register date picker this request.
+	$GLOBALS['emerson_ca_mdy_dates'] = true;
+
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- CA verifies its own nonce later.
 	if ( ! empty( $_POST['ca-cmd'] ) && 'delete-household' === $_POST['ca-cmd'] ) {
 		emerson_ca_ensure_address_list_stub();
 	}
+
+	// Before CA reads POST on edit-person / edit-address / register / add-person.
+	emerson_ca_normalize_typed_date_posts();
 
 	emerson_ca_preserve_person_photo_on_save();
 	emerson_ca_ensure_photo_permission_on_save();
@@ -378,20 +404,33 @@ function emerson_ca_finish_register_output( string $output ): string {
 	emerson_ca_restore_person_directory_visibility();
 	$output = emerson_ca_fix_person_type_and_marital_selects( $output );
 	$output = emerson_ca_add_household_contact_fields( $output );
+	// Keep mdy flag on so an injected anniversary picker matches DOB format.
 	$output = emerson_ca_ensure_wedding_anniversary_ui( $output );
 	$output = emerson_ca_mark_privacy_ui_in_form( $output );
 	$output = emerson_ca_rewrite_existing_email_login( $output );
 	$output = emerson_ca_label_photo_boxes( $output );
 	$output = emerson_ca_enhance_overview_person_photos( $output );
 	$output = emerson_ca_add_members_back_button( $output );
+	$output = emerson_ca_relabel_edit_address_button( $output );
+	$output = emerson_ca_restructure_household_overview( $output );
 	if ( str_contains( $output, 'ca-upload-area' ) || str_contains( $output, 'emerson-ca-person-photo' ) ) {
 		emerson_ca_enqueue_register_upload_script();
 	}
+	if ( str_contains( $output, 'clonableDatePicker' ) ) {
+		emerson_ca_enqueue_register_script();
+		// Force jQuery UI format even if a picker was rendered before the mdy flag.
+		$output = (string) preg_replace(
+			'/var caJSDateFormat="[^"]*"/',
+			'var caJSDateFormat="m/d/yy"',
+			$output
+		);
+	}
+	unset( $GLOBALS['emerson_ca_mdy_dates'] );
 	return emerson_ca_fix_delete_household_message( $output );
 }
 
 /**
- * Household overview: Back to Members before “Edit address” (CA has no return link).
+ * Household overview: Back to Members before “Edit information” (CA has no return link).
  */
 function emerson_ca_add_members_back_button( string $html ): string {
 	if ( ! str_contains( $html, 'name="ca-cmd" value="edit-address"' ) ) {
@@ -418,6 +457,158 @@ function emerson_ca_add_members_back_button( string $html ): string {
 	);
 
 	return is_string( $replaced ) ? $replaced : $html;
+}
+
+/**
+ * Household overview green button: CA says “Edit address”; chapel wording is “Edit information”.
+ * Does not change the edit-address form itself (still saves address/phone).
+ */
+function emerson_ca_relabel_edit_address_button( string $html ): string {
+	if ( ! str_contains( $html, 'value="edit-address"' ) || ! str_contains( $html, 'Edit address' ) ) {
+		return $html;
+	}
+
+	$label = esc_attr__( 'Edit information', 'emerson-chapel' );
+	$with  = preg_replace(
+		'#(<form\b[^>]*>\s*<input\b[^>]*name="ca-cmd"[^>]*value="edit-address"[^>]*>.*?<input\b[^>]*type="submit"[^>]*\bvalue=")Edit address(")#is',
+		'$1' . $label . '$2',
+		$html,
+		1
+	);
+
+	return is_string( $with ) ? $with : $html;
+}
+
+/**
+ * Household overview layout helpers:
+ * - People rows in head / people_order / first-added order (earliest person first).
+ * - Move “Add a person” up with Back / Edit information (matches the desktop card mock).
+ *
+ * @param string $html Register output.
+ * @return string
+ */
+function emerson_ca_restructure_household_overview( string $html ): string {
+	if ( ! str_contains( $html, 'class="table table-bordered ca-table"' )
+		&& ! str_contains( $html, "class='table table-bordered ca-table'" )
+		&& ! str_contains( $html, 'ca-table' )
+	) {
+		return $html;
+	}
+	if ( ! str_contains( $html, 'value="edit-person"' ) ) {
+		return $html;
+	}
+
+	if ( ! preg_match( '#<table\b[^>]*\bca-table\b[^>]*>(.*?)</table>#is', $html, $table_m ) ) {
+		return $html;
+	}
+
+	$inner = $table_m[1];
+	if ( ! preg_match_all( '#<tr\b[^>]*>.*?</tr>#is', $inner, $row_m ) ) {
+		return $html;
+	}
+
+	$person_rows = array();
+	$add_row     = null;
+	$other_rows  = array();
+
+	foreach ( $row_m[0] as $row ) {
+		if ( str_contains( $row, 'value="add-person"' ) ) {
+			$add_row = $row;
+			continue;
+		}
+		if ( str_contains( $row, 'value="edit-person"' )
+			&& preg_match( '#name="id"\s+value="(\d+)"#', $row, $id_m )
+		) {
+			$person_rows[] = array(
+				'id'  => (int) $id_m[1],
+				'html' => $row,
+			);
+			continue;
+		}
+		$other_rows[] = $row;
+	}
+
+	if ( $person_rows ) {
+		$ids = array_values( array_unique( array_column( $person_rows, 'id' ) ) );
+		$order_map = emerson_ca_household_people_display_order( $ids );
+		usort(
+			$person_rows,
+			static function ( array $a, array $b ) use ( $order_map ): int {
+				$oa = $order_map[ $a['id'] ] ?? PHP_INT_MAX;
+				$ob = $order_map[ $b['id'] ] ?? PHP_INT_MAX;
+				if ( $oa === $ob ) {
+					return $a['id'] <=> $b['id'];
+				}
+				return $oa <=> $ob;
+			}
+		);
+	}
+
+	$new_inner = '';
+	foreach ( $person_rows as $person ) {
+		$new_inner .= $person['html'];
+	}
+	foreach ( $other_rows as $row ) {
+		$new_inner .= $row;
+	}
+
+	$html = str_replace( $table_m[0], '<table class="table table-bordered ca-table">' . $new_inner . '</table>', $html );
+
+	if ( null !== $add_row && preg_match( '#<form\b[^>]*>.*?</form>#is', $add_row, $form_m ) ) {
+		$add_form = '<div class="emerson-ca-register-add">' . $form_m[0] . '</div>';
+		// After Edit information (Back → Edit information → Add a person).
+		$with = preg_replace(
+			'#(<form\b[^>]*>\s*<input\b[^>]*name="ca-cmd"[^>]*value="edit-address"[^>]*>.*?</form>)#is',
+			'$1' . $add_form,
+			$html,
+			1
+		);
+		if ( ! is_string( $with ) || $with === $html ) {
+			$with = str_replace(
+				'<table class="table table-bordered ca-table">',
+				$add_form . '<table class="table table-bordered ca-table">',
+				$html
+			);
+		}
+		if ( is_string( $with ) ) {
+			$html = $with;
+		}
+	}
+
+	return $html;
+}
+
+/**
+ * Stable display order for household people: head first, then people_order, then earliest id.
+ *
+ * @param int[] $people_ids People ids present in the overview table.
+ * @return array<int, int> people_id => sort rank (0 = first).
+ */
+function emerson_ca_household_people_display_order( array $people_ids ): array {
+	$people_ids = array_values( array_filter( array_map( 'intval', $people_ids ) ) );
+	if ( ! $people_ids ) {
+		return array();
+	}
+
+	global $wpdb;
+	$placeholders = implode( ',', array_fill( 0, count( $people_ids ), '%d' ) );
+	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- placeholders built above.
+	$sql = $wpdb->prepare(
+		"SELECT people_id FROM {$wpdb->prefix}church_admin_people
+		WHERE people_id IN ($placeholders)
+		ORDER BY head_of_household DESC, people_order ASC, people_id ASC",
+		...$people_ids
+	);
+	$ordered = $wpdb->get_col( $sql );
+	if ( ! is_array( $ordered ) ) {
+		return array();
+	}
+
+	$map = array();
+	foreach ( array_values( $ordered ) as $rank => $id ) {
+		$map[ (int) $id ] = (int) $rank;
+	}
+	return $map;
 }
 
 /**
@@ -729,7 +920,8 @@ function emerson_ca_ensure_wedding_anniversary_ui( string $html ): string {
 			}
 		}
 		$field  = '<div class="church-admin-form-group" id="wedding-anniversary" style="display:none">';
-		$field .= '<label for="wedding_anniversary">' . esc_html__( 'Wedding Anniversary', 'church-admin' ) . '</label>';
+		// for= visible input (…x); hidden Y-m-d must not steal focus when the icon is clicked.
+		$field .= '<label for="wedding_anniversaryx">' . esc_html__( 'Wedding Anniversary', 'church-admin' ) . '</label>';
 		$field .= church_admin_premium_date_picker( $wa, 'wedding_anniversary', false, '1910', null, 'wedding_anniversary', 'wedding_anniversary', false, null, null, null );
 		$field .= '</div>';
 		$with   = preg_replace(
@@ -749,6 +941,7 @@ function emerson_ca_ensure_wedding_anniversary_ui( string $html ): string {
 /**
  * Parse a typed or picker date into Y-m-d. Accepts Y-m-d, m/d/Y, m/d/y (US), and
  * common dash/dot variants. Two-digit years: 00–69 → 2000–2069, 70–99 → 1970–1999.
+ * Also accepts site-style strings (e.g. "January 15, 1980") via strtotime.
  */
 function emerson_ca_parse_flexible_date( string $raw ): ?string {
 	$raw = trim( $raw );
@@ -757,9 +950,9 @@ function emerson_ca_parse_flexible_date( string $raw ): ?string {
 	}
 
 	if ( preg_match( '/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $raw, $m ) ) {
-		$y = (int) $m[1];
+		$y  = (int) $m[1];
 		$mo = (int) $m[2];
-		$d = (int) $m[3];
+		$d  = (int) $m[3];
 		return checkdate( $mo, $d, $y ) ? sprintf( '%04d-%02d-%02d', $y, $mo, $d ) : null;
 	}
 
@@ -780,6 +973,59 @@ function emerson_ca_parse_flexible_date( string $raw ): ?string {
 	}
 	// Calendar date only — avoid site timezone shifting the day.
 	return gmdate( 'Y-m-d', $ts );
+}
+
+/**
+ * Church Admin date pickers: visible field is {name}x; save only reads hidden {name} (Y-m-d),
+ * which the calendar popup fills. Rewrite POST from the typed value before CA saves so
+ * birthday / anniversary / custom dates survive without using the popup — on edit-person,
+ * edit-address, basic-register, and add-person alike.
+ */
+function emerson_ca_normalize_typed_date_posts(): void {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- CA verifies its own nonce.
+	if ( empty( $_POST ) ) {
+		return;
+	}
+
+	$bases = array();
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	if ( isset( $_POST['date_of_birthx'] ) ) {
+		$bases[] = 'date_of_birth';
+	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	if ( isset( $_POST['wedding_anniversaryx'] ) ) {
+		$bases[] = 'wedding_anniversary';
+	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	foreach ( array_keys( $_POST ) as $key ) {
+		if ( is_string( $key ) && preg_match( '/^(custom-\d+)x$/', $key, $m ) ) {
+			$bases[] = $m[1];
+		}
+	}
+	$bases = array_values( array_unique( $bases ) );
+	if ( ! $bases ) {
+		return;
+	}
+
+	foreach ( $bases as $base ) {
+		$typed_key = $base . 'x';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! isset( $_POST[ $typed_key ] ) ) {
+			continue;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$typed = sanitize_text_field( wp_unslash( (string) $_POST[ $typed_key ] ) );
+		if ( trim( $typed ) === '' ) {
+			// Member cleared the visible field — clear the hidden Y-m-d too.
+			$_POST[ $base ] = '';
+			continue;
+		}
+		$ymd = emerson_ca_parse_flexible_date( $typed );
+		if ( null !== $ymd ) {
+			$_POST[ $base ] = $ymd;
+		}
+		// Unparseable typed text: leave the hidden field alone (calendar value or empty).
+	}
 }
 
 /**

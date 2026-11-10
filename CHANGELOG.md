@@ -12,6 +12,22 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-11-10
 
+### Register Edit / Delete buttons match Back button size
+- Household overview still uses CA’s green Edit and red Delete colours (`church-admin-button`), but those controls now share the same height, padding, and type size as the Emerson Blue Back link (and Save on Edit Address / Edit person). The overview green button label is **Edit information** (CA’s “Edit address”).
+- **File:** `assets/css/custom.css`, `inc/church-admin-register.php`.
+
+### Household overview: desktop two-column people, first person first
+- On viewports wider than 1024px, household people sit side by side (name / Edit / Delete / photo per column). Mobile and tablet stay a single stacked column. Rows are ordered head of household → `people_order` → earliest people id, so the first listed person is on the left (or top on small screens). **Add a person** moves up with Back / Edit information; **Delete Household** stays under the people.
+- **File:** `inc/church-admin-register.php`, `assets/css/custom.css`.
+
+### Typed birthday (and other CA dates) now save without the calendar popup
+- Church Admin only persisted the hidden `Y-m-d` field filled by the datepicker. Typing into Date of birth left `date_of_birthx` filled and the hidden field empty, so save wrote `null`. Emerson now rewrites POST from the typed value before CA saves (birthday, wedding anniversary, custom-`*x` dates on edit-person, edit-address, register, and add-person) and syncs every `.clonableDatePicker` on blur/submit. Register/profile pickers use `M/D/YYYY`, open the calendar only from the icon (not on focus), and Backspace no longer clears the whole field mid-type.
+- **File:** `inc/church-admin-register.php`, `assets/js/church-admin-register.js`, `assets/css/custom.css`.
+
+### Directory letter click keeps highlight and card in sync
+- Clicking an A–Z letter loads that letter’s first household into the detail card and moves the sidebar highlight with it (previously the old name stayed highlighted).
+- **File:** `assets/js/custom.js`.
+
 ### Schedule day panel lists Marked Available volunteers
 - Clicking a Sunday on `/schedule` still shows the Google Sheet roster first. Roster viewers now also get a separate **Marked Available** list (name + roles from the serving form), using the same `serviceRequests` data as the calendar Service Requests popup.
 - **File:** `assets/js/custom.js`, `assets/css/custom.css`, `inc/service-schedule.php` (legend).

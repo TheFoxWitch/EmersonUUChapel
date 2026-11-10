@@ -188,6 +188,23 @@ Custom dialogs and the built-in pledge / recommitment / PayPal openers are drive
 - **Missing `gid=`:** the tab id in the URL (`gid=2058833792` for Sunday Morning Schedule). Without it, Google’s CSV export used tab `0` and returned HTTP 400 on this workbook. Keep `gid=` when you paste; `/edit` in the path is fine. Emerson now falls back to that Sunday tab for this known file id if `gid` is omitted.
 - **Fix:** paste the browser URL while that tab is open (with `gid=`), Save, then **Refresh from spreadsheet**.
 
+### Birthday (or other dates) disappear after typing them on Edit Profile
+- **Cause:** Church Admin date widgets have a visible field (`date_of_birthx`) and a hidden `Y-m-d` field. Only the hidden one is saved, and the calendar popup is what fills it. Typing alone left the hidden field empty → save stored `null`. CA also clears the field on Backspace/Delete, which fights mid-type edits.
+- **Fix (2026-11-10):** Emerson rewrites the hidden POST value from what was typed (birthday, wedding anniversary, custom dates; also register/add-person) and syncs every `.clonableDatePicker` on blur/submit. Register/profile pickers display as `M/D/YYYY`; the calendar opens only from the calendar icon (not when focusing the field); Backspace no longer wipes the whole value.
+- **Still works:** picking a day from the calendar icon popup. Prefer `M/D/YYYY` (also accepts `YYYY-MM-DD` or long forms like `January 15, 1980`).
+
+### Directory shows the wrong household after clicking a letter
+- **Cause:** Letter click loaded the letter’s first household into the detail card but left the previous name highlighted.
+- **Fix (2026-11-10):** Letter click moves the highlight and the card together via `selectHousehold()` in `assets/js/custom.js`.
+
+### Co-habitator / new person missing from the Members directory card
+- **Cause:** Church Admin only lists people with **“To show me on the password protected address list”** checked (`show_me=1`). New people default to unchecked, so they can appear under Edit Profile while staying off the directory.
+- **Fix:** Edit that person, tick the box, Save, reload Members. Not an Emerson filter.
+
+### Register Edit address / Edit person / Delete look smaller than Back
+- **Cause:** Those actions use CA’s `church-admin-button` (green/red). Emerson’s larger sizing only targeted `church-admin-register-button` (Back / Save).
+- **Fix (2026-11-10):** Same size metrics apply to register `church-admin-button` controls; colours stay green/red. The overview green button reads **Edit information** (still opens CA’s edit-address form).
+
 ### Gutenberg or plugins break after the REST harden (#9)
 - Emerson only removes **discovery** (public `api.w.org` link / `Link` header / RSD) and blocks **anonymous** `/wp/v2/users`. Logged-in REST stays on.
 - If the block editor cannot load or save: confirm you are logged in; hard-refresh wp-admin; check the browser network tab for `/wp-json/` 401/403 on non-user routes — that would be something else, not this harden.

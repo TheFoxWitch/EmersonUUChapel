@@ -3536,6 +3536,25 @@
 			});
 		}
 
+		// Keep sidebar highlight, detail card, and mobile picker on the same household.
+		function selectHousehold(id) {
+			id = String(id || '');
+			if (!id) {
+				return;
+			}
+			$root
+				.find('.church-admin-directory-name')
+				.removeClass('church-admin-highlighted-name');
+			$root
+				.find('.church-admin-directory-name[data-id="' + id + '"]')
+				.addClass('church-admin-highlighted-name');
+			var sel = $root.find('.emerson-directory-picker__select').get(0);
+			if (sel && String(sel.value) !== id) {
+				sel.value = id;
+			}
+			showPerson(id);
+		}
+
 		function prefetchLetter(letter) {
 			if (!letter) {
 				return;
@@ -3562,19 +3581,16 @@
 			$root.find('.letter-' + letter).show();
 			var firstId = $(this).data('firstid');
 			if (firstId) {
-				showPerson(firstId);
+				// Letter resets to that letter’s first household — move highlight with it.
+				selectHousehold(firstId);
 			}
 			prefetchLetter(letter);
 		});
 
 		$root.find('.church-admin-directory-name').off('click').on('click', function () {
-			$root
-				.find('.church-admin-directory-name')
-				.removeClass('church-admin-highlighted-name');
-			$(this).addClass('church-admin-highlighted-name');
 			var householdId = $(this).data('id');
 			if (householdId) {
-				showPerson(householdId);
+				selectHousehold(householdId);
 			}
 		});
 	});

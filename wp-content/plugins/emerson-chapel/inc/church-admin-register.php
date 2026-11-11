@@ -397,10 +397,12 @@ function emerson_ca_begin_register_spoof(): void {
  * End spoofing, persist type/marital/privacy, and repair select markup.
  */
 function emerson_ca_finish_register_output( string $output ): string {
+	$spoof_household = (int) ( $GLOBALS['emerson_ca_spoof_household_id'] ?? 0 );
 	remove_filter( 'query', 'emerson_ca_spoof_household_query' );
 	unset( $GLOBALS['emerson_ca_spoof_household_id'] );
 	emerson_ca_persist_person_type_and_marital();
 	emerson_ca_persist_wedding_anniversary();
+	emerson_ca_maybe_clear_anniversary_after_delete( $spoof_household );
 	emerson_ca_restore_person_directory_visibility();
 	$output = emerson_ca_fix_person_type_and_marital_selects( $output );
 	$output = emerson_ca_add_household_contact_fields( $output );
@@ -859,6 +861,107 @@ function emerson_ca_married_status_id(): string {
 }
 
 /**
+ * True when at least one person in the household is Married.
+ */
+function emerson_ca_household_has_married_person( int $household_id ): bool {
+	if ( $household_id < 1 ) {
+		return false;
+	}
+	global $wpdb;
+	$found = (int) $wpdb->get_var(
+		$wpdb->prepare(
+			'SELECT people_id FROM ' . $wpdb->prefix . 'church_admin_people
+			WHERE household_id = %d AND marital_status = %d LIMIT 1',
+			$household_id,
+			(int) emerson_ca_married_status_id()
+		)
+	);
+	return $found > 0;
+}
+
+/**
+ * Clear household.wedding_anniversary (NULL).
+ */
+function emerson_ca_clear_household_wedding_anniversary( int $household_id ): void {
+	if ( $household_id < 1 ) {
+		return;
+	}
+	global $wpdb;
+	$wpdb->update(
+		$wpdb->prefix . 'church_admin_household',
+		array( 'wedding_anniversary' => null ),
+		array( 'household_id' => $household_id ),
+		array( '%s' ),
+		array( '%d' )
+	);
+}
+
+/**
+ * After delete-person: drop leftover anniversary if nobody left is Married.
+ *
+ * @param int $hint_household_id Spoof/target household from before CA deleted the person.
+ */
+function emerson_ca_maybe_clear_anniversary_after_delete( int $hint_household_id = 0 ): void {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	if ( empty( $_POST['ca-cmd'] ) || 'delete-person' !== $_POST['ca-cmd'] ) {
+		return;
+	}
+	if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( (string) $_POST['nonce'] ) ), 'delete-person' ) ) {
+		return;
+	}
+
+	$household_id = $hint_household_id;
+	if ( $household_id < 1 ) {
+		global $wpdb;
+		$household_id = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT household_id FROM ' . $wpdb->prefix . 'church_admin_people WHERE user_id = %d',
+				get_current_user_id()
+			)
+		);
+	}
+	if ( $household_id < 1 ) {
+		return;
+	}
+	if ( ! emerson_ca_household_has_married_person( $household_id ) ) {
+		emerson_ca_clear_household_wedding_anniversary( $household_id );
+	}
+}
+
+/**
+ * One-shot: clear household anniversaries with no Married person left (stale after divorce / partner leave).
+ */
+function emerson_ca_scrub_stale_wedding_anniversaries_once(): void {
+	if ( get_option( 'emerson_ca_wa_scrub_v2' ) ) {
+		return;
+	}
+	global $wpdb;
+	$married = (int) emerson_ca_married_status_id();
+	$people  = $wpdb->prefix . 'church_admin_people';
+	$house   = $wpdb->prefix . 'church_admin_household';
+	// DATE column: IS NOT NULL only (comparisons to '' / 0000-00-00 abort under strict SQL).
+	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
+	$result = $wpdb->query(
+		$wpdb->prepare(
+			"UPDATE {$house} h
+			SET h.wedding_anniversary = NULL
+			WHERE h.wedding_anniversary IS NOT NULL
+			AND NOT EXISTS (
+				SELECT 1 FROM {$people} p
+				WHERE p.household_id = h.household_id AND p.marital_status = %d
+			)",
+			$married
+		)
+	);
+	if ( false !== $result ) {
+		update_option( 'emerson_ca_wa_scrub_v2', 1, false );
+		delete_option( 'emerson_ca_wa_scrub_v1' );
+	}
+}
+
+add_action( 'init', 'emerson_ca_scrub_stale_wedding_anniversaries_once', 25 );
+
+/**
  * Enqueue register JS (footer). Safe to call during shortcode render after
  * wp_enqueue_scripts — WP still prints footer scripts queued late.
  */
@@ -1032,16 +1135,14 @@ function emerson_ca_normalize_typed_date_posts(): void {
  * Person save never writes household.wedding_anniversary; persist it after edit-person.
  * CA's picker only fills the hidden Y-m-d field when a calendar day is clicked — typed
  * values land in wedding_anniversaryx, so we parse that too.
+ * Non-Married status clears the household date so divorce / partner-leave does not leave
+ * a stale anniversary (Edit information never shows it, but the DB would keep it).
  */
 function emerson_ca_persist_wedding_anniversary(): void {
 	if ( empty( $_POST['ca-cmd'] ) || 'edit-person' !== $_POST['ca-cmd'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		return;
 	}
 	if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( (string) $_POST['nonce'] ) ), 'edit-person' ) ) {
-		return;
-	}
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing
-	if ( ! isset( $_POST['wedding_anniversary'] ) && ! isset( $_POST['wedding_anniversaryx'] ) ) {
 		return;
 	}
 
@@ -1056,7 +1157,7 @@ function emerson_ca_persist_wedding_anniversary(): void {
 	global $wpdb;
 	$person = $wpdb->get_row(
 		$wpdb->prepare(
-			'SELECT people_id, household_id FROM ' . $wpdb->prefix . 'church_admin_people WHERE people_id = %d',
+			'SELECT people_id, household_id, marital_status FROM ' . $wpdb->prefix . 'church_admin_people WHERE people_id = %d',
 			$people_id
 		)
 	);
@@ -1073,6 +1174,21 @@ function emerson_ca_persist_wedding_anniversary(): void {
 	$allowed = emerson_ca_is_directory_editor()
 		|| ( $editor_household > 0 && (int) $person->household_id === $editor_household );
 	if ( ! $allowed ) {
+		return;
+	}
+
+	$married_id = (int) emerson_ca_married_status_id();
+	// Prefer POST (just saved by persist_person_type_and_marital); fall back to DB row.
+	$status = isset( $_POST['marital_status'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		? (int) $_POST['marital_status']
+		: (int) $person->marital_status;
+	if ( $status !== $married_id ) {
+		emerson_ca_clear_household_wedding_anniversary( (int) $person->household_id );
+		return;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	if ( ! isset( $_POST['wedding_anniversary'] ) && ! isset( $_POST['wedding_anniversaryx'] ) ) {
 		return;
 	}
 

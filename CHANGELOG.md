@@ -10,6 +10,12 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
+## 2026-11-11
+
+### Clear stale wedding anniversary when not Married
+- Household `wedding_anniversary` could linger after divorce or after a partner was deleted (Edit information never shows it). Emerson now clears it when Edit person saves a non-Married status, and after delete-person when nobody left in the household is Married. A one-shot scrub removes existing leftovers with no Married person.
+- **File:** `inc/church-admin-register.php`.
+
 ## 2026-11-10
 
 ### Register Edit / Delete buttons match Back button size

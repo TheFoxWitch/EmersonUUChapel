@@ -85,7 +85,11 @@ function emerson_calendar_fix_today_markers( array $data ): array {
 	$nums  = isset( $data['dateNumber'] ) && is_array( $data['dateNumber'] ) ? $data['dateNumber'] : array();
 
 	foreach ( $data['dates'] as $i => $html ) {
-		if ( ! is_string( $html ) || $html === '' ) {
+		// Empty days arrive as bare integers from CA JSON (e.g. 10), not strings —
+		// skipping them left today black when the cell had no events.
+		if ( is_int( $html ) || is_float( $html ) ) {
+			$html = (string) (int) $html;
+		} elseif ( ! is_string( $html ) || $html === '' ) {
 			continue;
 		}
 		$html = preg_replace( '/<span class="ca-today">(\d+)<\/span>/', '$1', $html ) ?? $html;

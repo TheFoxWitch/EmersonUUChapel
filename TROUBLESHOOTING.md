@@ -201,6 +201,10 @@ Custom dialogs and the built-in pledge / recommitment / PayPal openers are drive
 - **Cause:** Church Admin only lists people with **“To show me on the password protected address list”** checked (`show_me=1`). New people default to unchecked, so they can appear under Edit Profile while staying off the directory.
 - **Fix:** Edit that person, tick the box, Save, reload Members. Not an Emerson filter.
 
+### Wedding anniversary still in the database after divorce / partner removed
+- **Cause:** The date is on the household row. Delete-person and Edit information do not clear it; Emerson only hid the field when status was not Married.
+- **Fix (2026-11-11):** Non-Married Edit person save clears it; delete-person clears it when no Married person remains; one-shot scrub removes existing leftovers.
+
 ### Register Edit address / Edit person / Delete look smaller than Back
 - **Cause:** Those actions use CA’s `church-admin-button` (green/red). Emerson’s larger sizing only targeted `church-admin-register-button` (Back / Save).
 - **Fix (2026-11-10):** Same size metrics apply to register `church-admin-button` controls; colours stay green/red. The overview green button reads **Edit information** (still opens CA’s edit-address form).

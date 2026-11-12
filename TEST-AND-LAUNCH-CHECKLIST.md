@@ -313,7 +313,7 @@ A new file (or a different tab) has a different address. The old URL will keep s
 5. Click **Save URL**.
 6. Confirm **Last fetch** shows a time, a row count, and no error. October should list **Courage** if that is still the October theme.
 
-The sheet must be shared so **anyone with the link can view**. Editor access is not required for the site to read it. **Planning Calendar** on `/calendar/` is shown to everyone (logged in or not).
+The sheet must be shared so **anyone with the link can view** (the site reads a public CSV/export). Editor access is not required for the site to read it. **Edit Planning Calendar** under the month grid on `/calendar/` is only for Administrators, Editors, and the Sunday Schedule designated list — it opens the Google Sheet in **edit** mode (`/edit?gid=…`) for the person who maintains the sheet.
 
 Serving-role columns (liturgist, greeter, and so on) stay off the public calendar on purpose. The month PDF is **This calendar PDF** at the top of the Calendar page, not under the month name.
 

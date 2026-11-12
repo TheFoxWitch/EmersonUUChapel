@@ -562,12 +562,35 @@ function emerson_schedule_sunday( string $ymd ): ?array {
 	return is_array( $row ) ? $row : null;
 }
 
+/**
+ * Google Sheets edit URL for the Sunday Morning Schedule tab (gid preserved).
+ * Site fetch may store a /view link; designated people need /edit.
+ */
+function emerson_schedule_sheet_edit_url( string $url = '' ): string {
+	$url    = $url !== '' ? $url : emerson_schedule_sheet_url();
+	$parsed = emerson_schedule_sheet_parse_url( $url );
+	if ( ! $parsed ) {
+		return '';
+	}
+	$edit = 'https://docs.google.com/spreadsheets/d/' . rawurlencode( $parsed['id'] ) . '/edit';
+	if ( $parsed['gid'] !== '' ) {
+		$edit = add_query_arg( 'gid', $parsed['gid'], $edit );
+	}
+	return $edit;
+}
+
+/**
+ * Edit link for the sheet owner / designated roster viewers (not public).
+ */
 function emerson_schedule_planning_link_html(): string {
-	$url = emerson_schedule_sheet_url();
+	if ( ! emerson_schedule_can_view_roster() ) {
+		return '';
+	}
+	$url = emerson_schedule_sheet_edit_url();
 	if ( $url === '' ) {
 		return '';
 	}
-	return '<p class="emerson-planning-calendar"><a href="' . esc_url( $url ) . '">Planning Calendar</a></p>';
+	return '<p class="emerson-planning-calendar"><a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">Edit Planning Calendar</a></p>';
 }
 
 function emerson_schedule_theme_html( string $ym ): string {

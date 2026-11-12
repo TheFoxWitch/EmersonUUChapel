@@ -12,6 +12,17 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ## 2026-11-11
 
+### Edit Planning Calendar link for designated people
+- Under the month grid on `/calendar/`, **Edit Planning Calendar** shows again only for Administrators, Editors, and the Sunday Schedule designated list (not the public). The href uses the Google Sheet **edit** URL with the Sunday tab `gid`, even when the stored admin URL is a `/view` link.
+- **File:** `inc/sunday-schedule-sheet.php`, `TEST-AND-LAUNCH-CHECKLIST.md`.
+
+### Privacy Policy, Cookies, and Terms of Use (Harlan revision)
+- Privacy (page 3): firmer 24‑month deletion for on-site form copies; new **Photos, recordings, and livestreams** section; Google bullet no longer claims privacy-enhanced YouTube for every embed.
+- Cookies (1075): new **Newsletter emails** (Mailchimp tracking pixel); YouTube line uses the cautious “may set cookies when you play them” wording (Church Admin still has some non-nocookie embeds).
+- Terms (1076): livestream attendance line; PayPal / “as is” clarification; member conduct; St. Charles County venue; cleaned third-party paragraph.
+- **Local DB** only (travels with WPvivid). Backups: `backups/pages/*-before-harlan-revision.html`. Still needs leadership approval before launch.
+- **Internal follow-ups** (HANDOFF): name form-deletion owner + yearly reminder; optional CFF auto-delete; board recording notices / child-photo consent.
+
 ### Clear stale wedding anniversary when not Married
 - Household `wedding_anniversary` could linger after divorce or after a partner was deleted (Edit information never shows it). Emerson now clears it when Edit person saves a non-Married status, and after delete-person when nobody left in the household is Married. A one-shot scrub removes existing leftovers with no Married person.
 - **File:** `inc/church-admin-register.php`.

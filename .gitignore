@@ -3,6 +3,12 @@
 db-init/*.sql
 .DS_Store
 
+# Google Cloud credential downloads (OAuth client secrets, service accounts — never commit)
+client_secret*.json
+*-credentials.json
+service-account*.json
+**/google-credentials*.json
+
 # Local-only leftovers (not site code; phone backup must stay out of git)
 Magazines.xlsx
 backups/pages/page-*-before-remove-phones.html

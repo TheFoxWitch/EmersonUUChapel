@@ -2292,6 +2292,90 @@ input.ca-search-submit:focus-visible {
 	padding: 0.75rem 1rem 1rem;
 }
 
+/*
+ * Tablet/phone: keep the float card centred in the content column, and stop
+ * Church Admin’s fixed 630px calendar table from shoving it off-screen.
+ * The bare Yearly Planner table at the top was only ~half width and left-aligned.
+ */
+@media (max-width: 1000px) {
+	.home .church-admin-shortcode-output,
+	.page-id-70 .church-admin-shortcode-output {
+		width: 100%;
+		max-width: 100%;
+		margin-left: auto;
+		margin-right: auto;
+		box-sizing: border-box;
+	}
+
+	.home .church-admin-calendar,
+	.page-id-70 .church-admin-calendar,
+	.emerson-schedule {
+		width: 100%;
+		max-width: 100%;
+		margin-left: auto;
+		margin-right: auto;
+		overflow-x: hidden;
+	}
+
+	.church-admin-calendar table.church_admin_premium_calendar,
+	table.church_admin_premium_calendar {
+		width: 100% !important;
+		max-width: 100% !important;
+	}
+
+	.home .church-admin-calendar > table,
+	.page-id-70 .church-admin-calendar > table {
+		width: 100%;
+		max-width: 100%;
+		margin: 0 auto 0.5rem;
+		border-collapse: collapse;
+		table-layout: auto;
+	}
+
+	.home .church-admin-calendar > table td,
+	.page-id-70 .church-admin-calendar > table td {
+		text-align: center;
+		vertical-align: middle;
+	}
+
+	/* CA dumps the PDF link after the bare planner table; keep it centred with the rest. */
+	.home .church-admin-calendar > p,
+	.page-id-70 .church-admin-calendar > p {
+		text-align: center;
+	}
+}
+
+@media (max-width: 782px) {
+	.home .church-admin-calendar > table,
+	.page-id-70 .church-admin-calendar > table,
+	.home .church-admin-calendar > table tbody,
+	.page-id-70 .church-admin-calendar > table tbody,
+	.home .church-admin-calendar > table tr,
+	.page-id-70 .church-admin-calendar > table tr {
+		display: block;
+		width: 100%;
+	}
+
+	.home .church-admin-calendar > table td,
+	.page-id-70 .church-admin-calendar > table td {
+		display: block;
+		width: 100%;
+		padding: 0.2rem 0;
+		text-align: center;
+	}
+
+	.home .church-admin-calendar > table form[name="guideform"],
+	.page-id-70 .church-admin-calendar > table form[name="guideform"],
+	.home .church-admin-calendar > table select,
+	.page-id-70 .church-admin-calendar > table select {
+		display: block;
+		width: 100%;
+		max-width: 20rem;
+		margin-left: auto;
+		margin-right: auto;
+	}
+}
+
 /* Calendar page: centre intro copy under the heading on phone/tablet. */
 @media (max-width: 782px) {
 	.page-id-70 .entry-content > p,
@@ -4008,8 +4092,16 @@ blockquote {
 
 .church-admin-calendar .ca-sidebar-list > li > p {
 	font-size: 1.25em;
-	/* Church Admin sets border-left from the event colour inline; use Emerson Blue. */
-	border-left-color: var(--emerson-blue) !important;
+	/* Church Admin paints a category colour bar; we drop it — it reads as clutter. */
+	border-left: none !important;
+	padding-left: 0 !important;
+}
+
+/* Catch CA’s inline border-left on any sidebar event node, not only the <p>. */
+.church-admin-calendar .ca-sidebar-list > li,
+.church-admin-calendar .ca-sidebar-list > li > p[style*="border-left"] {
+	border-left: none !important;
+	padding-left: 0 !important;
 }
 
 .church-admin-calendar .ca-sidebar-list a.vcf-link {
@@ -4029,9 +4121,9 @@ blockquote {
 	box-sizing: border-box;
 }
 
-/* Upcoming / Planning list: CA paints td.ca-list-event from category bgcolor (Sunday Service = pale yellow). */
+/* Upcoming / Planning list: drop CA’s category colour bar on the event cell. */
 table.ca-calendar-list td.ca-list-event {
-	border-left-color: var(--emerson-blue) !important;
+	border-left: none !important;
 }
 
 /*
@@ -4140,6 +4232,26 @@ table.ca-calendar-list td.ca-list-event {
 }
 
 @media (max-width: 1000px) {
+	/*
+	 * Church Admin sets .ca-calendar-sidebar { width:100%; padding:5px } with
+	 * content-box sizing, so the black outline box is ~10px wider than its
+	 * parent and sits off-centre (flush left, overflowing right). Force
+	 * border-box so width includes padding and the day panel centres.
+	 */
+	.home .church-admin-calendar .ca-calendar,
+	.page-id-70 .church-admin-calendar .ca-calendar,
+	.home .church-admin-calendar .ca-calendar-sidebar,
+	.page-id-70 .church-admin-calendar .ca-calendar-sidebar,
+	.home .church-admin-calendar .ca-calendar-render,
+	.page-id-70 .church-admin-calendar .ca-calendar-render {
+		box-sizing: border-box !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		margin-left: auto;
+		margin-right: auto;
+		flex: none;
+	}
+
 	.emerson-ca-compact .ca-calendar-render {
 		padding: 0.75rem 0.35rem 0;
 	}

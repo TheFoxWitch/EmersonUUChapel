@@ -10,7 +10,21 @@ Problems we ran into and how they were fixed are in [`TROUBLESHOOTING.md`](TROUB
 
 ---
 
-## 2026-11-11
+## 2026-11-16
+
+### Calendar card centred on tablet/phone; drop event colour bars
+- Mobile/tablet: Church Admin’s day panel (`.ca-calendar-sidebar`) used `width: 100%` with content-box padding, so the black outline box sat ~10px wider than its parent and looked off-centre. Emerson now forces `box-sizing: border-box` + `max-width: 100%` on `.ca-calendar` / sidebar / render, centres the Yearly Planner block, and overrides CA’s fixed 630px calendar table.
+- Removed the Emerson blue left bars on sidebar and upcoming-list events (CA’s category `border-left`).
+- **File:** `assets/css/custom.css`.
+
+## 2026-11-12
+
+### Privacy / Cookies church review wording
+- Privacy Policy (page 3): firmer 24‑month on-site form clearing; clearer photos/livestream opening; opt-out adds `office@emersonuuchapel.org`; pledge retention = pledge year + 7 years; Church Admin wording corrected (records live in our DB on our hosting, not a vendor-hosted directory). Newsletter spacing was already correct.
+- Cookies (1075): “select Remember Me”; **Clear the newsletter reminder** confirmed on the page and working.
+- Terms of Use: no wording change (board approval still pending). **Last updated** on all three set to **November 12, 2026** (can change again on final publish).
+- **Local DB** only. Backups: `backups/pages/*-before-church-review-2026-11-12.html` / `*-church-review-2026-11-12.html`.
+- Follow-ups for the office: name yearly CFF entries owner + calendar reminder (auto-delete is a paid CFF add-on, not installed); send pledge retention note to Nancy / bylaws; confirm Mailchimp open/click tracking in the Mailchimp account; post sanctuary recording sign (see handoff).
 
 ### Edit Planning Calendar link for designated people
 - Under the month grid on `/calendar/`, **Edit Planning Calendar** shows again only for Administrators, Editors, and the Sunday Schedule designated list (not the public). The href uses the Google Sheet **edit** URL with the Sunday tab `gid`, even when the stored admin URL is a `/view` link.
